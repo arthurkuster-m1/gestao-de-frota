@@ -1,0 +1,9 @@
+[Unit]
+Description=Atualiza o Frota quando há commit novo
+
+[Timer]
+OnUnitActiveSec=2min
+OnBootSec=2min
+
+[Install]
+WantedBy=timers.target

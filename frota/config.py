@@ -14,6 +14,10 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("dados")
     database_url: str | None = None
+    # Senha de acesso. Vazia = sem login (uso só no seu PC). Na VPS é obrigatória.
+    senha: str = ""
+    segredo: str = "troque-me"  # assina o cookie de sessão; o instalador gera um aleatório
+    cookie_seguro: bool = False  # true atrás de HTTPS
 
     @property
     def db_url(self) -> str:

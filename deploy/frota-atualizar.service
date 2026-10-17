@@ -1,0 +1,7 @@
+[Unit]
+Description=Atualiza o Frota quando há commit novo
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/frota-atualizar.sh
+Nice=10

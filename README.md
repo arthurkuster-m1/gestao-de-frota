@@ -22,6 +22,10 @@ Postgres/Supabase no futuro: `FROTA_DATABASE_URL=postgresql+psycopg://...` (`pip
    mostra o que está ok/com erro e, ao confirmar, cria os comodatos e libera o ZIP com os Word preenchidos.
    Colunas extras viram campos do modelo (coluna "Centro de custo" → `{{ centro_de_custo }}`).
 
+## Na VPS
+
+Veja `deploy/LEIA-ME.md`. Senha única (`FROTA_SENHA`), serviço isolado em `127.0.0.1:8001`, atualização automática por git e backup diário.
+
 ## Próximos passos
 
 Assinatura D4Sign (`Comodato.assinatura` já reservado) · formulário público (Cloudflare Pages → webhook) ·

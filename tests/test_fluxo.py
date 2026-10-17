@@ -107,3 +107,25 @@ def test_modelo_com_campo_desconhecido_falha_claro(client):
 def test_paginas_abrem(client):
     for rota in ("/veiculos", "/clientes", "/comodatos", "/comodatos/lote", "/modelos"):
         assert client.get(rota).status_code == 200, rota
+
+
+def test_login_protege_tudo_quando_ha_senha(client, monkeypatch):
+    monkeypatch.setenv("FROTA_SENHA", "s3gredo")
+    r = client.get("/veiculos")
+    assert r.status_code == 303 and r.headers["location"] == "/login"
+    assert client.post("/veiculos", data={"placa": "AAA1A11"}).status_code == 401
+    assert client.get("/saude").status_code == 200
+    assert "Senha incorreta" in client.post("/login", data={"senha": "errada"}).text
+    assert client.post("/login", data={"senha": "s3gredo"}).status_code == 303
+    assert client.get("/veiculos").status_code == 200
+    client.post("/sair")
+    assert client.get("/veiculos").status_code == 303
+
+
+def test_bloqueia_apos_varias_senhas_erradas(client, monkeypatch):
+    from frota import auth
+    auth._falhas.clear()
+    monkeypatch.setenv("FROTA_SENHA", "s3gredo")
+    for _ in range(5):
+        client.post("/login", data={"senha": "x"})
+    assert "Muitas tentativas" in client.post("/login", data={"senha": "s3gredo"}).text

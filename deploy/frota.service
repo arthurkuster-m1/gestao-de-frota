@@ -1,0 +1,25 @@
+[Unit]
+Description=Frota (gestão de frota)
+After=network.target
+
+[Service]
+User=frota
+Group=frota
+WorkingDirectory=/opt/frota
+EnvironmentFile=/etc/frota.env
+Environment=PYTHONDONTWRITEBYTECODE=1
+ExecStart=/opt/frota/.venv/bin/frota --host 127.0.0.1 --port 8001
+Restart=on-failure
+RestartSec=5
+# Isolamento: este serviço nunca pode tirar recursos do CRM.
+MemoryMax=400M
+CPUWeight=20
+Nice=10
+NoNewPrivileges=true
+ProtectSystem=full
+ProtectHome=true
+PrivateTmp=true
+ReadWritePaths=/var/lib/frota
+
+[Install]
+WantedBy=multi-user.target

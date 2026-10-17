@@ -1,0 +1,7 @@
+[Unit]
+Description=Backup diário do Frota
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/frota-backup.sh
+Nice=10

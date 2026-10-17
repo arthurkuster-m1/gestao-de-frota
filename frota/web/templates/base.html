@@ -6,5 +6,6 @@
 <a href="/clientes" class="{{ 'on' if p.startswith('/clientes') }}">Clientes</a>
 <a href="/comodatos" class="{{ 'on' if p == '/comodatos' }}">Comodatos</a>
 <a href="/comodatos/lote" class="{{ 'on' if p == '/comodatos/lote' }}">Comodatos em lote</a>
-<a href="/modelos" class="{{ 'on' if p.startswith('/modelos') }}">Modelos Word</a></nav>
+<a href="/modelos" class="{{ 'on' if p.startswith('/modelos') }}">Modelos Word</a>
+<form method="post" action="/sair" style="margin-left:auto;align-self:center"><button class="sec">Sair</button></form></nav>
 <main>{% if msg %}<div class="msg">{{ msg }}</div>{% endif %}{% block body %}{% endblock %}</main></body></html>

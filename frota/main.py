@@ -10,7 +10,11 @@ from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from starlette.middleware.sessions import SessionMiddleware
+
+from . import auth
 from . import db as dbmod
+from .config import get_settings
 from .db import get_session
 from .models import Cliente, Comodato, ModeloDocumento, StatusVeiculo, Veiculo
 from .services import colagem, comodatos, documentos
@@ -22,12 +26,20 @@ templates = Jinja2Templates(directory=str(WEB / "templates"))
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
+    cfg = get_settings()
+    if cfg.senha and cfg.segredo == "troque-me":
+        # Com o segredo padrão qualquer um forjaria o cookie de login.
+        raise RuntimeError("Defina FROTA_SEGREDO (valor aleatório) junto com FROTA_SENHA.")
     if dbmod.engine is None:
         dbmod.init_db()
     yield
 
 
 app = FastAPI(title="Frota", lifespan=lifespan)
+# Ordem importa: o último adicionado é o mais externo. A sessão precisa envolver o porteiro.
+app.middleware("http")(auth.exigir_login)
+app.add_middleware(SessionMiddleware, secret_key=get_settings().segredo, max_age=60 * 60 * 24 * 30,
+                   same_site="lax", https_only=get_settings().cookie_seguro, session_cookie="frota")
 app.mount("/static", StaticFiles(directory=str(WEB / "static")), name="static")
 
 
@@ -37,6 +49,33 @@ def render(request: Request, nome: str, **ctx):
 
 def voltar(url: str, msg: str | None = None) -> RedirectResponse:
     return RedirectResponse(url + (f"?msg={quote(msg)}" if msg else ""), status_code=303)
+
+
+@app.get("/saude")
+def saude():
+    return {"ok": True}
+
+
+@app.get("/login")
+def login_form(request: Request):
+    return render(request, "login.html", erro=None)
+
+
+@app.post("/login")
+def login(request: Request, senha: str = Form("")):
+    if auth.esta_bloqueado(request):
+        return render(request, "login.html", erro="Muitas tentativas. Tente de novo em 15 minutos.")
+    if get_settings().senha and auth.senha_confere(senha):
+        request.session["ok"] = True
+        return RedirectResponse("/", status_code=303)
+    auth.registrar_falha(request)
+    return render(request, "login.html", erro="Senha incorreta.")
+
+
+@app.post("/sair")
+def sair(request: Request):
+    request.session.clear()
+    return RedirectResponse("/login", status_code=303)
 
 
 @app.get("/")
