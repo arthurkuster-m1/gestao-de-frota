@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}Comodatos · Frota{% endblock %}{% block body %}
+<h1>Comodatos</h1><p><a class="btn" href="/comodatos/lote">Criar em lote (colar do Excel)</a></p>
+<div class="card"><table><tr><th>Nº</th><th>Cliente</th><th>Placa</th><th>Saída</th><th>Prev. devolução</th><th>Status</th><th>Documento Word</th><th></th></tr>
+{% for c in comodatos %}<tr><td>{{ '%04d'|format(c.numero) }}</td><td>{{ c.cliente.nome }}</td><td><a href="/veiculos/{{ c.veiculo_id }}">{{ c.veiculo.placa }}</a></td>
+<td>{{ c.data_saida.strftime('%d/%m/%Y') }}</td><td>{{ c.data_prevista_devolucao.strftime('%d/%m/%Y') if c.data_prevista_devolucao else '' }}</td><td><span class="tag">{{ c.status }}</span></td>
+<td>{% for m in modelos %}<a href="/comodatos/{{ c.id }}/documento/{{ m.id }}">{{ m.nome }}</a> {% else %}<span class="mut">suba um modelo</span>{% endfor %}</td>
+<td>{% if c.status not in ('encerrado','cancelado') %}<form method="post" action="/comodatos/{{ c.id }}/encerrar"><button class="sec">Encerrar</button></form>{% endif %}</td></tr>
+{% else %}<tr><td colspan="8" class="mut">Nenhum comodato.</td></tr>{% endfor %}</table></div>{% endblock %}

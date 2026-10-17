@@ -1,0 +1,24 @@
+{% extends "base.html" %}{% block title %}Comodatos em lote · Frota{% endblock %}{% block body %}
+<h1>Comodatos em lote</h1>
+{% if criados is not none %}
+<div class="card"><b class="ok">{{ criados|length }} comodato(s) criado(s).</b>
+{% if criados %}{% for m in modelos %}<p>Baixar todos com o modelo <b>{{ m.nome }}</b>: <a class="btn" href="/comodatos/zip/{{ m.id }}?ids={{ criados|map(attribute='id')|join(',') }}">ZIP com {{ criados|length }} Word</a></p>
+{% else %}<p class="mut">Suba um modelo Word em “Modelos Word” para gerar os documentos.</p>{% endfor %}{% endif %}
+{% set falhas = linhas|selectattr('erros')|list %}{% if falhas %}<p class="bad"><b>{{ falhas|length }} linha(s) não criada(s):</b></p>
+<table>{% for l in falhas %}<tr><td>linha {{ l.numero }}</td><td class="bad" style="white-space:normal">{{ l.erros|join('; ') }}</td></tr>{% endfor %}</table>{% endif %}
+<p><a href="/comodatos">Ver comodatos</a></p></div>
+{% else %}
+<div class="card"><p class="mut">Copie as células no Excel (com a linha de cabeçalho) e cole abaixo. Obrigatórias: <code>cliente</code>, <code>placa</code>, <code>data_saida</code>.
+Opcionais: documento (CNPJ/CPF), e-mail, telefone, devolução, responsável, condutor, CNH, finalidade. Qualquer outra coluna vira campo extra do modelo Word.</p>
+<form method="post"><textarea name="texto" placeholder="cliente&#9;placa&#9;data_saida&#9;devolucao…">{{ texto }}</textarea>
+<p><button>Conferir</button></p></form></div>
+{% if linhas is not none %}<div class="card">
+{% set ruins = linhas|selectattr('erros')|list|length %}
+<b>{{ linhas|length }} linha(s): <span class="ok">{{ linhas|length - ruins }} ok</span>{% if ruins %}, <span class="bad">{{ ruins }} com erro</span>{% endif %}</b>
+<table><tr><th>#</th><th>Cliente</th><th>Placa</th><th>Saída</th><th>Devolução</th><th>Situação</th></tr>
+{% for l in linhas %}<tr><td>{{ l.numero }}</td><td>{{ l.valores.get('cliente_nome','') }}</td><td>{{ l.valores.get('placa','') }}</td>
+<td>{{ l.valores.get('data_saida').strftime('%d/%m/%Y') if l.valores.get('data_saida') else '' }}</td><td>{{ l.valores.get('data_prevista_devolucao').strftime('%d/%m/%Y') if l.valores.get('data_prevista_devolucao') else '' }}</td>
+<td>{% if l.erros %}<span class="bad">{{ l.erros|join('; ') }}</span>{% else %}<span class="ok">ok</span>{% endif %}</td></tr>{% endfor %}</table>
+{% if linhas|length - ruins > 0 %}<form method="post"><input type="hidden" name="texto" value="{{ texto }}"><input type="hidden" name="confirmar" value="1">
+<p><button>Criar {{ linhas|length - ruins }} comodato(s){% if ruins %} (as {{ ruins }} com erro serão ignoradas){% endif %}</button></p></form>{% endif %}</div>{% endif %}
+{% endif %}{% endblock %}

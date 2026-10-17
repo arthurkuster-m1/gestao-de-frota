@@ -1,0 +1,10 @@
+<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Frota{% endblock %}</title><link rel="stylesheet" href="/static/app.css"></head><body>
+<nav><b>Frota</b>
+{% set p = request.url.path %}
+<a href="/veiculos" class="{{ 'on' if p.startswith('/veiculos') }}">Veículos</a>
+<a href="/clientes" class="{{ 'on' if p.startswith('/clientes') }}">Clientes</a>
+<a href="/comodatos" class="{{ 'on' if p == '/comodatos' }}">Comodatos</a>
+<a href="/comodatos/lote" class="{{ 'on' if p == '/comodatos/lote' }}">Comodatos em lote</a>
+<a href="/modelos" class="{{ 'on' if p.startswith('/modelos') }}">Modelos Word</a></nav>
+<main>{% if msg %}<div class="msg">{{ msg }}</div>{% endif %}{% block body %}{% endblock %}</main></body></html>

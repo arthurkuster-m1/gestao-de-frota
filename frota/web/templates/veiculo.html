@@ -1,0 +1,8 @@
+{% extends "base.html" %}{% block title %}{{ v.placa }} · Frota{% endblock %}{% block body %}
+<h1>{{ v.placa }} <span class="tag">{{ v.status }}</span></h1>
+<div class="card">{{ v.marca or '' }} {{ v.modelo or '' }} · {{ v.cor or '' }} · chassi {{ v.chassi or '—' }} · RENAVAM {{ v.renavam or '—' }}</div>
+<div class="card"><form class="row" method="post" action="/veiculos/{{ v.id }}/status"><select name="status">{% for s in statuses %}<option {{ 'selected' if s==v.status }}>{{ s }}</option>{% endfor %}</select>
+<input name="observacao" placeholder="Observação" size="30"><button>Mudar status</button></form></div>
+<div class="card"><b>Histórico</b><table><tr><th>Quando</th><th>Evento</th><th>De → Para</th><th>Obs.</th></tr>
+{% for e in v.eventos|reverse %}<tr><td>{{ e.em.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.tipo }}</td><td>{{ e.de_status or '' }} → {{ e.para_status or '' }}</td><td>{{ e.observacao or '' }}</td></tr>
+{% else %}<tr><td colspan="4" class="mut">Sem eventos.</td></tr>{% endfor %}</table></div>{% endblock %}

@@ -1,0 +1,29 @@
+[project]
+name = "frota"
+version = "0.1.0"
+description = "Gestão de frota: veículos, comodatos, multas, sinistros e seguros. 100% local (SQLite) ou Postgres."
+requires-python = ">=3.12"
+dependencies = [
+  "fastapi>=0.115",
+  "uvicorn>=0.30",
+  "sqlalchemy>=2.0",
+  "alembic>=1.13",
+  "pydantic-settings>=2.4",
+  "jinja2>=3.1",
+  "python-multipart>=0.0.9",
+  "docxtpl>=0.18",
+  "python-docx>=1.1",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "httpx>=0.27"]
+postgres = ["psycopg[binary]>=3.2"]
+
+[project.scripts]
+frota = "frota.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["frota*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
