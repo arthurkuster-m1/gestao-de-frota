@@ -12,6 +12,14 @@ PORTA=8001
 
 [ "$(id -u)" = 0 ] || { echo "Rode com sudo."; exit 1; }
 
+# 0. Python 3.12+ e o módulo venv (sem eles a instalação morre no meio).
+PY=$(command -v python3.12 || command -v python3.13 || command -v python3 || true)
+if [ -z "$PY" ] || ! "$PY" -c 'import sys; sys.exit(sys.version_info < (3, 12))' 2>/dev/null; then
+  echo "Precisa de Python 3.12 ou mais novo (atual: $("${PY:-python3}" --version 2>&1))."
+  echo "No Ubuntu/Debian:  sudo apt update && sudo apt install -y python3.12 python3.12-venv"; exit 1
+fi
+"$PY" -c 'import venv, ensurepip' 2>/dev/null || { echo "Falta o venv. Rode:  sudo apt install -y ${PY##*/}-venv"; exit 1; }
+
 # 1. A porta precisa estar livre (não podemos atropelar nada do CRM).
 if ss -ltn "sport = :$PORTA" | grep -q LISTEN && ! systemctl is-active --quiet frota; then
   echo "A porta $PORTA já está em uso por outro programa. Nada foi alterado."; exit 1
@@ -40,7 +48,7 @@ mkdir -p "$DADOS" && chown frota:frota "$DADOS" && chmod 700 "$DADOS"
 GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"; export GIT_SSH_COMMAND
 if [ -d "$DIR/.git" ]; then git -C "$DIR" fetch -q origin "$BRANCH" && git -C "$DIR" checkout -q "$BRANCH" && git -C "$DIR" reset -q --hard "origin/$BRANCH"
 else git clone -q --branch "$BRANCH" "$REPO" "$DIR"; fi
-[ -d "$DIR/.venv" ] || python3 -m venv "$DIR/.venv"
+[ -d "$DIR/.venv" ] || "$PY" -m venv "$DIR/.venv"
 "$DIR/.venv/bin/pip" install -q --upgrade pip && "$DIR/.venv/bin/pip" install -q -e "$DIR"
 
 # 4. Configuração (senha e segredo gerados uma única vez).
