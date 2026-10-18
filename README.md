@@ -14,6 +14,15 @@ pytest
 Tudo fica na pasta `dados/` (banco SQLite + modelos Word). Para backup ou outro PC, copie a pasta.
 Postgres/Supabase no futuro: `FROTA_DATABASE_URL=postgresql+psycopg://...` (`pip install -e ".[postgres]"`).
 
+## Banco e migrations
+
+O esquema evolui por migrations do Alembic em `frota/migracoes/versions/`, aplicadas sozinhas quando o
+Frota sobe. Um banco antigo, de antes do Alembic, é reconhecido e recebe só o carimbo da `0001`.
+
+Para mudar uma tabela: altere `frota/models.py` e rode `frota-migracao "o que mudou"`. Isso gera o
+próximo arquivo numerado (`0002_...`). Revise e commite junto com a mudança do models. O teste
+`tests/test_migracoes.py` reprova se o `models.py` mudar sem migration.
+
 ## Comodato em Word
 
 1. **Modelos Word**: suba um `.docx` com campos `{{ cliente_nome }}`, `{{ veiculo_placa }}`, `{{ data_saida }}` etc.

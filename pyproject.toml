@@ -22,9 +22,13 @@ postgres = ["psycopg[binary]>=3.2"]
 
 [project.scripts]
 frota = "frota.cli:main"
+frota-migracao = "frota.db:nova_migracao"
 
 [tool.setuptools.packages.find]
 include = ["frota*"]
+
+[tool.setuptools.package-data]
+frota = ["migracoes/script.py.mako", "web/templates/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
