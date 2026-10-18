@@ -1,0 +1,2 @@
+Fontes copiadas do CRM M1 Growth (app/fonts), servidas pelo Google Fonts sem alteração.
+Montserrat, Atkinson Hyperlegible e IBM Plex Mono: licença SIL Open Font License 1.1 (OFL.txt).

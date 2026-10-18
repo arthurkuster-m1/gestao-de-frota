@@ -1,15 +1,15 @@
-{% extends "base.html" %}{% block title %}Veículos · Frota{% endblock %}{% block body %}
-<h1>Veículos</h1>
-<div class="chips"><a class="tag" href="/veiculos">todos ({{ contagem.values()|sum }})</a>
-{% for s, n in contagem.items() %}<a class="tag" href="/veiculos?status={{ s }}">{{ s }} ({{ n }})</a>{% endfor %}</div>
-<div class="card"><form class="row" method="post" action="/veiculos">
+{% extends "base.html" %}{% from "_ui.html" import icone, status as tag_status, rotulo %}{% block title %}Veículos · Frota{% endblock %}{% block body %}
+<div class="cabecalho"><div><h1>Veículos</h1><p>{{ contagem.values()|sum }} veículo(s) na frota</p></div></div>
+<div class="chips"><a class="chip {{ 'on' if not status }}" href="/veiculos">Todos <span class="num">{{ contagem.values()|sum }}</span></a>
+{% for s, n in contagem.items() %}<a class="chip {{ 'on' if s == status }}" href="/veiculos?status={{ s }}">{{ rotulo(s) }} <span class="num">{{ n }}</span></a>{% endfor %}</div>
+<div class="card"><h3>Adicionar veículo</h3><form class="row" method="post" action="/veiculos">
 <input name="placa" placeholder="Placa" required size="9"><input name="marca" placeholder="Marca" size="10">
 <input name="modelo" placeholder="Modelo" size="14"><input name="cor" placeholder="Cor" size="8">
-<input name="ano_fabricacao" type="number" placeholder="Ano fab." style="width:90px"><input name="ano_modelo" type="number" placeholder="Ano mod." style="width:90px">
-<input name="chassi" placeholder="Chassi" size="18"><input name="renavam" placeholder="RENAVAM" size="12"><button>Adicionar</button></form></div>
-<div class="card"><form class="row" method="get" style="margin-bottom:10px"><input name="q" value="{{ q }}" placeholder="Buscar placa ou modelo">
-<select name="status"><option value="">todos os status</option>{% for s in statuses %}<option {{ 'selected' if s==status }}>{{ s }}</option>{% endfor %}</select><button class="sec">Filtrar</button></form>
+<input name="ano_fabricacao" type="number" placeholder="Ano fab." style="width:116px"><input name="ano_modelo" type="number" placeholder="Ano mod." style="width:116px">
+<input name="chassi" placeholder="Chassi" size="18"><input name="renavam" placeholder="RENAVAM" size="12"><button>{{ icone("plus") }}Adicionar</button></form></div>
+<div class="card"><form class="row" method="get" style="margin-bottom:12px"><input name="q" value="{{ q }}" placeholder="Buscar placa ou modelo">
+<select name="status"><option value="">Todos os status</option>{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s==status }}>{{ rotulo(s) }}</option>{% endfor %}</select><button class="sec">{{ icone("magnifying-glass") }}Filtrar</button></form>
 <table><tr><th>Placa</th><th>Veículo</th><th>Cor</th><th>Ano</th><th>Status</th></tr>
-{% for v in veiculos %}<tr><td><a href="/veiculos/{{ v.id }}">{{ v.placa }}</a></td><td>{{ v.marca or '' }} {{ v.modelo or '' }}</td><td>{{ v.cor or '' }}</td>
-<td>{{ v.ano_fabricacao or '' }}/{{ v.ano_modelo or '' }}</td><td><span class="tag">{{ v.status }}</span></td></tr>
-{% else %}<tr><td colspan="5" class="mut">Nenhum veículo.</td></tr>{% endfor %}</table></div>{% endblock %}
+{% for v in veiculos %}<tr><td class="num"><a href="/veiculos/{{ v.id }}">{{ v.placa }}</a></td><td>{{ v.marca or '' }} {{ v.modelo or '' }}</td><td>{{ v.cor or '' }}</td>
+<td class="num">{{ v.ano_fabricacao or '' }}/{{ v.ano_modelo or '' }}</td><td>{{ tag_status(v.status) }}</td></tr>
+{% else %}<tr><td colspan="5"><div class="vazio">{{ icone("car") }}<div>Nenhum veículo.</div></div></td></tr>{% endfor %}</table></div>{% endblock %}

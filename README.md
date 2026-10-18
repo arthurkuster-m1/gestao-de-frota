@@ -23,6 +23,11 @@ Para mudar uma tabela: altere `frota/models.py` e rode `frota-migracao "o que mu
 próximo arquivo numerado (`0002_...`). Revise e commite junto com a mudança do models. O teste
 `tests/test_migracoes.py` reprova se o `models.py` mudar sem migration.
 
+## Visual
+
+Mesmo design do CRM M1 Growth, com destaque em azul (`#3366A0`). Guia em
+[`docs/design-system.md`](docs/design-system.md); a tela **Design system** (`/design`) mostra cada peça.
+
 ## Comodato em Word
 
 1. **Modelos Word**: suba um `.docx` com campos `{{ cliente_nome }}`, `{{ veiculo_placa }}`, `{{ data_saida }}` etc.

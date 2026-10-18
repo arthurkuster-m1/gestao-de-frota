@@ -1,10 +1,10 @@
-{% extends "base.html" %}{% block title %}Modelos Word · Frota{% endblock %}{% block body %}
-<h1>Modelos Word</h1>
-<div class="card"><p class="mut">Suba um .docx com campos entre chaves duplas, por exemplo <code>{{ '{{ cliente_nome }}' }}</code>. O sistema devolve o mesmo Word com os dados trocados.</p>
+{% extends "base.html" %}{% from "_ui.html" import icone %}{% block title %}Modelos Word · Frota{% endblock %}{% block body %}
+<div class="cabecalho"><div><h1>Modelos Word</h1><p>O sistema devolve o mesmo Word com os dados trocados</p></div></div>
+<div class="card"><p class="mut">Suba um .docx com campos entre chaves duplas, por exemplo <code>{{ '{{ cliente_nome }}' }}</code>.</p>
 <form class="row" method="post" action="/modelos" enctype="multipart/form-data"><input name="nome" placeholder="Nome do modelo" required>
-<input type="file" name="arquivo" accept=".docx" required><button>Enviar modelo</button></form></div>
-<div class="card"><b>Seus modelos</b><table><tr><th>Nome</th><th>Campos encontrados</th></tr>
+<input type="file" name="arquivo" accept=".docx" required><button>{{ icone("plus") }}Enviar modelo</button></form></div>
+<div class="card"><h3>Seus modelos</h3><table><tr><th>Nome</th><th>Campos encontrados</th></tr>
 {% for m in modelos %}<tr><td>{{ m.nome }}</td><td style="white-space:normal">{% for c in m.campos %}<code>{{ c }}</code> {% endfor %}</td></tr>
-{% else %}<tr><td colspan="2" class="mut">Nenhum modelo ainda.</td></tr>{% endfor %}</table></div>
-<div class="card"><b>Campos que o sistema preenche</b><p style="white-space:normal">{% for c in campos_oficiais %}<code>{{ c }}</code> {% endfor %}</p>
+{% else %}<tr><td colspan="2"><div class="vazio">{{ icone("file-doc") }}<div>Nenhum modelo ainda.</div></div></td></tr>{% endfor %}</table></div>
+<div class="card"><h3>Campos que o sistema preenche</h3><p style="white-space:normal;line-height:28px">{% for c in campos_oficiais %}<code>{{ c }}</code> {% endfor %}</p>
 <p class="mut">Colunas extras da planilha colada também viram campos (ex.: coluna “Centro de custo” → <code>centro_de_custo</code>).</p></div>{% endblock %}

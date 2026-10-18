@@ -83,6 +83,11 @@ def raiz():
     return RedirectResponse("/veiculos")
 
 
+@app.get("/design")
+def design(request: Request):
+    return render(request, "design.html")
+
+
 # ---------- veículos ----------
 @app.get("/veiculos")
 def veiculos(request: Request, status: str | None = None, q: str = "", db: Session = Depends(get_session)):
