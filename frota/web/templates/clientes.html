@@ -1,8 +1,8 @@
-{% extends "base.html" %}{% block title %}Clientes · Frota{% endblock %}{% block body %}
-<h1>Clientes</h1>
-<div class="card"><form class="row" method="post" action="/clientes"><input name="nome" placeholder="Nome / razão social" required size="26">
+{% extends "base.html" %}{% from "_ui.html" import icone %}{% block title %}Clientes · Frota{% endblock %}{% block body %}
+<div class="cabecalho"><div><h1>Clientes</h1><p>Quem recebe os veículos em comodato</p></div></div>
+<div class="card"><h3>Adicionar cliente</h3><form class="row" method="post" action="/clientes"><input name="nome" placeholder="Nome / razão social" required size="26">
 <input name="documento" placeholder="CNPJ/CPF" size="16"><input name="email" placeholder="E-mail" size="20"><input name="telefone" placeholder="Telefone" size="14">
-<input name="endereco" placeholder="Endereço" size="28"><button>Adicionar</button></form></div>
+<input name="endereco" placeholder="Endereço" size="28"><button>{{ icone("plus") }}Adicionar</button></form></div>
 <div class="card"><table><tr><th>Nome</th><th>Documento</th><th>E-mail</th><th>Telefone</th></tr>
-{% for c in clientes %}<tr><td>{{ c.nome }}</td><td>{{ c.documento or '' }}</td><td>{{ c.email or '' }}</td><td>{{ c.telefone or '' }}</td></tr>
-{% else %}<tr><td colspan="4" class="mut">Nenhum cliente (eles também são criados ao colar a planilha de comodatos).</td></tr>{% endfor %}</table></div>{% endblock %}
+{% for c in clientes %}<tr><td>{{ c.nome }}</td><td class="num">{{ c.documento or '' }}</td><td>{{ c.email or '' }}</td><td class="num">{{ c.telefone or '' }}</td></tr>
+{% else %}<tr><td colspan="4"><div class="vazio">{{ icone("users") }}<div>Nenhum cliente. Eles também são criados ao colar a planilha de comodatos.</div></div></td></tr>{% endfor %}</table></div>{% endblock %}

@@ -1,11 +1,36 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>{% block title %}Frota{% endblock %}</title><link rel="stylesheet" href="/static/app.css"></head><body>
-<nav><b>Frota</b>
+{% from "_ui.html" import icone %}<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>{% block title %}Frota{% endblock %}</title>
+<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="stylesheet" href="/static/app.css"></head><body>
 {% set p = request.url.path %}
-<a href="/veiculos" class="{{ 'on' if p.startswith('/veiculos') }}">Veículos</a>
-<a href="/clientes" class="{{ 'on' if p.startswith('/clientes') }}">Clientes</a>
-<a href="/comodatos" class="{{ 'on' if p == '/comodatos' }}">Comodatos</a>
-<a href="/comodatos/lote" class="{{ 'on' if p == '/comodatos/lote' }}">Comodatos em lote</a>
-<a href="/modelos" class="{{ 'on' if p.startswith('/modelos') }}">Modelos Word</a>
-<form method="post" action="/sair" style="margin-left:auto;align-self:center"><button class="sec">Sair</button></form></nav>
-<main>{% if msg %}<div class="msg">{{ msg }}</div>{% endif %}{% block body %}{% endblock %}</main></body></html>
+{% macro item(href, nome, rotulo, on) %}<a href="{{ href }}" class="{{ 'on' if on }}"{% if on %} aria-current="page"{% endif %}>{{ icone(nome, 'i-off') }}{{ icone(nome ~ '-fill', 'i-on') }}<span>{{ rotulo }}</span></a>{% endmacro %}
+<div class="casca">
+<aside class="lateral" id="lateral">
+  <div class="marca"><span class="marca-inicial" aria-hidden="true">F</span><span class="marca-nome">Frota<span class="marca-sub">Gestão de frota</span></span></div>
+  <nav class="menu" aria-label="Navegação principal">
+    {{ item("/veiculos", "car", "Veículos", p.startswith("/veiculos")) }}
+    {{ item("/clientes", "users", "Clientes", p.startswith("/clientes")) }}
+    <div class="menu-grupo">Comodatos</div>
+    {{ item("/comodatos", "clipboard-text", "Comodatos", p == "/comodatos") }}
+    {{ item("/comodatos/lote", "stack", "Criar em lote", p == "/comodatos/lote") }}
+    {{ item("/modelos", "file-doc", "Modelos Word", p.startswith("/modelos")) }}
+    <div class="menu-grupo">Sistema</div>
+    {{ item("/design", "palette", "Design system", p.startswith("/design")) }}
+  </nav>
+  <div class="lateral-pe">
+    <button type="button" class="sec icone-so" id="tema" title="Trocar tema claro/escuro" aria-label="Trocar tema claro/escuro">{{ icone("moon") }}</button>
+    <form method="post" action="/sair"><button class="sec">{{ icone("sign-out") }}Sair</button></form>
+  </div>
+</aside>
+<div class="veu" onclick="document.body.classList.remove('menu-aberto')"></div>
+<div class="conteudo">
+  <div class="topo-celular"><button type="button" class="fantasma icone-so" aria-label="Abrir menu" aria-controls="lateral" onclick="document.body.classList.add('menu-aberto')">{{ icone("list") }}</button><span class="marca-nome">Frota</span></div>
+  <main>{% if msg %}<div class="msg" role="status">{{ icone("info") }}<span>{{ msg }}</span></div>{% endif %}{% block body %}{% endblock %}</main>
+</div>
+</div>
+<script>
+document.getElementById("tema").onclick=function(){var r=document.documentElement,
+escuro=r.dataset.theme?r.dataset.theme==="dark":matchMedia("(prefers-color-scheme: dark)").matches,
+novo=escuro?"light":"dark";r.dataset.theme=novo;try{localStorage.setItem("tema",novo)}catch(e){}};
+</script>
+</body></html>

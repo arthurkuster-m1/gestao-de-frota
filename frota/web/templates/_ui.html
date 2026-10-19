@@ -1,0 +1,11 @@
+{# Peças do design system. Uso: {% from "_ui.html" import icone, status %} #}
+{% macro icone(nome, classe="") %}<svg class="icone {{ classe }}" aria-hidden="true"><use href="/static/icones.svg#{{ nome }}"/></svg>{% endmacro %}
+
+{% set STATUS = {
+  "disponivel": ("Disponível", "sucesso"), "em_comodato": ("Em comodato", ""), "manutencao": ("Manutenção", "alerta"),
+  "sinistrado": ("Sinistrado", "erro"), "baixado": ("Baixado", "neutro"),
+  "rascunho": ("Rascunho", "neutro"), "gerado": ("Documento gerado", "info"), "enviado": ("Enviado p/ assinatura", "info"),
+  "assinado": ("Assinado", ""), "ativo": ("Ativo", "sucesso"), "encerrado": ("Encerrado", "neutro"), "cancelado": ("Cancelado", "erro"),
+} %}
+{% macro rotulo(s) %}{{ STATUS.get(s, (s, ""))[0] }}{% endmacro %}
+{% macro status(s) %}<span class="tag {{ STATUS.get(s, (s, 'neutro'))[1] }}">{{ STATUS.get(s, (s, ""))[0] }}</span>{% endmacro %}
