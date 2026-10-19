@@ -1,8 +1,9 @@
-{% extends "base.html" %}{% block title %}{{ v.placa }} · Frota{% endblock %}{% block body %}
-<h1>{{ v.placa }} <span class="tag">{{ v.status }}</span></h1>
-<div class="card">{{ v.marca or '' }} {{ v.modelo or '' }} · {{ v.cor or '' }} · chassi {{ v.chassi or '—' }} · RENAVAM {{ v.renavam or '—' }}</div>
-<div class="card"><form class="row" method="post" action="/veiculos/{{ v.id }}/status"><select name="status">{% for s in statuses %}<option {{ 'selected' if s==v.status }}>{{ s }}</option>{% endfor %}</select>
-<input name="observacao" placeholder="Observação" size="30"><button>Mudar status</button></form></div>
-<div class="card"><b>Histórico</b><table><tr><th>Quando</th><th>Evento</th><th>De → Para</th><th>Obs.</th></tr>
-{% for e in v.eventos|reverse %}<tr><td>{{ e.em.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.tipo }}</td><td>{{ e.de_status or '' }} → {{ e.para_status or '' }}</td><td>{{ e.observacao or '' }}</td></tr>
+{% extends "base.html" %}{% from "_ui.html" import status as tag_status, rotulo %}{% block title %}{{ v.placa }} · Frota{% endblock %}{% block body %}
+<div class="cabecalho"><div><h1><span class="mono" style="font-size:inherit">{{ v.placa }}</span> {{ tag_status(v.status) }}</h1>
+<p>{{ v.marca or '' }} {{ v.modelo or '' }}{% if v.cor %} · {{ v.cor }}{% endif %} · chassi <span class="mono">{{ v.chassi or '—' }}</span> · RENAVAM <span class="mono">{{ v.renavam or '—' }}</span></p></div>
+<a class="btn sec" href="/veiculos">Voltar</a></div>
+<div class="card"><h3>Mudar status</h3><form class="row" method="post" action="/veiculos/{{ v.id }}/status"><select name="status">{% for s in statuses %}<option value="{{ s }}" {{ 'selected' if s==v.status }}>{{ rotulo(s) }}</option>{% endfor %}</select>
+<input name="observacao" placeholder="Observação" size="30"><button>Salvar</button></form></div>
+<div class="card"><h3>Histórico</h3><table><tr><th>Quando</th><th>Evento</th><th>De → Para</th><th>Obs.</th></tr>
+{% for e in v.eventos|reverse %}<tr><td class="num">{{ e.em.strftime('%d/%m/%Y %H:%M') }}</td><td>{{ e.tipo }}</td><td>{{ rotulo(e.de_status) if e.de_status else '' }} → {{ rotulo(e.para_status) if e.para_status else '' }}</td><td>{{ e.observacao or '' }}</td></tr>
 {% else %}<tr><td colspan="4" class="mut">Sem eventos.</td></tr>{% endfor %}</table></div>{% endblock %}
