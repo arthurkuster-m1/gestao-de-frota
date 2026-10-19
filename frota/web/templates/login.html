@@ -1,6 +1,8 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Entrar · Frota</title><link rel="stylesheet" href="/static/app.css"></head><body>
-<main style="max-width:360px;margin-top:12vh"><div class="card"><h1>Frota</h1>
-{% if erro %}<div class="msg bad">{{ erro }}</div>{% endif %}
-<form method="post" action="/login"><p><input type="password" name="senha" placeholder="Senha" autofocus required style="width:100%"></p>
-<button style="width:100%">Entrar</button></form></div></main></body></html>
+{% from "_ui.html" import icone, aviso %}<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Entrar · Frota</title>
+<script>try{var t=localStorage.getItem("frota-tema");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="icon" href="data:,"><link rel="stylesheet" href="/static/app.css"></head><body><main class="entrar"><div class="card">
+<div class="marca"><div class="logo">F</div><div><b>Frota</b><span>Gestão de frota</span></div></div>
+{% if erro %}{{ aviso(erro, "erro") }}{% endif %}
+<form method="post" action="/login" class="pagina"><input type="password" name="senha" placeholder="Senha" autofocus required autocomplete="current-password"><button>Entrar</button></form>
+</div></main></body></html>

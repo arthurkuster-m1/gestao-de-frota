@@ -17,7 +17,8 @@ from . import db as dbmod
 from .config import get_settings
 from .db import get_session
 from .models import Cliente, Comodato, ModeloDocumento, StatusVeiculo, Veiculo
-from .services import colagem, comodatos, documentos
+from .services import colagem, comodatos, documentos, inicio as svc_inicio
+from .web import menu as menu_mod
 from .services.comodatos import ErroDeNegocio
 
 WEB = Path(__file__).parent / "web"
@@ -43,12 +44,24 @@ app.add_middleware(SessionMiddleware, secret_key=get_settings().segredo, max_age
 app.mount("/static", StaticFiles(directory=str(WEB / "static")), name="static")
 
 
+def _menu(caminho: str):
+    return [(g, [{"rotulo": i.rotulo, "href": i.href, "icone": i.icone, "breve": i.breve,
+                  "on": menu_mod.ativo(i, caminho)} for i in itens]) for g, itens in menu_mod.GRUPOS]
+
+
 def render(request: Request, nome: str, **ctx):
+    ctx.setdefault("msg", request.query_params.get("msg"))
+    ctx["menu"] = _menu(request.url.path)
+    ctx["com_login"] = bool(get_settings().senha)
     return templates.TemplateResponse(request, nome, ctx)
 
 
 def voltar(url: str, msg: str | None = None) -> RedirectResponse:
     return RedirectResponse(url + (f"?msg={quote(msg)}" if msg else ""), status_code=303)
+
+
+ROTULOS_VEICULO = [("disponivel", "Disponível"), ("em_comodato", "Em comodato"), ("manutencao", "Manutenção"),
+                   ("sinistrado", "Sinistrado"), ("baixado", "Baixado")]
 
 
 @app.get("/saude")
@@ -80,7 +93,69 @@ def sair(request: Request):
 
 @app.get("/")
 def raiz():
-    return RedirectResponse("/veiculos")
+    return RedirectResponse("/inicio")
+
+
+@app.get("/inicio")
+def inicio(request: Request, dia: str = "", db: Session = Depends(get_session)):
+    try:
+        escolhido = date.fromisoformat(dia) if dia else None
+    except ValueError:
+        escolhido = None
+    return render(request, "inicio.html", i=svc_inicio.montar(db, escolhido))
+
+
+# Telas que ainda são só a estrutura: o que vai existir em cada uma (plano em docs/mapa-funcionalidades.md).
+EM_BREVE = {
+    "eventos": ("Eventos", "calendar-dots", "Tabela estilo Notion com todos os eventos e usos da frota, com visualização em linha do tempo.", [
+        "Tipo do evento (Comodato > 1 mês, Evento ou gravação, Corrida, Agrifeira, Experience, Lançamentos…).",
+        "Saídas de veículos ligadas a cada evento, com datas de envio, início e final.",
+        "Visualizações salvas: tabela, linha do tempo, calendário e quadro por situação.",
+    ]),
+    "sinistros": ("Sinistros e Manutenções", "wrench", "Registro de sinistros e manutenções por veículo, com seguro e custos.", [
+        "Sinistros ligados ao veículo e ao comodato vigente na data.",
+        "Manutenções e revisões com custo e prazo.",
+        "Apólices e acionamento do seguro.",
+    ]),
+    "multas": ("Multas", "traffic-signal", "Cadastro de multas com a pesquisa automática de quem estava com o carro.", [
+        "Placa e data/hora da infração cruzadas com o comodato vigente.",
+        "Contato do responsável já levantado, com o prazo de indicação do condutor.",
+        "Importação por planilha.",
+    ]),
+    "devolucoes": ("Devoluções", "arrow-u-up-left", "Acompanhamento do retorno dos veículos e da devolução à montadora.", [
+        "Retornos solicitados, em trânsito e concluídos.",
+        "Checklist de devolução e fotos.",
+        "Datas de devolução e liberação do veículo.",
+    ]),
+    "faturamentos": ("Faturamentos", "receipt", "Notas fiscais e valores cobrados por saída de veículo.", [
+        "Nota fiscal por saída, com aprovação.",
+        "Valores de transporte de ida, retorno e apoio.",
+        "Marcação de faturado por veículo.",
+    ]),
+    "financeiro": ("Dashboard financeiro", "chart-line-up", "Visão dos custos completos da frota.", [
+        "Custo total por veículo, por evento e por transportadora.",
+        "Sinistros, manutenções, multas e transporte somados.",
+        "Evolução mensal.",
+    ]),
+}
+
+
+def _em_breve(chave: str):
+    titulo, icone_nome, resumo, itens = EM_BREVE[chave]
+
+    def pagina(request: Request):
+        return render(request, "em_breve.html", titulo=titulo, icone_pagina=icone_nome,
+                      resumo_pagina=resumo, itens=itens)
+    return pagina
+
+
+for _chave in EM_BREVE:
+    app.get(f"/{_chave}", name=f"em_breve_{_chave}")(_em_breve(_chave))
+
+
+@app.get("/design")
+def design(request: Request):
+    return render(request, "design.html", titulo="Design system")
 
 
 # ---------- veículos ----------
@@ -97,8 +172,7 @@ def veiculos(request: Request, status: str | None = None, q: str = "", db: Sessi
     for v in todos:
         contagem[v.status] += 1
     return render(request, "veiculos.html", veiculos=db.scalars(stmt).all(), contagem=contagem,
-                  status=status, q=q, statuses=[s.value for s in StatusVeiculo],
-                  msg=request.query_params.get("msg"))
+                  status_atual=status, q=q, total=len(todos), statuses=ROTULOS_VEICULO)
 
 
 @app.post("/veiculos")
@@ -121,8 +195,7 @@ def veiculo(request: Request, vid: str, db: Session = Depends(get_session)):
     v = db.get(Veiculo, vid)
     if not v:
         return Response("Veículo não encontrado", status_code=404)
-    return render(request, "veiculo.html", v=v, statuses=[s.value for s in StatusVeiculo],
-                  msg=request.query_params.get("msg"))
+    return render(request, "veiculo.html", v=v, statuses=ROTULOS_VEICULO)
 
 
 @app.post("/veiculos/{vid}/status")
@@ -140,8 +213,7 @@ def veiculo_status(vid: str, status: str = Form(...), observacao: str = Form("")
 # ---------- clientes ----------
 @app.get("/clientes")
 def clientes(request: Request, db: Session = Depends(get_session)):
-    return render(request, "clientes.html", clientes=db.scalars(select(Cliente).order_by(Cliente.nome)).all(),
-                  msg=request.query_params.get("msg"))
+    return render(request, "clientes.html", clientes=db.scalars(select(Cliente).order_by(Cliente.nome)).all())
 
 
 @app.post("/clientes")

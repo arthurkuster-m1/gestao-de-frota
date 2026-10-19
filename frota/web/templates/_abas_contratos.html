@@ -1,0 +1,7 @@
+{% from "_ui.html" import icone %}
+<div class="cabecalho"><div><h1>Contratos de Comodato</h1><p>Modelos Word, geração e acompanhamento dos contratos. A assinatura pela D4Sign entra quando a API for liberada.</p></div></div>
+<nav class="abas" aria-label="Contratos">
+  <a href="/comodatos" class="{{ 'on' if aba == 'lista' }}">{{ icone("clipboard-text") }}Comodatos</a>
+  <a href="/comodatos/lote" class="{{ 'on' if aba == 'lote' }}">{{ icone("stack") }}Criar em lote</a>
+  <a href="/modelos" class="{{ 'on' if aba == 'modelos' }}">{{ icone("file-doc") }}Modelos Word</a>
+</nav>

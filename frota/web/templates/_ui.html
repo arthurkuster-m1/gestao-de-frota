@@ -1,0 +1,26 @@
+{# Peças reutilizáveis do design system. Uso: {% from "_ui.html" import icone, status, vazio %} #}
+{% macro icone(nome, classe="") -%}
+<svg class="ic {{ classe }}" aria-hidden="true"><use href="/static/icones.svg#i-{{ nome }}"/></svg>
+{%- endmacro %}
+
+{# Status -> (texto, cor). A cor sai do status: sucesso, atencao, erro, info, destaque, neutro. #}
+{% set _STATUS = {
+  "disponivel": ("Disponível", "sucesso"), "em_comodato": ("Em comodato", "destaque"),
+  "manutencao": ("Manutenção", "atencao"), "sinistrado": ("Sinistrado", "erro"), "baixado": ("Baixado", "neutro"),
+  "rascunho": ("Rascunho", "neutro"), "gerado": ("Documento gerado", "info"),
+  "enviado": ("Enviado p/ assinatura", "info"), "assinado": ("Assinado", "destaque"),
+  "ativo": ("Ativo", "sucesso"), "encerrado": ("Encerrado", "neutro"), "cancelado": ("Cancelado", "erro"),
+} %}
+{% macro status(chave) -%}
+{%- set t = _STATUS.get(chave, (chave, "neutro")) -%}
+<span class="etiqueta e-{{ t[1] }}">{{ t[0] }}</span>
+{%- endmacro %}
+
+{% macro vazio(nome_icone, titulo, texto="") -%}
+<div class="vazio">{{ icone(nome_icone) }}<b>{{ titulo }}</b>{% if texto %}<p>{{ texto }}</p>{% endif %}</div>
+{%- endmacro %}
+
+{% macro aviso(texto, tipo="info") -%}
+<div class="msg {{ {'info':'','sucesso':'sucesso','alerta':'alerta','erro':'erro'}[tipo] }}" role="status">
+  {{ icone({'info':'info','sucesso':'check-circle','alerta':'warning','erro':'x-circle'}[tipo]) }}<div>{{ texto }}</div></div>
+{%- endmacro %}

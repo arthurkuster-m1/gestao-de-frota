@@ -14,6 +14,8 @@ class Settings(BaseSettings):
 
     data_dir: Path = Path("dados")
     database_url: str | None = None
+    nome: str = "Arthur"  # como a tela de Início te chama
+    fuso: str = "America/Sao_Paulo"  # a VPS roda em UTC; saudação e datas usam este fuso
     # Senha de acesso. Vazia = sem login (uso só no seu PC). Na VPS é obrigatória.
     senha: str = ""
     segredo: str = "troque-me"  # assina o cookie de sessão; o instalador gera um aleatório

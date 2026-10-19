@@ -1,0 +1,22 @@
+{% extends "base.html" %}{% from "_ui.html" import icone, status, aviso %}
+{% block body %}
+<div class="cabecalho"><div><h1>Design system</h1><p>A linguagem visual do CRM M1 Growth, com a cor de destaque em azul. Guia completo em <code>docs/design-system.md</code>.</p></div></div>
+<section class="card"><h3>Azul Frota (cor de destaque)</h3>
+  <p class="suave" style="margin-bottom:12px">O 600 é o botão e o link no tema claro; o 400 faz esse papel no escuro. Em áreas grandes, nada passa do 600.</p>
+  <div class="amostras">{% for t in [50,100,200,300,400,500,600,700,800,900,950] %}<div class="amostra"><i style="background:var(--azul-{{ t }})"></i><span>{{ t }}</span></div>{% endfor %}</div></section>
+<section class="card"><h3>Superfícies e texto</h3><div class="amostras">
+  {% for rot, v in [("Fundo","--color-bg"),("Cartão","--color-card"),("Elevada","--color-elevated"),("Borda","--color-border"),("Texto suave","--color-text-soft"),("Texto","--color-text")] %}<div class="amostra"><i style="background:var({{ v }})"></i><span>{{ rot }}</span></div>{% endfor %}</div></section>
+<section class="card"><h3>Estados</h3>
+  <div class="chips" style="margin:8px 0 16px"><span class="etiqueta e-sucesso">Sucesso</span><span class="etiqueta e-atencao">Atenção</span><span class="etiqueta e-erro">Erro</span><span class="etiqueta e-info">Informação</span><span class="etiqueta e-destaque">Destaque</span><span class="etiqueta e-neutro">Neutro</span></div>
+  <p class="caption">Status dos veículos</p><div class="chips" style="margin:6px 0 16px">{% for s in ["disponivel","em_comodato","manutencao","sinistrado","baixado"] %}{{ status(s) }}{% endfor %}</div>
+  <p class="caption">Status dos comodatos</p><div class="chips" style="margin-top:6px">{% for s in ["rascunho","gerado","enviado","assinado","ativo","encerrado","cancelado"] %}{{ status(s) }}{% endfor %}</div></section>
+<section class="card"><h3>Botões</h3><div class="acoes" style="margin-top:8px"><button>{{ icone("plus") }}Principal</button><button class="sec">Secundário</button><button class="fantasma">Fantasma</button><button class="perigo">Excluir</button><button class="pequeno">Pequeno</button><button disabled>Desativado</button></div></section>
+<section class="card"><h3>Campos</h3><div class="linha-form" style="margin-top:8px"><input placeholder="Placa"><select><option>Disponível</option></select><input type="date"><button class="sec">{{ icone("magnifying-glass") }}Filtrar</button></div></section>
+<section class="card"><h3>Tipografia</h3><div class="pagina" style="margin-top:8px">
+  <h1>Título da página · 24/32</h1><h2>Título de seção · 18/24</h2><h3>Título de cartão · 15/22</h3>
+  <p>Texto padrão da interface, 14/20, em Montserrat (com Atkinson Hyperlegible de reserva).</p><p class="caption">Legenda e data, 12/16</p><p class="mono">ABC1D23 · 0042 · 18/10/2026 — números e placas em IBM Plex Mono</p></div></section>
+<section class="card"><h3>Avisos e indicadores</h3><div class="alertas" style="margin:8px 0 16px">
+  {{ aviso("Aviso informativo depois de uma ação.", "info") }}{{ aviso("Comodato criado com sucesso.", "sucesso") }}{{ aviso("Licenciamento vence em 10 dias.", "alerta") }}{{ aviso("Placa já cadastrada.", "erro") }}</div>
+  <div class="indicadores"><div class="indicador"><div class="rotulo">Veículos disponíveis</div><div class="valor">12</div></div><div class="indicador"><div class="rotulo">Em comodato</div><div class="valor">8</div></div><div class="indicador"><div class="rotulo">Em manutenção</div><div class="valor">2</div></div></div></section>
+<section class="card"><h3>Ícones (Phosphor)</h3><div class="acoes" style="margin-top:8px">{% for n in ["car","truck","users","clipboard-text","stack","file-doc","calendar-blank","wrench","magnifying-glass","download-simple","sign-out"] %}{{ icone(n) }}{% endfor %}</div></section>
+{% endblock %}

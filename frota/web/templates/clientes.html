@@ -1,8 +1,10 @@
-{% extends "base.html" %}{% block title %}Clientes · Frota{% endblock %}{% block body %}
-<h1>Clientes</h1>
-<div class="card"><form class="row" method="post" action="/clientes"><input name="nome" placeholder="Nome / razão social" required size="26">
-<input name="documento" placeholder="CNPJ/CPF" size="16"><input name="email" placeholder="E-mail" size="20"><input name="telefone" placeholder="Telefone" size="14">
-<input name="endereco" placeholder="Endereço" size="28"><button>Adicionar</button></form></div>
-<div class="card"><table><tr><th>Nome</th><th>Documento</th><th>E-mail</th><th>Telefone</th></tr>
-{% for c in clientes %}<tr><td>{{ c.nome }}</td><td>{{ c.documento or '' }}</td><td>{{ c.email or '' }}</td><td>{{ c.telefone or '' }}</td></tr>
-{% else %}<tr><td colspan="4" class="mut">Nenhum cliente (eles também são criados ao colar a planilha de comodatos).</td></tr>{% endfor %}</table></div>{% endblock %}
+{% extends "base.html" %}{% from "_ui.html" import icone, vazio %}
+{% block body %}
+<div class="cabecalho"><div><h1>Clientes</h1><p>Entidades que solicitam carros regularmente. Também são criadas sozinhas ao colar a planilha de comodatos.</p></div></div>
+<section class="card"><h3>Adicionar cliente</h3><form class="linha-form" method="post" action="/clientes">
+  <input name="nome" placeholder="Nome / razão social" required size="26"><input name="documento" placeholder="CNPJ/CPF" size="16"><input name="email" placeholder="E-mail" size="20">
+  <input name="telefone" placeholder="Telefone" size="14"><input class="cresce" name="endereco" placeholder="Endereço"><button>{{ icone("plus") }}Adicionar</button></form></section>
+<section class="card"><div class="rolar"><table><thead><tr><th>Nome</th><th>Documento</th><th>E-mail</th><th>Telefone</th></tr></thead><tbody>
+{% for c in clientes %}<tr><td>{{ c.nome }}</td><td class="num">{{ c.documento or '' }}</td><td>{{ c.email or '' }}</td><td class="num">{{ c.telefone or '' }}</td></tr>
+{% else %}<tr><td colspan="4">{{ vazio("users", "Nenhum cliente ainda") }}</td></tr>{% endfor %}</tbody></table></div></section>
+{% endblock %}
