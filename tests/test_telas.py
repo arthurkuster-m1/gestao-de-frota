@@ -71,3 +71,11 @@ def test_inicio_mostra_envios_retornos_e_alertas(client):
 def test_inicio_vazio_diz_tudo_em_dia(client):
     html = client.get("/inicio").text
     assert "Tudo em dia!" in html and "Nenhum envio programado" in html and "Nenhum alerta" in html
+
+
+def test_arquivos_estaticos_tem_versao_na_url_e_sao_revalidados(client):
+    html = client.get("/inicio").text
+    for arq in ("app.css", "app.js", "icones.svg"):
+        assert re.search(rf"/static/{re.escape(arq)}\?v=\d+", html), arq
+    assert client.get("/static/app.css").headers["cache-control"] == "no-cache"
+    assert "?v=" in client.get("/login").text  # a tela de entrada também

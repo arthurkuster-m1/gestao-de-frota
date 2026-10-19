@@ -1,6 +1,6 @@
 {# Peças reutilizáveis do design system. Uso: {% from "_ui.html" import icone, status, vazio %} #}
 {% macro icone(nome, classe="") -%}
-<svg class="ic {{ classe }}" aria-hidden="true"><use href="/static/icones.svg#i-{{ nome }}"/></svg>
+<svg class="ic {{ classe }}" aria-hidden="true"><use href="{{ asset('icones.svg') }}#i-{{ nome }}"/></svg>
 {%- endmacro %}
 
 {# Status -> (texto, cor). A cor sai do status: sucesso, atencao, erro, info, destaque, neutro. #}

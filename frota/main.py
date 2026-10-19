@@ -25,6 +25,31 @@ WEB = Path(__file__).parent / "web"
 templates = Jinja2Templates(directory=str(WEB / "templates"))
 
 
+def asset(caminho: str) -> str:
+    """URL de um arquivo estático com a versão dele (data de modificação) no fim.
+
+    Sem isso o navegador guarda o app.css antigo e mostra a tela nova com estilo velho
+    depois de uma atualização. Com a versão na URL, arquivo novo = endereço novo.
+    """
+    try:
+        v = int((WEB / "static" / caminho).stat().st_mtime)
+    except OSError:
+        v = 0
+    return f"/static/{caminho}?v={v}"
+
+
+templates.env.globals["asset"] = asset
+
+
+class EstaticoSempreConfere(StaticFiles):
+    """Arquivos estáticos sempre revalidados (ETag): barato, e nunca fica versão velha."""
+
+    async def get_response(self, path, scope):
+        resp = await super().get_response(path, scope)
+        resp.headers["Cache-Control"] = "no-cache"
+        return resp
+
+
 @asynccontextmanager
 async def lifespan(_: FastAPI):
     cfg = get_settings()
@@ -41,7 +66,7 @@ app = FastAPI(title="Frota", lifespan=lifespan)
 app.middleware("http")(auth.exigir_login)
 app.add_middleware(SessionMiddleware, secret_key=get_settings().segredo, max_age=60 * 60 * 24 * 30,
                    same_site="lax", https_only=get_settings().cookie_seguro, session_cookie="frota")
-app.mount("/static", StaticFiles(directory=str(WEB / "static")), name="static")
+app.mount("/static", EstaticoSempreConfere(directory=str(WEB / "static")), name="static")
 
 
 def _menu(caminho: str):

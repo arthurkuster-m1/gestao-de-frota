@@ -3,7 +3,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>{% block title %}{{ titulo or "Frota" }}{% endblock %} · Frota</title>
 <script>try{var t=localStorage.getItem("frota-tema");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="icon" href="data:,"><link rel="stylesheet" href="/static/app.css"></head>
+<link rel="icon" href="data:,"><link rel="stylesheet" href="{{ asset('app.css') }}"></head>
 <body>
 <div class="app">
   <header class="topo"><button class="fantasma icone-so" id="abrir-menu" aria-label="Abrir menu">{{ icone("list") }}</button><b>Frota</b></header>
@@ -27,5 +27,5 @@
     {% block body %}{% endblock %}
   </div></main>
 </div>
-<script src="/static/app.js"></script>
+<script src="{{ asset('app.js') }}"></script>
 </body></html>
