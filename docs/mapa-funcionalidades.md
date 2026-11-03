@@ -35,9 +35,18 @@ Por isso o motor é o **primeiro item do plano**: sem ele, cada tela vira uma ta
 ## 3. Página por página
 
 ### Início
-Já feita com dados reais: boas-vindas, próximos envios, próximos retornos, calendário da semana, alertas.
-- **Tarefas pendentes** não precisa de um sistema de tarefas separado. Elas saem dos status da Saída: *Solicitar Envio*, *PTA e TA pendente*, *Contrato Pendente*, *Aguardando Assinaturas*, *Solicitar Retorno*, *Aprovar NF*. Cada status "a fazer" vira uma tarefa para você.
-- **Alertas** ganham: licenciamento e seguro vencendo, multa com prazo de indicação, veículo parado em um status por muito tempo.
+Feita com dados reais, na ordem:
+1. **Saudação, data e valores:** Total de veículos, Ativos, Disponíveis, Em evento, Em comodato (> 1 mês).
+2. **Calendário** (Dia, Semana, Mês; avança e volta por qualquer data, com salto por data) **+ Avisos** ao lado. Todo aviso é um link para o assunto.
+3. **Próximos envios e retornos** (um bloco, duas colunas) **+ Próximas tarefas** ao lado.
+4. **Anotações** (editor de blocos, grava sozinho) **+ Infos contábeis** (painel que recolhe; só edita ao apertar Editar).
+
+Regras que valem até o motor de Veículos e de Eventos existirem:
+- **Ativos** = veículos não baixados (provisório; a definição final sai do motor de Veículos).
+- **Em evento** × **Em comodato**: o carro em comodato conta como "evento" se o comodato aberto dura até 30 dias, e como "comodato" se dura mais de 30 dias ou não tem data de volta.
+- **Tarefas** ainda não são digitadas à mão: saem do andamento de cada contrato (gerar o Word, enviar para assinatura, acompanhar assinatura, confirmar envio, solicitar retorno, cobrar devolução).
+- **Calendário** mostra envios, retornos (inclusive os já concluídos, nos meses passados) e essas tarefas. "Contratos de Comodato" e "Eventos" entram com o próprio conteúdo quando Evento e Saída existirem.
+- **Avisos** hoje: devolução atrasada, retorno em até 3 dias, saída em até 2 dias sem assinatura, veículo sinistrado. Vencimento de licenciamento e seguro entra com Veículos.
 
 ### Veículos
 Tabela completa estilo Notion. Colunas do Notion:

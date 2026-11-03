@@ -132,3 +132,18 @@ class ModeloDocumento(Base):
     arquivo: Mapped[str] = mapped_column(String(255))  # caminho relativo a files_dir
     campos: Mapped[list] = mapped_column(JSON, default=list)
     criado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)
+
+
+class Painel(Base):
+    """Conteúdo livre de um painel da tela Início (anotações, informações contábeis).
+
+    `versao` sobe a cada gravação: quem salva informa a versão que viu, e se outra aba ou
+    aparelho gravou antes a gravação é recusada (409) em vez de sobrescrever em silêncio.
+    """
+
+    __tablename__ = "paineis"
+
+    chave: Mapped[str] = mapped_column(String(40), primary_key=True)
+    conteudo: Mapped[dict] = mapped_column(JSON, default=dict)
+    versao: Mapped[int] = mapped_column(default=0)
+    atualizado_em: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=_now)

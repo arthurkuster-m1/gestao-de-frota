@@ -4,7 +4,7 @@ from pathlib import Path
 from urllib.parse import quote
 
 from fastapi import Depends, FastAPI, Form, Request, UploadFile
-from fastapi.responses import RedirectResponse, Response
+from fastapi.responses import JSONResponse, RedirectResponse, Response
 from fastapi.staticfiles import StaticFiles
 from fastapi.templating import Jinja2Templates
 from sqlalchemy import select
@@ -17,7 +17,7 @@ from . import db as dbmod
 from .config import get_settings
 from .db import get_session
 from .models import Cliente, Comodato, ModeloDocumento, StatusVeiculo, Veiculo
-from .services import colagem, comodatos, documentos, inicio as svc_inicio
+from .services import colagem, comodatos, documentos, inicio as svc_inicio, paineis
 from .web import menu as menu_mod
 from .services.comodatos import ErroDeNegocio
 
@@ -122,12 +122,35 @@ def raiz():
 
 
 @app.get("/inicio")
-def inicio(request: Request, dia: str = "", db: Session = Depends(get_session)):
+def inicio(request: Request, dia: str = "", vista: str = "mes", db: Session = Depends(get_session)):
     try:
         escolhido = date.fromisoformat(dia) if dia else None
     except ValueError:
         escolhido = None
-    return render(request, "inicio.html", i=svc_inicio.montar(db, escolhido))
+    notas, v_notas = paineis.ler(db, "anotacoes", {"blocos": []})
+    infos, v_infos = paineis.ler(db, "infos_contabeis", {"itens": []})
+    return render(request, "inicio.html", i=svc_inicio.montar(db, escolhido, vista),
+                  anotacoes={"versao": v_notas, "blocos": notas.get("blocos", [])},
+                  infos={"versao": v_infos, "itens": infos.get("itens", [])})
+
+
+def _gravar_painel(db: Session, chave: str, modelo, campo: str):
+    try:
+        versao = paineis.gravar(db, chave, {campo: [x.model_dump(exclude_none=True) for x in getattr(modelo, campo)]},
+                                modelo.versao)
+    except paineis.Conflito:
+        return JSONResponse({"erro": "conflito", "mensagem": "Alterado em outro aparelho ou aba."}, status_code=409)
+    return {"ok": True, "versao": versao}
+
+
+@app.put("/api/inicio/anotacoes")
+def salvar_anotacoes(corpo: paineis.Anotacoes, db: Session = Depends(get_session)):
+    return _gravar_painel(db, "anotacoes", corpo, "blocos")
+
+
+@app.put("/api/inicio/infos")
+def salvar_infos(corpo: paineis.Infos, db: Session = Depends(get_session)):
+    return _gravar_painel(db, "infos_contabeis", corpo, "itens")
 
 
 # Telas que ainda são só a estrutura: o que vai existir em cada uma (plano em docs/mapa-funcionalidades.md).
