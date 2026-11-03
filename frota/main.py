@@ -128,6 +128,7 @@ def inicio(request: Request, dia: str = "", vista: str = "mes", db: Session = De
     except ValueError:
         escolhido = None
     notas, v_notas = paineis.ler(db, "anotacoes", {"blocos": []})
+    notas = {"blocos": paineis.migrar_blocos(notas.get("blocos", []))}
     infos, v_infos = paineis.ler(db, "infos_contabeis", {"itens": []})
     return render(request, "inicio.html", i=svc_inicio.montar(db, escolhido, vista),
                   anotacoes={"versao": v_notas, "blocos": notas.get("blocos", [])},

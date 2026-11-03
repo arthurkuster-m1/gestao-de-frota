@@ -13,7 +13,9 @@ ICONES = [
     "chart-line-up", "users", "palette", "moon", "sun", "sign-out", "list", "x", "plus", "magnifying-glass",
     "download-simple", "info", "check-circle", "warning", "x-circle", "calendar-blank", "caret-left",
     "caret-right", "clipboard-text", "stack", "check-square", "bell", "truck", "clock", "file-arrow-up",
-    "paper-plane-tilt", "hourglass", "arrow-right", "list-checks", "caret-down", "check", "note-pencil", "copy", "dots-six-vertical", "arrow-up", "arrow-down", "trash", "pencil-simple",
+    "paper-plane-tilt", "hourglass", "arrow-right", "list-checks", "caret-down", "check", "note-pencil", "copy", "dots-six-vertical", "arrow-up", "arrow-down", "trash", "pencil-simple", "arrow-u-up-right", "caret-up", "folder-simple", "link", "text-t", "text-h-one",
+    "quotes", "chart-bar", "arrows-left-right", "table", "flow-arrow", "squares-four", "minus", "list-bullets", "cards",
+    "lightbulb", "rows",
 ]
 
 raiz = Path(sys.argv[1])

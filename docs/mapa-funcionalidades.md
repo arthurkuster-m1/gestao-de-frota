@@ -37,9 +37,11 @@ Por isso o motor é o **primeiro item do plano**: sem ele, cada tela vira uma ta
 ### Início
 Feita com dados reais, na ordem:
 1. **Saudação, data e valores:** Total de veículos, Ativos, Disponíveis, Em evento, Em comodato (> 1 mês).
-2. **Calendário** (Dia, Semana, Mês; avança e volta por qualquer data, com salto por data) **+ Avisos** ao lado. Todo aviso é um link para o assunto.
+2. **Calendário** (Dia, Semana, Mês; avança e volta por qualquer data, com salto por data) **+ Avisos** num painel lateral que recolhe (o calendário ocupa o espaço). Todo aviso é um link para o assunto.
 3. **Próximos envios e retornos** (um bloco, duas colunas) **+ Próximas tarefas** ao lado.
-4. **Anotações** (editor de blocos, grava sozinho) **+ Infos contábeis** (painel que recolhe; só edita ao apertar Editar).
+4. **Anotações** (editor de blocos do CRM: título, texto, destaque, lista/numerada/tarefas, cartões, números, antes e depois, links, citação, fluxo, matriz 2×2, tabela e divisória; Ctrl+Z; grava sozinho; seletor `/`) **+ Infos contábeis** (painel que recolhe; só edita ao apertar Editar; informações soltas ou em grupos recolhíveis, cada uma com Copiar e cada grupo com Copiar tudo).
+
+A saudação tem uma frase do dia (a mesma o dia todo) em azul, e um leve tom azul no cartão, como no CRM.
 
 Regras que valem até o motor de Veículos e de Eventos existirem:
 - **Ativos** = veículos não baixados (provisório; a definição final sai do motor de Veículos).

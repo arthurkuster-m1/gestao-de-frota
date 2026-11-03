@@ -28,6 +28,30 @@ VISTAS = ("dia", "semana", "mes")
 LIMITE_COMODATO_LONGO = 30
 
 
+FRASES = [
+    "Frota organizada, operação tranquila.",
+    "Cada carro no lugar certo, na hora certa.",
+    "Quem acompanha a frota, antecipa o problema.",
+    "Contrato assinado hoje é carro na rua amanhã.",
+    "Detalhe bem cuidado evita multa, sinistro e dor de cabeça.",
+    "O melhor retorno é o que foi combinado antes da saída.",
+    "Documentação em dia é seguro de graça.",
+    "Planejar o envio é metade do evento resolvido.",
+    "Frota boa se mede pelo que não dá problema.",
+    "Cada devolução no prazo libera o próximo evento.",
+    "Quem registra tudo nunca precisa lembrar de nada.",
+    "Um bom controle começa pela placa certa no cadastro.",
+    "Organização hoje, tranquilidade na estrada.",
+    "Quem conhece a frota decide mais rápido.",
+    "Bom dia de operação é aquele em que nada surpreende.",
+]
+
+
+def frase_do_dia(d: date) -> str:
+    """Uma frase por dia (a mesma o dia todo, e muda de manhã)."""
+    return FRASES[d.toordinal() % len(FRASES)]
+
+
 def agora() -> datetime:
     return datetime.now(ZoneInfo(get_settings().fuso))
 
@@ -102,6 +126,7 @@ class Inicio:
     saudacao: str
     nome: str
     extenso: str
+    frase: str
     hoje: date
     valores: dict
     calendario: Calendario
@@ -259,6 +284,6 @@ def montar(db: Session, dia: date | None = None, vista: str = "mes", *, agora_: 
 
     tarefas = _tarefas(abertos, hoje)
     return Inicio(
-        saudacao=saudacao(now.hour), nome=get_settings().nome, extenso=data_por_extenso(hoje), hoje=hoje,
+        saudacao=saudacao(now.hour), nome=get_settings().nome, extenso=data_por_extenso(hoje), frase=frase_do_dia(hoje), hoje=hoje,
         valores=valores, calendario=_calendario(vista, dia, hoje, todos, tarefas), avisos=avisos,
         envios=envios[:8], retornos=retornos[:8], tarefas=tarefas[:8])

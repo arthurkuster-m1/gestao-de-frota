@@ -6,7 +6,7 @@
 {% set v = i.valores %}
 {# 1. Saudação, data e valores #}
 <section class="card boas-vindas">
-  <div class="saudacao"><h1>{{ i.saudacao }}{% if i.nome %}, {{ i.nome }}{% endif %}!</h1><p class="suave">{{ i.extenso }}</p></div>
+  <div class="saudacao"><h1>{{ i.saudacao }}{% if i.nome %}, {{ i.nome }}{% endif %}!</h1><p class="suave">{{ i.extenso }}</p><p class="frase">“{{ i.frase }}”</p></div>
   <div class="indicadores">
     <div class="indicador"><div class="rotulo">Total de veículos</div><div class="valor">{{ v.total }}</div></div>
     <div class="indicador" title="Definição provisória: veículos não baixados. A definição final vem com o motor de Veículos."><div class="rotulo">Ativos</div><div class="valor">{{ v.ativos }}</div></div>
@@ -17,14 +17,17 @@
 </section>
 
 {# 2. Calendário + avisos #}
-<div class="linha dois-um">
+<div class="linha dois-um" id="linha-calendario">
   {% with c = i.calendario, hoje = i.hoje, meses = ['janeiro','fevereiro','março','abril','maio','junho','julho','agosto','setembro','outubro','novembro','dezembro'] %}{% include "_calendario.html" %}{% endwith %}
-  <section class="card" id="avisos">
-    <div class="topo-card"><h3>{{ icone("bell") }}Avisos{% if i.avisos %} <span class="contagem">{{ i.avisos|length }}</span>{% endif %}</h3></div>
+  <aside class="card painel-lateral" id="avisos" aria-label="Avisos">
+    <div class="topo-card"><h3>{{ icone("bell") }}<span class="rot-painel">Avisos</span>{% if i.avisos %} <span class="contagem">{{ i.avisos|length }}</span>{% endif %}</h3>
+      <button class="fantasma icone-so pequeno" type="button" data-alternar aria-label="Recolher painel" aria-expanded="true">{{ icone("caret-right") }}</button></div>
+    <div class="conteudo-painel">
     {% if i.avisos %}<div class="alertas">{% for a in i.avisos %}
       <a class="msg {{ {'info':'','alerta':'alerta','erro':'erro'}[a.tipo] }} aviso-link" href="{{ a.href }}">{{ icone({'info':'info','alerta':'warning','erro':'x-circle'}[a.tipo]) }}<div>{{ a.texto }}</div>{{ icone("arrow-right", "seta") }}</a>{% endfor %}</div>
     {% else %}{{ vazio("check-circle", "Tudo em dia!", "Devoluções atrasadas, saídas sem assinatura e veículos sinistrados aparecem aqui, e cada aviso leva direto ao assunto.") }}{% endif %}
-  </section>
+    </div>
+  </aside>
 </div>
 
 {# 3. Envios e retornos + tarefas #}
@@ -51,17 +54,22 @@
 {# 4. Anotações + informações contábeis #}
 <div class="notas-grade" id="notas-grade">
   <section class="card notas">
-    <div class="topo-card"><h3>{{ icone("note-pencil") }}Anotações</h3><span class="estado-salvo" id="estado-anotacoes" role="status">Salvo</span></div>
+    <div class="topo-card"><h3>{{ icone("note-pencil") }}Anotações</h3>
+      <div class="barra-editor"><button class="sec pequeno" type="button" id="desfazer" aria-label="Desfazer (Ctrl+Z)" title="Desfazer (Ctrl+Z)" disabled>{{ icone("arrow-u-up-left", "p") }}Desfazer</button>
+      <button class="sec pequeno" type="button" id="refazer" aria-label="Refazer (Ctrl+Shift+Z)" title="Refazer (Ctrl+Shift+Z)" disabled>{{ icone("arrow-u-up-right", "p") }}Refazer</button>
+      <span class="estado-salvo" id="estado-anotacoes" role="status">Salvo</span></div></div>
     <div id="aviso-conflito-anotacoes" class="msg alerta" hidden>{{ icone("warning") }}<div>Estas anotações foram alteradas em outro aparelho ou aba. <button class="sec pequeno" type="button" id="recarregar-anotacoes">Recarregar</button></div></div>
     <div class="editor" id="editor" aria-label="Anotações"></div>
-    <p class="caption dica-editor">Digite <kbd>/</kbd> para escolher o tipo de bloco. Atalhos: <kbd>#</kbd> título, <kbd>-</kbd> lista, <kbd>1.</kbd> numerada, <kbd>[]</kbd> tarefa, <kbd>&gt;</kbd> citação, <kbd>---</kbd> divisória.</p>
+    <p class="caption dica-editor">Em um bloco de texto vazio, digite <kbd>/</kbd> para escolher o tipo. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz e <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> refaz.</p>
   </section>
-  <aside class="card painel-info" id="infos" aria-label="Informações contábeis">
-    <div class="topo-card"><h3>{{ icone("receipt") }}<span class="rot-info">Infos contábeis</span></h3>
+  <aside class="card painel-lateral painel-info" id="infos" aria-label="Informações contábeis">
+    <div class="topo-card"><h3>{{ icone("receipt") }}<span class="rot-painel">Infos contábeis</span></h3>
       <div class="acoes"><button class="sec pequeno" type="button" id="editar-infos">Editar</button>
-      <button class="fantasma icone-so pequeno" type="button" id="alternar-infos" aria-label="Recolher painel" aria-expanded="true">{{ icone("caret-right") }}</button></div></div>
+      <button class="fantasma icone-so pequeno" type="button" data-alternar aria-label="Recolher painel" aria-expanded="true">{{ icone("caret-right") }}</button></div></div>
+    <div class="conteudo-painel">
     <div id="aviso-conflito-infos" class="msg alerta" hidden>{{ icone("warning") }}<div>Alteradas em outro aparelho ou aba. <button class="sec pequeno" type="button" id="recarregar-infos">Recarregar</button></div></div>
     <div id="corpo-infos"></div>
+    </div>
   </aside>
 </div>
 <script type="application/json" id="dados-anotacoes">{{ anotacoes|tojson }}</script>

@@ -162,18 +162,52 @@ def test_inicio_vazio_diz_tudo_em_dia(client):
     assert "Sem tarefas por enquanto" in html
 
 
-def test_anotacoes_gravam_e_voltam_na_pagina(client):
-    blocos = [{"id": "a1", "tipo": "titulo1", "texto": "Reunião"}, {"id": "a2", "tipo": "tarefa", "texto": "Ligar", "feito": True},
-              {"id": "a3", "tipo": "tabela", "celulas": [["x", "y"], ["1", "2"]]}, {"id": "a4", "tipo": "separador"}]
+def _dados_da_pagina(client, nome="dados-anotacoes"):
+    return json.loads(re.search(rf'id="{nome}">(.*?)</script>', client.get("/inicio").text, re.S).group(1))
+
+
+def test_anotacoes_gravam_todos_os_tipos_de_bloco_e_voltam_na_pagina(client):
+    blocos = [
+        {"id": "a1", "tipo": "titulo", "nivel": 2, "texto": "Reunião"},
+        {"id": "a2", "tipo": "texto", "texto": "Pontos"},
+        {"id": "a3", "tipo": "destaque", "tom": "atencao", "texto": "NF só após aprovação"},
+        {"id": "a4", "tipo": "lista", "estilo": "check", "itens": [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]},
+        {"id": "a5", "tipo": "cards", "itens": [{"titulo": "A", "texto": "x"}]},
+        {"id": "a6", "tipo": "metricas", "itens": [{"rotulo": "Veículos", "valor": "25", "detalhe": "ativos"}]},
+        {"id": "a7", "tipo": "antes-depois", "antes": {"titulo": "Antes", "texto": "1"}, "depois": {"titulo": "Depois", "texto": "2"}},
+        {"id": "a8", "tipo": "links", "itens": [{"rotulo": "Site", "url": "https://exemplo.com"}]},
+        {"id": "a9", "tipo": "citacao", "texto": "Frase", "autor": "Fulano"},
+        {"id": "b1", "tipo": "fluxo", "itens": [{"titulo": "Pedir", "texto": "d"}]},
+        {"id": "b2", "tipo": "matriz", "estilo": "swot", "celulas": [{"titulo": "Forças", "texto": ""}] * 4},
+        {"id": "b3", "tipo": "tabela", "colunas": ["Modelo", "Qtd"], "linhas": [["Onix", "4"]]},
+        {"id": "b4", "tipo": "separador"},
+    ]
     r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": blocos})
     assert r.status_code == 200 and r.json() == {"ok": True, "versao": 1}
-    html = client.get("/inicio").text
-    dados = json.loads(re.search(r'id="dados-anotacoes">(.*?)</script>', html, re.S).group(1))
-    assert dados["versao"] == 1 and [b["tipo"] for b in dados["blocos"]] == ["titulo1", "tarefa", "tabela", "separador"]
-    assert dados["blocos"][0]["texto"] == "Reunião" and dados["blocos"][1]["feito"] is True
-    assert dados["blocos"][2]["celulas"] == [["x", "y"], ["1", "2"]]
-    r = client.put("/api/inicio/anotacoes", json={"versao": 1, "blocos": blocos[:1]})
-    assert r.json()["versao"] == 2
+    dados = _dados_da_pagina(client)
+    assert dados["versao"] == 1 and [b["tipo"] for b in dados["blocos"]] == [b["tipo"] for b in blocos]
+    assert dados["blocos"][3]["itens"][0] == {"texto": "Ligar", "feito": True}
+    assert dados["blocos"][11]["linhas"] == [["Onix", "4"]]
+    assert client.put("/api/inicio/anotacoes", json={"versao": 1, "blocos": blocos[:1]}).json()["versao"] == 2
+
+
+def test_anotacoes_do_formato_antigo_sao_convertidas_ao_abrir(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    antigo = [{"id": "1", "tipo": "titulo1", "texto": "Reunião"}, {"id": "2", "tipo": "tarefa", "texto": "Ligar", "feito": True},
+              {"id": "3", "tipo": "tarefa", "texto": "Enviar"}, {"id": "4", "tipo": "lista", "texto": "item"},
+              {"id": "5", "tipo": "destaque", "texto": "atenção"}, {"id": "6", "tipo": "tabela", "celulas": [["a", "b"], ["1", "2"]]},
+              {"id": "7", "tipo": "citacao", "texto": "q"}, {"id": "8", "tipo": "separador"}, {"id": "9", "tipo": "inventado"}]
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="anotacoes", conteudo={"blocos": antigo}, versao=3)); db.commit()
+    d = _dados_da_pagina(client)
+    assert d["versao"] == 3
+    tipos = [(b["tipo"], b.get("estilo") or b.get("nivel") or b.get("tom")) for b in d["blocos"]]
+    assert tipos == [("titulo", 1), ("lista", "check"), ("lista", "marcadores"), ("destaque", "info"), ("tabela", None), ("citacao", None), ("separador", None)]
+    assert d["blocos"][1]["itens"] == [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]  # duas tarefas seguidas = uma lista
+    assert d["blocos"][4]["colunas"] == ["a", "b"] and d["blocos"][4]["linhas"] == [["1", "2"]]
+    # e o que foi convertido grava de volta no formato novo
+    assert client.put("/api/inicio/anotacoes", json={"versao": 3, "blocos": d["blocos"]}).status_code == 200
 
 
 def test_anotacoes_recusam_gravar_por_cima_de_outro_aparelho(client):
@@ -186,16 +220,66 @@ def test_anotacoes_recusam_gravar_por_cima_de_outro_aparelho(client):
 
 def test_anotacoes_validam_a_forma(client):
     ruim = lambda b: client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": b}).status_code  # noqa: E731
-    assert ruim([{"id": "a", "tipo": "script", "texto": "x"}]) == 422          # tipo desconhecido
-    assert ruim([{"id": "a", "tipo": "texto", "texto": "x" * 5001}]) == 422    # grande demais
-    assert ruim([{"id": "a", "tipo": "texto"}] * 501) == 422                   # blocos demais
-    assert ruim([{"id": "a", "tipo": "tabela", "celulas": [["x"] * 11]}]) == 422
+    assert ruim([{"id": "a", "tipo": "script", "texto": "x"}]) == 422                      # tipo desconhecido
+    assert ruim([{"id": "a", "tipo": "texto", "texto": "x" * 5001}]) == 422                # grande demais
+    assert ruim([{"id": "a", "tipo": "texto"}] * 301) == 422                               # blocos demais
+    assert ruim([{"id": "a", "tipo": "tabela", "colunas": ["x"] * 9, "linhas": []}]) == 422
+    assert ruim([{"id": "a", "tipo": "lista", "estilo": "bolinha", "itens": []}]) == 422
+    assert ruim([{"id": "a", "tipo": "titulo", "nivel": 7, "texto": ""}]) == 422
+
+
+def test_link_digitado_sem_https_e_completado_e_nunca_derruba_a_gravacao(client):
+    r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": [{"id": "l", "tipo": "links", "itens": [
+        {"rotulo": "a", "url": "exemplo.com/x"}, {"rotulo": "b", "url": "javascript:alert(1)"}, {"rotulo": "c", "url": "http://ok.com"},
+        {"rotulo": "d", "url": "localhost:3000/painel"}, {"rotulo": "e", "url": "data:text/html,<b>x"}, {"rotulo": "f", "url": "mailto:a@b.com"}]}]})
+    assert r.status_code == 200
+    urls = [i["url"] for i in _dados_da_pagina(client)["blocos"][0]["itens"]]
+    assert urls == ["https://exemplo.com/x", "", "http://ok.com", "https://localhost:3000/painel", "", ""]
 
 
 def test_anotacao_com_html_nao_vira_html_na_pagina(client):
     client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": [{"id": "a", "tipo": "texto", "texto": "</script><img src=x onerror=alert(1)>"}]})
     html = client.get("/inicio").text
     assert "<img src=x" not in html and "</script><img" not in html
+
+
+def test_infos_contabeis_com_grupos(client):
+    itens = [{"tipo": "info", "rotulo": "CNPJ", "valor": "12.345.678/0001-90"},
+             {"tipo": "grupo", "rotulo": "Dados bancários", "itens": [{"rotulo": "Banco", "valor": "Itaú"}, {"rotulo": "Agência", "valor": "0001"},
+                                                                   {"rotulo": "Conta", "valor": "12345-6"}]}]
+    assert client.put("/api/inicio/infos", json={"versao": 0, "itens": itens}).json() == {"ok": True, "versao": 1}
+    d = _dados_da_pagina(client, "dados-infos")
+    assert d["itens"][0]["tipo"] == "info" and d["itens"][1]["tipo"] == "grupo" and len(d["itens"][1]["itens"]) == 3
+    assert d["itens"][1]["itens"][2] == {"rotulo": "Conta", "valor": "12345-6"}
+    # só grupo tem itens; um grupo não guarda valor próprio
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"tipo": "info", "rotulo": "x", "itens": [{"rotulo": "a", "valor": "b"}]}]}).status_code == 422
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"tipo": "grupo", "rotulo": "g", "valor": "ignorado"}]}).status_code == 200
+    assert _dados_da_pagina(client, "dados-infos")["itens"][0]["valor"] == ""
+    assert client.put("/api/inicio/infos", json={"versao": 2, "itens": [{"tipo": "grupo", "rotulo": "g", "itens": [{"rotulo": "a", "valor": ""}] * 31}]}).status_code == 422
+
+
+def test_infos_antigas_sem_tipo_continuam_valendo(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="infos_contabeis", conteudo={"itens": [{"rotulo": "CNPJ", "valor": "1"}]}, versao=1)); db.commit()
+    assert _dados_da_pagina(client, "dados-infos")["itens"] == [{"rotulo": "CNPJ", "valor": "1"}]  # o navegador trata como "info"
+
+
+def test_avisos_e_infos_sao_paineis_laterais_que_recolhem(client):
+    html = client.get("/inicio").text
+    for chave in ('id="avisos"', 'id="infos"'):
+        painel = html[html.index(chave) - 40: html.index(chave) + 600]
+        assert "painel-lateral" in painel and "data-alternar" in html
+    assert 'id="linha-calendario"' in html and html.count("data-alternar") == 2
+
+
+def test_saudacao_tem_frase_do_dia_em_destaque(client):
+    from frota.services.inicio import FRASES, frase_do_dia
+    html = client.get("/inicio").text
+    assert re.search(r'<p class="frase">“[^”]+”</p>', html)
+    assert frase_do_dia(date(2026, 11, 3)) == frase_do_dia(date(2026, 11, 3)) and len(set(FRASES)) == len(FRASES) >= 10
+    assert frase_do_dia(date(2026, 11, 3)) != frase_do_dia(date(2026, 11, 4))  # muda de um dia para o outro
 
 
 def test_infos_contabeis_gravam_e_validam(client):
