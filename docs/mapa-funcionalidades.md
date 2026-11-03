@@ -39,7 +39,18 @@ Feita com dados reais, na ordem:
 1. **Saudação, data e valores:** Total de veículos, Ativos, Disponíveis, Em evento, Em comodato (> 1 mês).
 2. **Calendário** (Dia, Semana, Mês; avança e volta por qualquer data, com salto por data) **+ Avisos** num painel lateral que recolhe (o calendário ocupa o espaço). Todo aviso é um link para o assunto.
 3. **Próximos envios e retornos** (um bloco, duas colunas) **+ Próximas tarefas** ao lado.
-4. **Anotações** (editor de blocos do CRM: título, texto, destaque, lista/numerada/tarefas, cartões, números, antes e depois, links, citação, fluxo, matriz 2×2, tabela e divisória; Ctrl+Z; grava sozinho; seletor `/`) **+ Infos contábeis** (painel que recolhe; só edita ao apertar Editar; informações soltas ou em grupos recolhíveis, cada uma com Copiar e cada grupo com Copiar tudo).
+4. **Anotações** (editor de blocos, a mesma ideia dos dois editores do CRM: `components/editor/EditorDeBlocos`, das notas das tarefas, e `EditorVisualDeBlocos`, das páginas de estratégia) **+ Infos contábeis** (painel que recolhe; só edita ao apertar Editar; informações soltas ou em grupos recolhíveis, cada uma com Copiar e cada grupo com Copiar tudo).
+
+   Como o editor funciona:
+   - **Escreve-se direto em cada bloco**, como no Notion. Markdown no começo da linha (`#`, `##`, `###`, `-`, `1.`, `[]`, `>` recolhível, `"` citação); `/` abre a lista de blocos com busca; Enter, Backspace, Tab e Shift+Tab fazem o que fazem no Notion (blocos dentro de blocos, até 5 níveis).
+   - **Blocos de texto:** texto, título 1/2/3, tarefa, marcador, numerada, recolhível (toggle), citação (com autor) e destaque (3 tons).
+   - **Blocos visuais, editados no próprio bloco:** cartões, números, antes e depois, links, fluxo, matriz 2×2 (SWOT), tabela e divisória.
+   - **Alça ⋮⋮** (clique, botão direito ou arrastar): tipo, alinhamento, tom, duplicar, apagar, "Transformar em". **+** insere abaixo.
+   - **Seleção de blocos:** Esc, Shift+↑/↓, Shift/Ctrl+clique na alça, arrastar o mouse por cima de vários; Delete, Ctrl+D, Ctrl+A, Ctrl+C/X/V, Tab em massa, Ctrl+Shift+0…9 troca o tipo.
+   - **Ctrl+Z / Ctrl+Shift+Z** (e botões), digitação contada como um passo só.
+   - Anotações gravadas pelos editores anteriores são convertidas ao abrir.
+
+   Ficaram de fora, de propósito, os blocos do CRM que dependem de imagem ou são específicos de marketing: imagem, imagem com texto, pirâmide/funil, paleta de cores, ficha, calculadora da meta, oferta, e o menu "Modelos".
 
 A saudação tem uma frase do dia (a mesma o dia todo) em azul, e um leve tom azul no cartão, como no CRM.
 

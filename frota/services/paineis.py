@@ -7,7 +7,7 @@ import re
 from datetime import datetime, timezone
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, TypeAdapter, ValidationError, field_validator, model_validator
 from sqlalchemy import update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
@@ -19,12 +19,7 @@ _ID = Field(min_length=1, max_length=40)
 _URL = re.compile(r"^https?://[^\s]+$", re.I)
 
 
-# ---------- blocos (vocabulário do CRM: lib/marketing/blocos.ts) ----------
-class _Item(BaseModel):
-    texto: str = Field(default="", max_length=300)
-    feito: bool = False
-
-
+# ---------- blocos (os mesmos do CRM: editor das notas das tarefas + blocos visuais das estratégias) ----------
 class _Cartao(BaseModel):
     titulo: str = Field(default="", max_length=120)
     texto: str = Field(default="", max_length=1200)
@@ -63,31 +58,22 @@ class _Passo(BaseModel):
     texto: str = Field(default="", max_length=200)
 
 
-class Titulo(BaseModel):
-    id: str = _ID
-    tipo: Literal["titulo"]
-    nivel: Literal[1, 2, 3] = 1
-    texto: str = Field(default="", max_length=200)
+class BlocoTexto(BaseModel):
+    """Um bloco de texto (uma linha, como no Notion). Pode ter blocos dentro (`filhos`): recuo e toggle."""
 
-
-class Texto(BaseModel):
     id: str = _ID
-    tipo: Literal["texto"]
+    tipo: Literal["texto", "titulo", "tarefa", "marcador", "numerada", "toggle", "citacao", "destaque"]
     texto: str = Field(default="", max_length=5000)
+    nivel: Literal[1, 2, 3] | None = None  # título
+    marcado: bool | None = None  # tarefa
+    aberto: bool | None = None  # toggle
+    tom: Literal["info", "sucesso", "atencao"] | None = None  # destaque
+    autor: str | None = Field(default=None, max_length=120)  # citação
+    alinhamento: Literal["esquerda", "centro", "direita"] | None = None
+    filhos: list["BlocoTexto"] = Field(default_factory=list, max_length=200)
 
 
-class Destaque(BaseModel):
-    id: str = _ID
-    tipo: Literal["destaque"]
-    tom: Literal["info", "sucesso", "atencao"] = "info"
-    texto: str = Field(default="", max_length=5000)
-
-
-class Lista(BaseModel):
-    id: str = _ID
-    tipo: Literal["lista"]
-    estilo: Literal["marcadores", "numerada", "check"] = "marcadores"
-    itens: list[_Item] = Field(default_factory=list, max_length=60)
+BlocoTexto.model_rebuild()
 
 
 class Cartoes(BaseModel):
@@ -113,13 +99,6 @@ class Links(BaseModel):
     id: str = _ID
     tipo: Literal["links"]
     itens: list[_Link] = Field(default_factory=list, max_length=30)
-
-
-class Citacao(BaseModel):
-    id: str = _ID
-    tipo: Literal["citacao"]
-    texto: str = Field(default="", max_length=1000)
-    autor: str = Field(default="", max_length=120)
 
 
 class Fluxo(BaseModel):
@@ -153,15 +132,37 @@ class Separador(BaseModel):
     tipo: Literal["separador"]
 
 
-Bloco = Annotated[Union[Titulo, Texto, Destaque, Lista, Cartoes, Metricas, AntesDepois, Links, Citacao, Fluxo,
-                        Matriz, Tabela, Separador], Field(discriminator="tipo")]
-TIPOS_DE_BLOCO = ("titulo", "texto", "destaque", "lista", "cards", "metricas", "antes-depois", "links", "citacao",
-                  "fluxo", "matriz", "tabela", "separador")
+Bloco = Annotated[Union[BlocoTexto, Cartoes, Metricas, AntesDepois, Links, Fluxo, Matriz, Tabela, Separador],
+                  Field(discriminator="tipo")]
+TIPOS_DE_TEXTO = ("texto", "titulo", "tarefa", "marcador", "numerada", "toggle", "citacao", "destaque")
+TIPOS_VISUAIS = ("cards", "metricas", "antes-depois", "links", "fluxo", "matriz", "tabela", "separador")
+MAX_BLOCOS = 500  # no total, contando os blocos de dentro
+MAX_NIVEIS = 5  # quantos níveis de recuo cabem (o editor do CRM aceita o mesmo)
+
+
+def _conta(blocos, nivel=0) -> tuple[int, int]:
+    """(quantos blocos no total, nível mais fundo) de uma lista com blocos dentro de blocos."""
+    total, fundo = 0, nivel
+    for b in blocos:
+        total += 1
+        if isinstance(b, BlocoTexto) and b.filhos:
+            t, f = _conta(b.filhos, nivel + 1)
+            total, fundo = total + t, max(fundo, f)
+    return total, fundo
 
 
 class Anotacoes(BaseModel):
     versao: int = Field(ge=0)
     blocos: list[Bloco] = Field(max_length=MAX_BLOCOS)
+
+    @model_validator(mode="after")
+    def _limites(self):
+        total, fundo = _conta(self.blocos)
+        if total > MAX_BLOCOS:
+            raise ValueError("blocos demais")
+        if fundo > MAX_NIVEIS:
+            raise ValueError("recuo fundo demais")
+        return self
 
 
 # ---------- informações contábeis (com grupos) ----------
@@ -192,33 +193,55 @@ class Infos(BaseModel):
     itens: list[ItemInfo] = Field(max_length=60)
 
 
-# ---------- do formato antigo (um bloco por linha de lista) para o atual ----------
+# ---------- dos formatos antigos para o atual ----------
+_ADAPTADOR = TypeAdapter(Bloco)
+
+
+def _valido(b: dict) -> dict | None:
+    try:
+        return _ADAPTADOR.validate_python(b).model_dump(exclude_none=True)
+    except ValidationError:
+        return None
+
+
 def migrar_blocos(brutos: list) -> list[dict]:
-    """Converte anotações gravadas antes dos blocos do CRM. O que já está no formato novo passa direto."""
+    """Converte anotações gravadas pelos editores anteriores para o formato atual.
+
+    1ª versão: um bloco por linha (`titulo1`, `tarefa` com `feito`, `lista`/`numerada` com `texto`, tabela em `celulas`).
+    2ª versão: `lista` com `itens` (cada item vira um bloco de uma linha), `tabela` com `colunas`/`linhas`.
+    O que já está no formato atual passa direto. Bloco que não valida é descartado, nunca derruba a tela.
+    """
     novos: list[dict] = []
     for b in brutos or []:
         if not isinstance(b, dict):
             continue
-        t, bid, texto = b.get("tipo"), str(b.get("id") or "")[:40] or "x", str(b.get("texto") or "")
+        t, bid, texto = b.get("tipo"), str(b.get("id") or "")[:36] or "x", str(b.get("texto") or "")
+        saida: list[dict] = []
         if t in ("titulo1", "titulo2", "titulo3"):
-            novos.append({"id": bid, "tipo": "titulo", "nivel": int(t[-1]), "texto": texto[:200]})
-        elif t in ("lista", "numerada", "tarefa") and "itens" not in b:
-            estilo = {"lista": "marcadores", "numerada": "numerada", "tarefa": "check"}[t]
-            item = {"texto": texto[:300], "feito": bool(b.get("feito"))}
-            if novos and novos[-1].get("tipo") == "lista" and novos[-1].get("estilo") == estilo:
-                novos[-1]["itens"].append(item)  # linhas seguidas do mesmo tipo viram uma lista só
-            else:
-                novos.append({"id": bid, "tipo": "lista", "estilo": estilo, "itens": [item]})
-        elif t == "destaque" and "tom" not in b:
-            novos.append({"id": bid, "tipo": "destaque", "tom": "info", "texto": texto})
-        elif t == "citacao" and "autor" not in b:
-            novos.append({"id": bid, "tipo": "citacao", "texto": texto[:1000], "autor": ""})
+            saida = [{"id": bid, "tipo": "titulo", "nivel": int(t[-1]), "texto": texto[:5000]}]
+        elif t == "lista" and "itens" in b:  # 2ª versão: uma lista com itens
+            tipo = {"marcadores": "marcador", "numerada": "numerada", "check": "tarefa"}.get(b.get("estilo"), "marcador")
+            for n, item in enumerate(b.get("itens") or []):
+                item = item if isinstance(item, dict) else {"texto": str(item)}
+                novo = {"id": f"{bid}-{n}", "tipo": tipo, "texto": str(item.get("texto") or "")[:5000]}
+                if tipo == "tarefa":
+                    novo["marcado"] = bool(item.get("feito"))
+                saida.append(novo)
+        elif t == "lista":  # 1ª versão: marcador de uma linha
+            saida = [{"id": bid, "tipo": "marcador", "texto": texto[:5000]}]
+        elif t == "tarefa":
+            saida = [{"id": bid, "tipo": "tarefa", "texto": texto[:5000], "marcado": bool(b.get("marcado", b.get("feito")))}]
         elif t == "tabela" and "celulas" in b:
             cel = [[str(c)[:300] for c in l][:8] for l in (b.get("celulas") or []) if isinstance(l, list)]
-            novos.append({"id": bid, "tipo": "tabela", "colunas": (cel[0] if cel else ["", ""]) or ["", ""],
-                          "linhas": cel[1:]})
-        elif t in TIPOS_DE_BLOCO:
-            novos.append(b)
+            saida = [{"id": bid, "tipo": "tabela", "colunas": (cel[0] if cel else ["", ""]) or ["", ""], "linhas": cel[1:]}]
+        elif t == "destaque" and "tom" not in b:
+            saida = [{**b, "tom": "info"}]
+        elif t in TIPOS_DE_TEXTO or t in TIPOS_VISUAIS:
+            saida = [b]
+        for item in saida:
+            ok = _valido(item)
+            if ok:
+                novos.append(ok)
     return novos
 
 

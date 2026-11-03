@@ -24,7 +24,7 @@ def test_telas_em_breve_dizem_em_breve(client):
 
 
 def test_arquivos_do_design_system_existem():
-    for arq in ("app.css", "app.js", "icones.svg", "fonts/montserrat-latin-400-normal.woff2",
+    for arq in ("app.css", "app.js", "inicio.js", "editor-blocos.js", "icones.svg", "fonts/montserrat-latin-400-normal.woff2",
                 "fonts/atkinson-hyperlegible-latin-400-normal.woff2"):
         assert (WEB / "static" / arq).stat().st_size > 0, arq
 
@@ -168,30 +168,34 @@ def _dados_da_pagina(client, nome="dados-anotacoes"):
 
 def test_anotacoes_gravam_todos_os_tipos_de_bloco_e_voltam_na_pagina(client):
     blocos = [
-        {"id": "a1", "tipo": "titulo", "nivel": 2, "texto": "Reunião"},
+        {"id": "a1", "tipo": "titulo", "nivel": 2, "texto": "Reunião", "alinhamento": "centro"},
         {"id": "a2", "tipo": "texto", "texto": "Pontos"},
         {"id": "a3", "tipo": "destaque", "tom": "atencao", "texto": "NF só após aprovação"},
-        {"id": "a4", "tipo": "lista", "estilo": "check", "itens": [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]},
-        {"id": "a5", "tipo": "cards", "itens": [{"titulo": "A", "texto": "x"}]},
-        {"id": "a6", "tipo": "metricas", "itens": [{"rotulo": "Veículos", "valor": "25", "detalhe": "ativos"}]},
-        {"id": "a7", "tipo": "antes-depois", "antes": {"titulo": "Antes", "texto": "1"}, "depois": {"titulo": "Depois", "texto": "2"}},
-        {"id": "a8", "tipo": "links", "itens": [{"rotulo": "Site", "url": "https://exemplo.com"}]},
-        {"id": "a9", "tipo": "citacao", "texto": "Frase", "autor": "Fulano"},
-        {"id": "b1", "tipo": "fluxo", "itens": [{"titulo": "Pedir", "texto": "d"}]},
-        {"id": "b2", "tipo": "matriz", "estilo": "swot", "celulas": [{"titulo": "Forças", "texto": ""}] * 4},
-        {"id": "b3", "tipo": "tabela", "colunas": ["Modelo", "Qtd"], "linhas": [["Onix", "4"]]},
-        {"id": "b4", "tipo": "separador"},
+        {"id": "a4", "tipo": "tarefa", "texto": "Ligar", "marcado": True},
+        {"id": "a5", "tipo": "toggle", "texto": "Detalhes", "aberto": True, "filhos": [
+            {"id": "a5a", "tipo": "marcador", "texto": "um", "filhos": [{"id": "a5b", "tipo": "numerada", "texto": "dois"}]}]},
+        {"id": "a6", "tipo": "citacao", "texto": "Frase", "autor": "Fulano"},
+        {"id": "b0", "tipo": "cards", "itens": [{"titulo": "A", "texto": "x"}]},
+        {"id": "b1", "tipo": "metricas", "itens": [{"rotulo": "Veículos", "valor": "25", "detalhe": "ativos"}]},
+        {"id": "b2", "tipo": "antes-depois", "antes": {"titulo": "Antes", "texto": "1"}, "depois": {"titulo": "Depois", "texto": "2"}},
+        {"id": "b3", "tipo": "links", "itens": [{"rotulo": "Site", "url": "https://exemplo.com"}]},
+        {"id": "b4", "tipo": "fluxo", "itens": [{"titulo": "Pedir", "texto": "d"}]},
+        {"id": "b5", "tipo": "matriz", "estilo": "swot", "celulas": [{"titulo": "Forças", "texto": ""}] * 4},
+        {"id": "b6", "tipo": "tabela", "colunas": ["Modelo", "Qtd"], "linhas": [["Onix", "4"]]},
+        {"id": "b7", "tipo": "separador"},
     ]
     r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": blocos})
     assert r.status_code == 200 and r.json() == {"ok": True, "versao": 1}
     dados = _dados_da_pagina(client)
     assert dados["versao"] == 1 and [b["tipo"] for b in dados["blocos"]] == [b["tipo"] for b in blocos]
-    assert dados["blocos"][3]["itens"][0] == {"texto": "Ligar", "feito": True}
-    assert dados["blocos"][11]["linhas"] == [["Onix", "4"]]
+    assert dados["blocos"][0]["alinhamento"] == "centro" and dados["blocos"][3]["marcado"] is True
+    filho = dados["blocos"][4]["filhos"][0]
+    assert filho["texto"] == "um" and filho["filhos"][0]["tipo"] == "numerada"  # blocos dentro de blocos
+    assert dados["blocos"][12]["linhas"] == [["Onix", "4"]]
     assert client.put("/api/inicio/anotacoes", json={"versao": 1, "blocos": blocos[:1]}).json()["versao"] == 2
 
 
-def test_anotacoes_do_formato_antigo_sao_convertidas_ao_abrir(client):
+def test_anotacoes_da_primeira_versao_sao_convertidas_ao_abrir(client):
     from frota import db as dbmod
     from frota.models import Painel
     antigo = [{"id": "1", "tipo": "titulo1", "texto": "Reunião"}, {"id": "2", "tipo": "tarefa", "texto": "Ligar", "feito": True},
@@ -202,12 +206,27 @@ def test_anotacoes_do_formato_antigo_sao_convertidas_ao_abrir(client):
         db.add(Painel(chave="anotacoes", conteudo={"blocos": antigo}, versao=3)); db.commit()
     d = _dados_da_pagina(client)
     assert d["versao"] == 3
-    tipos = [(b["tipo"], b.get("estilo") or b.get("nivel") or b.get("tom")) for b in d["blocos"]]
-    assert tipos == [("titulo", 1), ("lista", "check"), ("lista", "marcadores"), ("destaque", "info"), ("tabela", None), ("citacao", None), ("separador", None)]
-    assert d["blocos"][1]["itens"] == [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]  # duas tarefas seguidas = uma lista
-    assert d["blocos"][4]["colunas"] == ["a", "b"] and d["blocos"][4]["linhas"] == [["1", "2"]]
-    # e o que foi convertido grava de volta no formato novo
-    assert client.put("/api/inicio/anotacoes", json={"versao": 3, "blocos": d["blocos"]}).status_code == 200
+    tipos = [(b["tipo"], b.get("nivel") or b.get("tom") or b.get("marcado")) for b in d["blocos"]]
+    assert tipos == [("titulo", 1), ("tarefa", True), ("tarefa", False), ("marcador", None), ("destaque", "info"), ("tabela", None), ("citacao", None), ("separador", None)]
+    assert d["blocos"][5]["colunas"] == ["a", "b"] and d["blocos"][5]["linhas"] == [["1", "2"]]
+    assert client.put("/api/inicio/anotacoes", json={"versao": 3, "blocos": d["blocos"]}).status_code == 200  # grava de volta no formato atual
+
+
+def test_anotacoes_da_segunda_versao_listas_viram_um_bloco_por_linha(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    v2 = [{"id": "t", "tipo": "titulo", "nivel": 2, "texto": "Pauta"},
+          {"id": "l", "tipo": "lista", "estilo": "check", "itens": [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]},
+          {"id": "n", "tipo": "lista", "estilo": "numerada", "itens": [{"texto": "um", "feito": False}, {"texto": "dois", "feito": False}]},
+          {"id": "m", "tipo": "lista", "estilo": "marcadores", "itens": [{"texto": "x", "feito": False}]},
+          {"id": "c", "tipo": "cards", "itens": [{"titulo": "A", "texto": "b"}]}, {"id": "d", "tipo": "destaque", "tom": "atencao", "texto": "!"}]
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="anotacoes", conteudo={"blocos": v2}, versao=5)); db.commit()
+    d = _dados_da_pagina(client)
+    assert [b["tipo"] for b in d["blocos"]] == ["titulo", "tarefa", "tarefa", "numerada", "numerada", "marcador", "cards", "destaque"]
+    assert [(b["texto"], b.get("marcado")) for b in d["blocos"][1:3]] == [("Ligar", True), ("Enviar", False)]
+    assert len({b["id"] for b in d["blocos"]}) == len(d["blocos"])  # ids continuam únicos
+    assert d["blocos"][7]["tom"] == "atencao"
 
 
 def test_anotacoes_recusam_gravar_por_cima_de_outro_aparelho(client):
@@ -222,10 +241,27 @@ def test_anotacoes_validam_a_forma(client):
     ruim = lambda b: client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": b}).status_code  # noqa: E731
     assert ruim([{"id": "a", "tipo": "script", "texto": "x"}]) == 422                      # tipo desconhecido
     assert ruim([{"id": "a", "tipo": "texto", "texto": "x" * 5001}]) == 422                # grande demais
-    assert ruim([{"id": "a", "tipo": "texto"}] * 301) == 422                               # blocos demais
+    assert ruim([{"id": "a", "tipo": "texto"}] * 501) == 422                               # blocos demais
     assert ruim([{"id": "a", "tipo": "tabela", "colunas": ["x"] * 9, "linhas": []}]) == 422
-    assert ruim([{"id": "a", "tipo": "lista", "estilo": "bolinha", "itens": []}]) == 422
     assert ruim([{"id": "a", "tipo": "titulo", "nivel": 7, "texto": ""}]) == 422
+    assert ruim([{"id": "a", "tipo": "destaque", "tom": "neon", "texto": ""}]) == 422
+    assert ruim([{"id": "a", "tipo": "separador", "filhos": [{"id": "b", "tipo": "texto"}]}]) == 200  # separador não tem filhos: o campo é ignorado
+
+
+def _aninhado(niveis):
+    b = {"id": "f0", "tipo": "texto", "texto": "x"}
+    for i in range(1, niveis + 1):
+        b = {"id": f"f{i}", "tipo": "marcador", "texto": "x", "filhos": [b]}
+    return b
+
+
+def test_blocos_dentro_de_blocos_tem_limite_de_niveis_e_de_total(client):
+    ok = lambda b: client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": b}).status_code  # noqa: E731
+    assert ok([_aninhado(5)]) == 200            # 5 níveis de recuo cabem (como no editor do CRM)
+    assert ok([_aninhado(6)]) == 422            # o sexto não
+    # 300 blocos de cima + 300 filhos passam de 500 no total
+    muitos = [{"id": f"m{i}", "tipo": "toggle", "texto": "t", "filhos": [{"id": f"n{i}", "tipo": "texto", "texto": "c"}]} for i in range(260)]
+    assert ok(muitos) == 422
 
 
 def test_link_digitado_sem_https_e_completado_e_nunca_derruba_a_gravacao(client):
@@ -310,6 +346,14 @@ def test_so_montserrat_sem_fonte_monoespacada():
     css = (WEB / "static" / "app.css").read_text()
     assert "Plex" not in css and "monospace" not in css and "font-mono" not in css
     assert not list((WEB / "static" / "fonts").glob("ibm-plex*"))
+
+
+def test_inicio_carrega_o_editor_de_blocos_antes_do_inicio(client):
+    html = client.get("/inicio").text
+    assert html.index("editor-blocos.js") < html.index("inicio.js")  # o inicio.js entrega os utilitários ao editor
+    js = (WEB / "static" / "editor-blocos.js").read_text()
+    for pedaco in ("window.frotaEditor", "Lista recolhível (toggle)", "Matriz 2x2 (SWOT)", "Ctrl+⇧+", "frota:editor-blocos:copia"):
+        assert pedaco in js, pedaco
 
 
 def test_listas_e_datas_usam_o_seletor_do_app(client):

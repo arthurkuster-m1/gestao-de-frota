@@ -1,7 +1,7 @@
 {% extends "base.html" %}{% from "_ui.html" import icone, status, vazio %}
 {% macro dia_hora(d) %}<div class="dia"><small>{{ ['seg','ter','qua','qui','sex','sáb','dom'][d.weekday()] }}</small>{{ '%02d/%02d'|format(d.day, d.month) }}</div>{% endmacro %}
 {% macro item(c, d) %}<li><a class="item" href="/comodatos#c-{{ c.numero }}">{{ dia_hora(d) }}<div class="corpo"><b>{{ c.cliente.nome }}</b><span>{{ c.veiculo.placa }} · {{ c.veiculo.modelo or '' }}</span></div>{{ status(c.status) }}</a></li>{% endmacro %}
-{% block scripts %}<script src="{{ asset('inicio.js') }}"></script>{% endblock %}
+{% block scripts %}<script src="{{ asset('editor-blocos.js') }}"></script><script src="{{ asset('inicio.js') }}"></script>{% endblock %}
 {% block body %}
 {% set v = i.valores %}
 {# 1. Saudação, data e valores #}
@@ -60,7 +60,7 @@
       <span class="estado-salvo" id="estado-anotacoes" role="status">Salvo</span></div></div>
     <div id="aviso-conflito-anotacoes" class="msg alerta" hidden>{{ icone("warning") }}<div>Estas anotações foram alteradas em outro aparelho ou aba. <button class="sec pequeno" type="button" id="recarregar-anotacoes">Recarregar</button></div></div>
     <div class="editor" id="editor" aria-label="Anotações"></div>
-    <p class="caption dica-editor">Em um bloco de texto vazio, digite <kbd>/</kbd> para escolher o tipo. <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz e <kbd>Ctrl</kbd>+<kbd>Shift</kbd>+<kbd>Z</kbd> refaz.</p>
+    <p class="caption dica-editor">Escreva direto. <kbd>/</kbd> escolhe o tipo de bloco; <kbd>#</kbd> <kbd>-</kbd> <kbd>1.</kbd> <kbd>[]</kbd> <kbd>&gt;</kbd> viram título, lista, numerada, tarefa e recolhível. <kbd>Tab</kbd> recua, <kbd>Esc</kbd> seleciona o bloco, <kbd>Ctrl</kbd>+<kbd>Z</kbd> desfaz.</p>
   </section>
   <aside class="card painel-lateral painel-info" id="infos" aria-label="Informações contábeis">
     <div class="topo-card"><h3>{{ icone("receipt") }}<span class="rot-painel">Infos contábeis</span></h3>

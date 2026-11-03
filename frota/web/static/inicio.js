@@ -54,6 +54,7 @@
   document.addEventListener("keydown", function (e) {
     if (!menuAberto) return;
     var k = e.key, m = menuAberto;
+    if (!m.mover) { if (k === "Escape") { e.preventDefault(); e.stopPropagation(); fechaMenu(); } return; }  // menu livre: só Esc
     if (k === "ArrowDown" || k === "ArrowUp" || (m.classList.contains("grade") && (k === "ArrowRight" || k === "ArrowLeft"))) {
       e.preventDefault(); e.stopPropagation(); m.mover(k === "ArrowDown" || k === "ArrowRight" ? 1 : -1);
     } else if (k === "Enter" || k === "Tab") {
@@ -61,6 +62,23 @@
     } else if (k === "Escape") { e.preventDefault(); e.stopPropagation(); fechaMenu(); }
   }, true);
 
+  function posicionaMenu(m, ancora) {
+    // clicar, rolar ou arrastar a barra do menu não tira o cursor do texto de onde se digitava
+    m.addEventListener("mousedown", function (e) { e.preventDefault(); });
+    document.body.appendChild(m);
+    var r = ancora.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
+    var topo = r.bottom + scrollY + 6, esq = Math.min(r.left + scrollX, scrollX + innerWidth - mw - 8);
+    if (r.bottom + mh > innerHeight - 8 && r.top > mh + 8) topo = r.top + scrollY - mh - 6;
+    m.style.top = Math.max(8, topo) + "px"; m.style.left = Math.max(8, esq) + "px";
+  }
+  // menu com conteúdo próprio (botões de ajuste, seções…); fecha com Esc ou clicando fora
+  function abreMenuLivre(ancora, preencher, aoFechar) {
+    fechaMenu();
+    var m = el("div", "menu-flutuante livre"); m.setAttribute("role", "menu"); menuAberto = m;
+    var remove = m.remove.bind(m); m.remove = function () { remove(); if (aoFechar) aoFechar(); };
+    preencher(m, fechaMenu); posicionaMenu(m, ancora);
+    return m;
+  }
   function abreMenu(ancora, itens, aoEscolher, opcoes) {
     opcoes = opcoes || {}; fechaMenu();
     var m = el("div", "menu-flutuante" + (opcoes.grade ? " grade" : "")); m.setAttribute("role", "menu"); menuAberto = m;
@@ -69,19 +87,16 @@
       if (it === "-") { m.appendChild(el("hr")); return; }
       if (it.titulo) { m.appendChild(el("div", "titulo-menu", it.titulo)); return; }
       var b = el("button"); b.type = "button"; b.setAttribute("role", "menuitem");
-      if (it.icone) b.appendChild(ic(it.icone));
+      if (it.glifo) b.appendChild(el("span", "glifo", it.glifo)); else if (it.icone) b.appendChild(ic(it.icone));
       var tx = el("span", "txt"); tx.appendChild(el("span", "", it.rotulo)); if (it.dica) tx.appendChild(el("small", "", it.dica)); b.appendChild(tx);
       if (it.perigo) b.classList.add("perigo-item");
+      if (it.atual) b.classList.add("atual");
       b.addEventListener("mouseenter", function () { marca(botoes.length ? botoes.map(function (x) { return x.b; }).indexOf(b) : -1, true); });
       b.addEventListener("click", function () { fechaMenu(); aoEscolher(it); });
       m.appendChild(b); botoes.push({ b: b, it: it });
     });
     if (!botoes.length) m.appendChild(el("div", "vazio-menu", "Nenhum tipo encontrado"));
-    document.body.appendChild(m);
-    var r = ancora.getBoundingClientRect(), mw = m.offsetWidth, mh = m.offsetHeight;
-    var topo = r.bottom + scrollY + 6, esq = Math.min(r.left + scrollX, scrollX + innerWidth - mw - 8);
-    if (r.bottom + mh > innerHeight - 8 && r.top > mh + 8) topo = r.top + scrollY - mh - 6;
-    m.style.top = topo + "px"; m.style.left = Math.max(8, esq) + "px";
+    posicionaMenu(m, ancora);
     function rolaAte(b) {  // rola só dentro do menu (scrollIntoView rolaria a página inteira)
       var t = b.offsetTop, h = b.offsetHeight;
       if (t < m.scrollTop) m.scrollTop = Math.max(0, t - 4); else if (t + h > m.scrollTop + m.clientHeight) m.scrollTop = t + h - m.clientHeight + 4;
@@ -95,266 +110,6 @@
     m.escolherAtivo = function () { if (m.ativo >= 0) botoes[m.ativo].b.click(); };
     if (opcoes.marcarPrimeiro && botoes.length) marca(0);
     return m;
-  }
-
-  /* ---------- editor de blocos das anotações (os mesmos blocos do CRM) ---------- */
-  var TONS = [["info", "Informação"], ["sucesso", "Sucesso"], ["atencao", "Atenção"]];
-  var CELULAS_SWOT = ["Forças", "Fraquezas", "Oportunidades", "Ameaças"];
-  var TIPOS = {
-    titulo: { nome: "Título", desc: "Título de uma seção", icone: "text-h-one", cor: "azul", novo: function () { return { nivel: 1, texto: "" }; }, resumo: function (b) { return b.texto; } },
-    texto: { nome: "Texto", desc: "Parágrafo livre", icone: "text-t", cor: "azul", novo: function () { return { texto: "" }; }, resumo: function (b) { return b.texto; } },
-    destaque: { nome: "Destaque", desc: "Aviso colorido em evidência", icone: "lightbulb", cor: "ambar", novo: function () { return { tom: "info", texto: "" }; }, resumo: function (b) { return b.texto; } },
-    lista: { nome: "Lista", desc: "Marcadores, numerada ou tarefas", icone: "list-bullets", cor: "verde", novo: function () { return { estilo: "marcadores", itens: [{ texto: "", feito: false }] }; }, resumo: function (b) { return b.itens.length + " item(ns)" + (b.itens[0] && b.itens[0].texto ? " · " + b.itens[0].texto : ""); } },
-    cards: { nome: "Cartões", desc: "Título e texto lado a lado", icone: "cards", cor: "verde", novo: function () { return { itens: [{ titulo: "", texto: "" }] }; }, resumo: function (b) { return b.itens.length + " cartão(ões)"; } },
-    metricas: { nome: "Números", desc: "Valores grandes em destaque", icone: "chart-bar", cor: "teal", novo: function () { return { itens: [{ rotulo: "", valor: "", detalhe: "" }] }; }, resumo: function (b) { return b.itens.map(function (x) { return x.rotulo + " " + x.valor; }).join(" · "); } },
-    "antes-depois": { nome: "Antes e depois", desc: "Duas colunas para comparar", icone: "arrows-left-right", cor: "rosa", novo: function () { return { antes: { titulo: "Antes", texto: "" }, depois: { titulo: "Depois", texto: "" } }; }, resumo: function (b) { return b.antes.titulo + " × " + b.depois.titulo; } },
-    links: { nome: "Links", desc: "Lista de endereços úteis", icone: "link", cor: "verde", novo: function () { return { itens: [{ rotulo: "", url: "" }] }; }, resumo: function (b) { return b.itens.length + " link(s)"; } },
-    citacao: { nome: "Citação", desc: "Frase com autoria", icone: "quotes", cor: "ambar", novo: function () { return { texto: "", autor: "" }; }, resumo: function (b) { return b.texto; } },
-    fluxo: { nome: "Fluxo", desc: "Passos em sequência", icone: "flow-arrow", cor: "verde", novo: function () { return { itens: [{ titulo: "", texto: "" }] }; }, resumo: function (b) { return b.itens.map(function (x) { return x.titulo; }).filter(Boolean).join(" → "); } },
-    matriz: { nome: "Matriz 2×2", desc: "SWOT ou quatro quadrantes", icone: "squares-four", cor: "rosa", novo: function () { return { estilo: "swot", celulas: CELULAS_SWOT.map(function (t) { return { titulo: t, texto: "" }; }) }; }, resumo: function (b) { return b.estilo === "swot" ? "SWOT" : "Quatro quadrantes"; } },
-    tabela: { nome: "Tabela", desc: "Linhas e colunas", icone: "table", cor: "teal", novo: function () { return { colunas: ["", ""], linhas: [["", ""], ["", ""]] }; }, resumo: function (b) { return b.colunas.filter(Boolean).join(" · ") || (b.linhas.length + " linha(s)"); } },
-    separador: { nome: "Divisória", desc: "Linha para separar partes", icone: "minus", cor: "cinza", novo: function () { return {}; }, resumo: function () { return ""; } }
-  };
-  var ORDEM = ["titulo", "texto", "destaque", "lista", "cards", "metricas", "antes-depois", "links", "citacao", "fluxo", "matriz", "tabela", "separador"];
-
-  function editor() {
-    var raiz = document.getElementById("editor");
-    if (!raiz) return;
-    var dados = lerJson("dados-anotacoes", { versao: 0, blocos: [] });
-    var blocos = (dados.blocos || []).filter(function (b) { return TIPOS[b.tipo]; });
-    var versao = dados.versao || 0;
-    var estado = document.getElementById("estado-anotacoes"), aviso = document.getElementById("aviso-conflito-anotacoes");
-    var btnDesfazer = document.getElementById("desfazer"), btnRefazer = document.getElementById("refazer");
-    var sujo = false, salvando = false, pendente = false, timer = null, travado = false;
-    var abertos = {}; blocos.forEach(function (b) { abertos[b.id] = true; });
-    var ultimoNovo = null, pedeFoco = null;
-
-    /* ----- gravação automática ----- */
-    function rotuloEstado(txt, erro) { estado.textContent = txt; estado.classList.toggle("erro", !!erro); }
-    function marcaSujo() { sujo = true; rotuloEstado("Salvando…"); clearTimeout(timer); timer = setTimeout(salvar, 700); }
-    function salvar(saindo) {
-      if (travado || !sujo) return;
-      if (salvando) { pendente = true; return; }
-      salvando = true; sujo = false;
-      enviar("/api/inicio/anotacoes", { versao: versao, blocos: blocos }, saindo === "saindo").then(function (r) {
-        salvando = false;
-        if (r.status === 200) { versao = r.json.versao; rotuloEstado(sujo ? "Salvando…" : "Salvo"); if (sujo || pendente) { pendente = false; salvar(); } }
-        else if (r.status === 409) { travado = true; aviso.hidden = false; rotuloEstado("Não salvo", true); }
-        else { sujo = true; rotuloEstado("Erro ao salvar. Tentando de novo…", true); timer = setTimeout(salvar, 4000); }
-      }).catch(function () { salvando = false; sujo = true; rotuloEstado("Sem conexão. Tentando de novo…", true); timer = setTimeout(salvar, 4000); });
-    }
-    document.getElementById("recarregar-anotacoes").addEventListener("click", function () { location.reload(); });
-    addEventListener("pagehide", function () { if (sujo && !travado) { clearTimeout(timer); salvar("saindo"); } });
-    document.addEventListener("visibilitychange", function () { if (document.visibilityState === "hidden" && sujo && !travado) { clearTimeout(timer); salvar(); } });
-
-    /* ----- desfazer / refazer (Ctrl+Z, Ctrl+Shift+Z, Ctrl+Y) ----- */
-    var hist = [JSON.stringify(blocos)], pos = 0, ultimaChave = null, ultimoT = 0;
-    function atualizaBotoes() { btnDesfazer.disabled = pos <= 0; btnRefazer.disabled = pos >= hist.length - 1; }
-    function registra(chave) {  // chave igual em sequência = a mesma digitação, um passo só
-      var snap = JSON.stringify(blocos); if (snap === hist[pos]) return;
-      var junta = chave && chave === ultimaChave && Date.now() - ultimoT < 1200 && pos === hist.length - 1 && pos > 0;
-      if (junta) hist[pos] = snap;
-      else { hist.length = pos + 1; hist.push(snap); pos++; if (hist.length > 150) { hist.shift(); pos--; } }
-      ultimaChave = chave || null; ultimoT = Date.now(); atualizaBotoes();
-    }
-    function vai(d) {
-      var alvo = pos + d; if (alvo < 0 || alvo >= hist.length) return;
-      pos = alvo; blocos = JSON.parse(hist[pos]); ultimaChave = null;
-      blocos.forEach(function (b) { if (abertos[b.id] === undefined) abertos[b.id] = true; });
-      fechaMenu(); render(); atualizaBotoes(); marcaSujo(); raiz.focus({ preventScroll: true });
-    }
-    btnDesfazer.addEventListener("click", function () { vai(-1); });
-    btnRefazer.addEventListener("click", function () { vai(1); });
-    raiz.tabIndex = -1;
-    // Vale com o foco dentro do editor ou solto na página (depois de remover um bloco, o botão some e o foco se perde);
-    // com o foco em OUTRO campo da página (infos, busca…), o Ctrl+Z continua sendo daquele campo.
-    document.addEventListener("keydown", function (e) {
-      if (!(e.ctrlKey || e.metaKey) || e.altKey) return;
-      var k = e.key.toLowerCase(); if (k !== "z" && k !== "y") return;
-      var t = e.target, solto = t === document.body || t === document.documentElement;
-      if (!raiz.contains(t) && !solto) return;
-      if (k === "z" && !e.shiftKey) { e.preventDefault(); vai(-1); } else if ((k === "z" && e.shiftKey) || k === "y") { e.preventDefault(); vai(1); }
-    }, true);
-
-    /* ----- mudanças ----- */
-    function alterou(chave) { registra(chave); marcaSujo(); }
-    function estrutura(foco) { registra(null); marcaSujo(); pedeFoco = foco || null; render(); }
-    function idx(id) { for (var i = 0; i < blocos.length; i++) if (blocos[i].id === id) return i; return -1; }
-    function criaBloco(tipo, id) { var b = TIPOS[tipo].novo(); b.id = id || novoId(); b.tipo = tipo; return b; }
-    function adicionar(tipo) { var b = criaBloco(tipo); blocos.push(b); abertos[b.id] = true; ultimoNovo = b.id; estrutura({ id: b.id, sel: ".t, input, textarea" }); }
-    function mover(i, d) { var j = i + d; if (j < 0 || j >= blocos.length) return; var x = blocos.splice(i, 1)[0]; blocos.splice(j, 0, x); estrutura(); }
-    function duplicar(i) { var c = clonar(blocos[i]); c.id = novoId(); blocos.splice(i + 1, 0, c); abertos[c.id] = abertos[blocos[i].id]; ultimoNovo = c.id; estrutura(); }
-    function remover(i) { blocos.splice(i, 1); estrutura(); }
-
-    /* ----- campos dos formulários ----- */
-    function campo(rotulo, controle) { var c = el("label", "cp"); c.appendChild(el("span", "", rotulo)); c.appendChild(controle); return c; }
-    function entrada(obj, chave, o) {
-      o = o || {}; var i = o.multi ? el("textarea", "t") : el("input", "t"); if (!o.multi) i.type = "text";
-      i.value = obj[chave] || ""; if (o.ph) i.placeholder = o.ph; if (o.max) i.maxLength = o.max; if (o.rotulo) i.setAttribute("aria-label", o.rotulo);
-      if (o.multi) { var ajusta = function () { i.style.height = "auto"; i.style.height = Math.max(84, i.scrollHeight + 2) + "px"; }; i.addEventListener("input", ajusta); setTimeout(ajusta, 0); }
-      i.addEventListener("input", function () { obj[chave] = i.value; if (o.aoDigitar) o.aoDigitar(i); alterou(o.chave || (obj.id || "") + ":" + chave); });
-      if (o.aoTecla) i.addEventListener("keydown", function (e) { o.aoTecla(e, i); });
-      return i;
-    }
-    function escolha(obj, chave, opcoes, rotulo, aoTrocar) {
-      var s = el("select"); s.setAttribute("aria-label", rotulo);
-      opcoes.forEach(function (op) { var o = el("option", "", op[1]); o.value = op[0]; if (String(obj[chave]) === String(op[0])) o.selected = true; s.appendChild(o); });
-      s.addEventListener("change", function () { var v = s.value; obj[chave] = /^\d+$/.test(v) ? Number(v) : v; if (aoTrocar) aoTrocar(); else { registra(null); marcaSujo(); } });
-      var c = el("div", "cp"); c.append(el("span", "", rotulo), s); return c;  // div, não label: o clique na lista não pode "vazar" para o rótulo
-    }
-    function botaoX(rotulo, aoClicar) { var b = el("button", "x"); b.type = "button"; b.setAttribute("aria-label", rotulo); b.title = rotulo; b.appendChild(ic("trash")); b.addEventListener("click", aoClicar); return b; }
-    // lista de itens: adicionar, remover; Enter cria o próximo, Backspace em item vazio remove
-    function repetidor(b, chave, vazio, max, desenhaItem, rotuloAdd, opcoes) {
-      opcoes = opcoes || {}; var arr = b[chave], rep = el("div", "rep");
-      arr.forEach(function (item, i) {
-        var linha = el("div", "rep-item" + (opcoes.simples ? " linha-simples" : "")), campos = desenhaItem(item, i);
-        linha.append(campos, botaoX("Remover", function () { if (arr.length > 1 || opcoes.podeVazio) { arr.splice(i, 1); estrutura(); } else { arr[0] = vazio(); estrutura({ id: b.id, sel: "input, textarea" }); } }));
-        rep.appendChild(linha);
-      });
-      if (arr.length < max) {
-        var add = el("button", "sec pequeno rep-add"); add.type = "button"; add.append(ic("plus", "p"), document.createTextNode(rotuloAdd));
-        add.addEventListener("click", function () { arr.push(vazio()); estrutura({ id: b.id, sel: ".rep-item:last-of-type input, .rep-item:last-of-type textarea" }); });
-        rep.appendChild(add);
-      }
-      return rep;
-    }
-
-    var FORM = {
-      titulo: function (b) { return [escolha(b, "nivel", [[1, "Grande"], [2, "Médio"], [3, "Pequeno"]], "Tamanho"), campo("Título", entrada(b, "texto", { max: 200, ph: "Título" }))]; },
-      texto: function (b) {
-        return [campo("Texto", entrada(b, "texto", { multi: true, max: 5000, ph: "Escreva aqui. Em um bloco vazio, digite / para trocar o tipo.", aoDigitar: function (i) { slash(b, i); } }))];
-      },
-      destaque: function (b) { return [escolha(b, "tom", TONS, "Tom"), campo("Texto", entrada(b, "texto", { multi: true, max: 5000 }))]; },
-      lista: function (b) {
-        var estilo = escolha(b, "estilo", [["marcadores", "Marcadores"], ["numerada", "Numerada"], ["check", "Tarefas"]], "Estilo", function () { estrutura(); });
-        var rep = repetidor(b, "itens", function () { return { texto: "", feito: false }; }, 60, function (item, i) {
-          var linha = el("div", "check-linha" + (b.estilo === "check" && item.feito ? " feito" : ""));
-          if (b.estilo === "check") { var cb = el("input"); cb.type = "checkbox"; cb.checked = !!item.feito; cb.setAttribute("aria-label", "Concluído"); cb.addEventListener("change", function () { item.feito = cb.checked; linha.classList.toggle("feito", cb.checked); registra(null); marcaSujo(); }); linha.appendChild(cb); }
-          if (b.estilo === "numerada") linha.appendChild(el("span", "num-item", (i + 1) + "."));
-          if (b.estilo === "marcadores") linha.appendChild(el("span", "num-item", "•"));
-          linha.appendChild(entrada(item, "texto", { max: 300, ph: "Item", rotulo: "Item " + (i + 1), chave: b.id + ":item" + i, aoTecla: function (e, inp) {
-            if (e.key === "Enter" && !e.isComposing) { e.preventDefault(); b.itens.splice(i + 1, 0, { texto: "", feito: false }); estrutura({ id: b.id, sel: ".rep-item:nth-of-type(" + (i + 2) + ") input[type=text]" }); }
-            else if (e.key === "Backspace" && inp.value === "" && b.itens.length > 1) { e.preventDefault(); b.itens.splice(i, 1); estrutura({ id: b.id, sel: ".rep-item:nth-of-type(" + Math.max(1, i) + ") input[type=text]" }); }
-          } }));
-          return linha;
-        }, "Item", { simples: true });
-        return [estilo, rep];
-      },
-      cards: function (b) {
-        return [repetidor(b, "itens", function () { return { titulo: "", texto: "" }; }, 12, function (c) {
-          var w = el("div", "rep-campos"); w.append(entrada(c, "titulo", { max: 120, ph: "Título do cartão", rotulo: "Título" }), entrada(c, "texto", { multi: true, max: 1200, ph: "Texto", rotulo: "Texto" })); return w;
-        }, "Cartão")];
-      },
-      metricas: function (b) {
-        return [repetidor(b, "itens", function () { return { rotulo: "", valor: "", detalhe: "" }; }, 8, function (n) {
-          var w = el("div", "rep-campos"); w.append(entrada(n, "rotulo", { max: 120, ph: "Nome (ex.: Veículos)", rotulo: "Nome" }), entrada(n, "valor", { max: 40, ph: "Valor (ex.: 25)", rotulo: "Valor" }), entrada(n, "detalhe", { max: 200, ph: "Detalhe", rotulo: "Detalhe" })); return w;
-        }, "Número")];
-      },
-      "antes-depois": function (b) {
-        function lado(rot, o) { var w = el("div", "rep-campos"); w.appendChild(el("b", "", rot)); w.append(entrada(o, "titulo", { max: 120, ph: "Título", rotulo: rot + ": título", chave: b.id + ":" + rot + "t" }), entrada(o, "texto", { multi: true, max: 1500, ph: "Texto", rotulo: rot + ": texto", chave: b.id + ":" + rot + "x" })); return w; }
-        var d = el("div", "dupla"); d.append(lado("Antes", b.antes), lado("Depois", b.depois)); return [d];
-      },
-      links: function (b) {
-        return [repetidor(b, "itens", function () { return { rotulo: "", url: "" }; }, 30, function (l) {
-          var w = el("div", "rep-campos");
-          var u = entrada(l, "url", { max: 500, ph: "https://…", rotulo: "Endereço" });
-          u.addEventListener("blur", function () { var v = u.value.trim(); if (v && !/^[a-z][a-z0-9+.-]*:\/\//i.test(v)) { u.value = "https://" + v; l.url = u.value; alterou(null); } });
-          w.append(entrada(l, "rotulo", { max: 120, ph: "Nome do link", rotulo: "Nome" }), u); return w;
-        }, "Link")];
-      },
-      citacao: function (b) { return [campo("Citação", entrada(b, "texto", { multi: true, max: 1000 })), campo("Autor", entrada(b, "autor", { max: 120, ph: "Quem disse" }))]; },
-      fluxo: function (b) {
-        return [repetidor(b, "itens", function () { return { titulo: "", texto: "" }; }, 24, function (p, i) {
-          var w = el("div", "rep-campos"); w.append(entrada(p, "titulo", { max: 120, ph: "Passo " + (i + 1), rotulo: "Passo " + (i + 1) }), entrada(p, "texto", { max: 200, ph: "Detalhe", rotulo: "Detalhe do passo " + (i + 1) })); return w;
-        }, "Passo")];
-      },
-      matriz: function (b) {
-        var g = el("div", "matriz-ed");
-        b.celulas.forEach(function (c, i) {
-          var w = el("div", "rep-campos"); w.append(entrada(c, "titulo", { max: 120, rotulo: "Quadrante " + (i + 1), ph: b.estilo === "swot" ? CELULAS_SWOT[i] : "Título" }), entrada(c, "texto", { multi: true, max: 1500, ph: "Texto", rotulo: "Texto do quadrante " + (i + 1) })); g.appendChild(w);
-        });
-        return [escolha(b, "estilo", [["swot", "SWOT"], ["neutro", "Neutra"]], "Estilo", function () { registra(null); marcaSujo(); }), g];
-      },
-      tabela: function (b) {
-        var larg = b.colunas.length, rolar = el("div", "tab-rolar"), t = el("table", "tab-ed"), cab = el("thead"), corpo = el("tbody");
-        var xs = el("tr"); b.colunas.forEach(function (_, j) { var td = el("td"), x = el("button", "xx"); x.type = "button"; x.setAttribute("aria-label", "Remover coluna " + (j + 1)); x.appendChild(ic("x")); x.addEventListener("click", function () { if (larg > 1) { b.colunas.splice(j, 1); b.linhas.forEach(function (l) { l.splice(j, 1); }); estrutura({ id: b.id, sel: "input" }); } }); td.appendChild(x); xs.appendChild(td); }); xs.appendChild(el("td"));
-        var hr = el("tr"); b.colunas.forEach(function (c, j) { var td = el("td"), i = el("input"); i.type = "text"; i.value = c; i.maxLength = 60; i.placeholder = "Coluna " + (j + 1); i.setAttribute("aria-label", "Título da coluna " + (j + 1)); i.addEventListener("input", function () { b.colunas[j] = i.value; alterou(b.id + ":c" + j); }); td.appendChild(i); hr.appendChild(td); }); hr.appendChild(el("td"));
-        cab.append(xs, hr);
-        b.linhas.forEach(function (l, i) {
-          while (l.length < larg) l.push("");
-          var tr = el("tr"); l.forEach(function (v, j) { var td = el("td"), inp = el("input"); inp.type = "text"; inp.value = v; inp.maxLength = 300; inp.setAttribute("aria-label", "Linha " + (i + 1) + ", coluna " + (j + 1)); inp.addEventListener("input", function () { l[j] = inp.value; alterou(b.id + ":" + i + "," + j); }); td.appendChild(inp); tr.appendChild(td); });
-          var tdx = el("td"), x = el("button", "xx"); x.type = "button"; x.setAttribute("aria-label", "Remover linha " + (i + 1)); x.appendChild(ic("x")); x.addEventListener("click", function () { b.linhas.splice(i, 1); estrutura(); }); tdx.appendChild(x); tr.appendChild(tdx); corpo.appendChild(tr);
-        });
-        t.append(cab, corpo); rolar.appendChild(t);
-        var ac = el("div", "acoes"), aL = el("button", "sec pequeno"), aC = el("button", "sec pequeno"); aL.type = aC.type = "button";
-        aL.append(ic("plus", "p"), document.createTextNode("Linha")); aC.append(ic("plus", "p"), document.createTextNode("Coluna"));
-        aL.addEventListener("click", function () { if (b.linhas.length < 40) { b.linhas.push(new Array(larg).fill("")); estrutura({ id: b.id, sel: "tbody tr:last-child input" }); } });
-        aC.addEventListener("click", function () { if (larg < 8) { b.colunas.push(""); b.linhas.forEach(function (l) { l.push(""); }); estrutura({ id: b.id, sel: "thead tr:nth-child(2) td:last-of-type input" }); } });
-        ac.append(aL, aC); return [rolar, ac];
-      },
-      separador: function () { return []; }
-    };
-
-    /* ----- "/" no bloco de texto: troca o tipo do bloco ----- */
-    function slash(b, area) {
-      var v = area.value;
-      if (v.charAt(0) === "/" && !/[\s]/.test(v)) {
-        var f = v.slice(1).toLowerCase();
-        var lista = ORDEM.filter(function (t) { return t !== "texto" && (!f || TIPOS[t].nome.toLowerCase().indexOf(f) >= 0 || t.indexOf(f) >= 0); });
-        abreMenu(area, lista.map(function (t) { return { rotulo: TIPOS[t].nome, dica: TIPOS[t].desc, icone: TIPOS[t].icone, tipo: t }; }), function (it) {
-          var i = idx(b.id); if (i < 0) return; var novo = criaBloco(it.tipo, b.id); blocos[i] = novo; abertos[b.id] = true;
-          estrutura({ id: b.id, sel: ".t, input, textarea" });
-        }, { marcarPrimeiro: true });
-      } else if (menuAberto) fechaMenu();
-    }
-
-    /* ----- desenho ----- */
-    function render() {
-      fechaMenu(); raiz.textContent = "";
-      var qtdAbertos = blocos.filter(function (b) { return abertos[b.id]; }).length;
-      if (blocos.length > 1) {
-        var topo = el("div", "editor-topo"), a = el("button", "sec pequeno", "Abrir todos"), f = el("button", "sec pequeno", "Fechar todos");
-        a.type = f.type = "button"; topo.append(el("span", "conta", qtdAbertos + "/" + blocos.length + " abertos"), a, f);
-        a.addEventListener("click", function () { blocos.forEach(function (b) { abertos[b.id] = true; }); render(); });
-        f.addEventListener("click", function () { blocos.forEach(function (b) { abertos[b.id] = false; }); render(); });
-        raiz.appendChild(topo);
-      }
-      blocos.forEach(function (b, i) {
-        var T = TIPOS[b.tipo], aberto = !!abertos[b.id] && b.tipo !== "separador";
-        var sec = el("section", "blc cor-" + T.cor + (b.id === ultimoNovo ? " novo" : "")); sec.dataset.id = b.id; sec.setAttribute("aria-label", T.nome + " " + (i + 1));
-        var cab = el("div", "blc-cab"), alterna = el("button", "alterna"); alterna.type = "button"; alterna.setAttribute("aria-expanded", aberto ? "true" : "false");
-        if (b.tipo !== "separador") alterna.appendChild(ic(aberto ? "caret-down" : "caret-right"));
-        alterna.appendChild(el("span", "blc-tag", T.nome));
-        if (!aberto) alterna.appendChild(el("span", "blc-resumo", b.tipo === "separador" ? "— — —" : T.resumo(b)));
-        alterna.addEventListener("click", function () { if (b.tipo === "separador") return; abertos[b.id] = !abertos[b.id]; render(); });
-        var bt = el("div", "blc-botoes");
-        function icone(nome, rot, fn, off, perigo) { var x = el("button", perigo ? "perigo" : ""); x.type = "button"; x.setAttribute("aria-label", rot); x.title = rot; x.disabled = !!off; x.appendChild(ic(nome)); x.addEventListener("click", fn); bt.appendChild(x); }
-        icone("caret-up", "Mover para cima", function () { mover(i, -1); }, i === 0);
-        icone("caret-down", "Mover para baixo", function () { mover(i, 1); }, i === blocos.length - 1);
-        icone("copy", "Duplicar bloco", function () { duplicar(i); });
-        icone("trash", "Remover bloco", function () { remover(i); }, false, true);
-        cab.append(alterna, bt); sec.appendChild(cab);
-        if (aberto) { var corpo = el("div", "blc-corpo"); FORM[b.tipo](b).forEach(function (n) { corpo.appendChild(n); }); sec.appendChild(corpo); }
-        raiz.appendChild(sec);
-      });
-      var add = el("button", "add-bloco"); add.type = "button"; add.dataset.abreMenu = "1"; add.setAttribute("aria-haspopup", "menu");
-      add.append(ic("plus"), document.createTextNode("Adicionar bloco"));
-      add.addEventListener("click", function () {
-        if (menuAberto) { fechaMenu(); return; }
-        abreMenu(add, ORDEM.map(function (t) { return { rotulo: TIPOS[t].nome, dica: TIPOS[t].desc, icone: TIPOS[t].icone, tipo: t }; }), function (it) { adicionar(it.tipo); }, { grade: true, marcarPrimeiro: true });
-      });
-      raiz.appendChild(add);
-      window.frotaUI && window.frotaUI.melhora(raiz);  // troca os <select> pelas listas do app
-      ultimoNovo = null;
-      var tinhaFoco = !!pedeFoco;
-      if (pedeFoco) {
-        var alvo = raiz.querySelector('[data-id="' + pedeFoco.id + '"] ' + pedeFoco.sel.split(",").map(function (s) { return s.trim(); }).join(', [data-id="' + pedeFoco.id + '"] '));
-        pedeFoco = null; if (alvo) { alvo.focus({ preventScroll: false }); if (alvo.setSelectionRange && alvo.type !== "checkbox") { try { alvo.setSelectionRange(alvo.value.length, alvo.value.length); } catch (e) {} } }
-      }
-      if (!tinhaFoco && !raiz.contains(document.activeElement)) raiz.focus({ preventScroll: true });  // o foco não se perde: Ctrl+Z segue valendo
-    }
-    if (!blocos.length) { var b0 = criaBloco("texto"); blocos.push(b0); abertos[b0.id] = true; hist = [JSON.stringify(blocos)]; }
-    render(); atualizaBotoes();
   }
 
   /* ---------- informações contábeis (com grupos) ---------- */
@@ -482,5 +237,6 @@
     ver();
   }
 
-  editor(); infos();
+  infos();
+  if (window.frotaEditor) window.frotaEditor({ el: el, ic: ic, lerJson: lerJson, novoId: novoId, clonar: clonar, enviar: enviar, abreMenu: abreMenu, abreMenuLivre: abreMenuLivre, fechaMenu: fechaMenu, menuAtivo: function () { return menuAberto; } });
 })();
