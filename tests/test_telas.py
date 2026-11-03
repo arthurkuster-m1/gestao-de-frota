@@ -24,7 +24,7 @@ def test_telas_em_breve_dizem_em_breve(client):
 
 def test_arquivos_do_design_system_existem():
     for arq in ("app.css", "app.js", "icones.svg", "fonts/montserrat-latin-400-normal.woff2",
-                "fonts/ibm-plex-mono-latin-400-normal.woff2", "fonts/atkinson-hyperlegible-latin-400-normal.woff2"):
+                "fonts/atkinson-hyperlegible-latin-400-normal.woff2"):
         assert (WEB / "static" / arq).stat().st_size > 0, arq
 
 
@@ -79,3 +79,16 @@ def test_arquivos_estaticos_tem_versao_na_url_e_sao_revalidados(client):
         assert re.search(rf"/static/{re.escape(arq)}\?v=\d+", html), arq
     assert client.get("/static/app.css").headers["cache-control"] == "no-cache"
     assert "?v=" in client.get("/login").text  # a tela de entrada também
+
+
+def test_so_montserrat_sem_fonte_monoespacada():
+    css = (WEB / "static" / "app.css").read_text()
+    assert "Plex" not in css and "monospace" not in css and "font-mono" not in css
+    assert not list((WEB / "static" / "fonts").glob("ibm-plex*"))
+
+
+def test_listas_e_datas_usam_o_seletor_do_app(client):
+    html = client.get("/design").text
+    assert '<select aria-label="Status">' in html and 'type="date"' in html  # o JS troca pelos do app
+    js = (WEB / "static" / "app.js").read_text()
+    assert "sel-lista" in js and "cal-dias" in js
