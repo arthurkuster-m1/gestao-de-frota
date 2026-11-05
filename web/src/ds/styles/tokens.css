@@ -1,0 +1,126 @@
+/* ─────────────────────────────────────────────────────────────────────────
+   Frota — Design System · tokens
+   Linguagem do CRM M1 com Azul Frota (#3366A0) como única cor de destaque.
+   Só Montserrat (fonte variável, dentro do projeto). Ver docs/design-system.md.
+   ───────────────────────────────────────────────────────────────────────── */
+
+@font-face { font-family: "Montserrat"; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url("/fonts/montserrat-latin-wght-normal.woff2") format("woff2");
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD; }
+@font-face { font-family: "Montserrat"; font-weight: 100 900; font-style: normal; font-display: swap;
+  src: url("/fonts/montserrat-latin-ext-wght-normal.woff2") format("woff2");
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF; }
+
+:root {
+  /* Azul Frota (variáveis --navy-* mantêm o nome do design system de origem) — 11 tons (o mesmo nos dois temas; o que muda é qual stop é o "accent") */
+  --navy-50: #f0f6fd;  --navy-100: #dceafa; --navy-200: #bad4f3; --navy-300: #8db6e6;
+  --navy-400: #6499d8; --navy-500: #4680c3; --navy-600: #3366a0; --navy-700: #2c527e;
+  --navy-800: #264365; --navy-900: #233954; --navy-950: #101d2d;
+
+  /* Superfícies (claro) */
+  --color-bg: #f4f6f9;
+  --color-surface: #ffffff;
+  --color-surface-elevated: #eef1f5;
+  --color-overlay: rgba(11, 18, 32, 0.45);
+
+  /* Texto (claro) — todos AA sobre bg e surface */
+  --color-text: #141b24;
+  --color-text-muted: #525f6e;
+  --color-text-subtle: #7a8795;
+
+  /* Bordas (claro) */
+  --color-border: #e2e7ed;
+  --color-border-strong: #cfd7e0;
+
+  /* Accent */
+  --color-accent: var(--navy-600);
+  --color-accent-hover: var(--navy-700);
+  --color-accent-fg: #ffffff;
+  --color-accent-soft: var(--navy-100);
+  --color-accent-ring: var(--navy-500);
+
+  /* Marca: superfícies azul-marinho cheias (nav flutuante, destaque) */
+  --color-brand: var(--navy-900);
+  --color-brand-fg: #ffffff;
+  --color-brand-muted: #8db6e6;
+
+  /* Estados (claro) */
+  --color-success: #5a8a5f; --color-success-bg: rgba(90, 138, 95, 0.12); --color-success-fg: #41673f;
+  --color-warning: #b07a2b; --color-warning-bg: rgba(176, 122, 43, 0.12); --color-warning-fg: #875a1a;
+  --color-error:   #a94a3c; --color-error-bg:   rgba(169, 74, 60, 0.12);  --color-error-fg:   #8a3a2e;
+  --color-info:    #4a7a93; --color-info-bg:    rgba(74, 122, 147, 0.12); --color-info-fg:    #355d72;
+  /* Série de gráficos (categorias): azul-marinho primeiro, depois cores distintas entre si, ≥3:1 sobre a superfície */
+  --chart-1: #2f4f87; --chart-2: #3f8f8a; --chart-3: #b07a2b; --chart-4: #8a5fb0; --chart-5: #b5554a; --chart-6: #5a8a5f; --chart-7: #4a7a93; --chart-8: #8c6a4a; --chart-9: #6b7a99; --chart-10: #a85a8c;
+
+  /* Espaçamento (base 4) */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px; --space-5: 20px;
+  --space-6: 24px; --space-8: 32px; --space-10: 40px; --space-12: 48px; --space-16: 64px;
+
+  /* Raio — tudo arredondado */
+  --radius-sm: 8px; --radius-md: 12px; --radius-lg: 16px; --radius-xl: 22px; --radius-full: 9999px;
+
+  /* Sombras — em tom de azul, nunca preto puro */
+  --shadow-xs: 0 1px 2px 0 rgba(16, 30, 60, 0.05);
+  --shadow-sm: 0 1px 2px 0 rgba(16, 30, 60, 0.06), 0 1px 1px 0 rgba(16, 30, 60, 0.04);
+  --shadow-md: 0 8px 20px -6px rgba(16, 30, 60, 0.10), 0 2px 6px -1px rgba(16, 30, 60, 0.06);
+  --shadow-lg: 0 18px 40px -10px rgba(16, 30, 60, 0.16), 0 6px 14px -3px rgba(16, 30, 60, 0.08);
+  --shadow-float: 0 14px 34px -8px rgba(13, 26, 51, 0.38), 0 4px 10px -2px rgba(13, 26, 51, 0.2);
+
+  /* Tipografia */
+  --font-sans: "Montserrat", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-mono: var(--font-sans);
+  --font-num: var(--font-sans); /* valores e números */
+
+  /* Movimento — os 4 pares canônicos do CRM */
+  --ease-out: cubic-bezier(0.2, 0, 0, 1);
+  --ease-in-out: cubic-bezier(0.25, 0.1, 0.25, 1);
+  --ease-out-slow: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --dur-fast: 120ms; --dur-base: 200ms; --dur-slow: 320ms; --dur-spring: 420ms;
+
+  /* Densidade "aerada" */
+  --touch: 44px;            /* alvo mínimo de toque */
+  --page-max: 720px;
+  --safe-bottom: env(safe-area-inset-bottom, 0px);
+
+  --z-raised: 10; --z-nav: 30; --z-modal: 40; --z-toast: 50;
+  color-scheme: light;
+}
+
+/* Escuro: desenhado à parte, fundo azul-noite (não preto) */
+:root[data-theme="dark"] {
+  --color-bg: #0f151d;
+  --color-surface: #151d27;
+  --color-surface-elevated: #1d2733;
+  --color-overlay: rgba(2, 6, 14, 0.65);
+
+  --color-text: #eef2f6;
+  --color-text-muted: #8b98a8;
+  --color-text-subtle: #657386;
+
+  --color-border: #27323f;
+  --color-border-strong: #344254;
+
+  --color-accent: var(--navy-400);
+  --color-accent-hover: var(--navy-300);
+  --color-accent-fg: #0f151d;
+  --color-accent-soft: rgba(100, 153, 216, 0.16);
+  --color-accent-ring: var(--navy-400);
+
+  --color-brand: #233954;
+  --color-brand-fg: #eef2f6;
+  --color-brand-muted: #8b98a8;
+
+  --color-success: #82a077; --color-success-bg: rgba(130, 160, 119, 0.18); --color-success-fg: #a4ba9a;
+  --color-warning: #d09455; --color-warning-bg: rgba(208, 148, 85, 0.18);  --color-warning-fg: #e0ad77;
+  --color-error:   #c87263; --color-error-bg:   rgba(200, 114, 99, 0.18);  --color-error-fg:   #d99182;
+  --color-info:    #7da9bf; --color-info-bg:    rgba(125, 169, 191, 0.18); --color-info-fg:    #9bbfd2;
+  --chart-1: #7e9ed6; --chart-2: #5fb3ac; --chart-3: #d09455; --chart-4: #b894d9; --chart-5: #d9877b; --chart-6: #82a077; --chart-7: #7da9bf; --chart-8: #c29c78; --chart-9: #94a3c2; --chart-10: #d68bb8;
+
+  --shadow-xs: 0 1px 2px 0 rgba(0, 0, 0, 0.35);
+  --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.45), 0 1px 1px 0 rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 4px 12px -2px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --shadow-lg: 0 12px 32px -6px rgba(0, 0, 0, 0.6), 0 4px 12px -2px rgba(0, 0, 0, 0.4);
+  --shadow-float: 0 14px 34px -8px rgba(0, 0, 0, 0.7), 0 4px 10px -2px rgba(0, 0, 0, 0.45);
+  color-scheme: dark;
+}

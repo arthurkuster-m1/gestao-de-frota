@@ -1,0 +1,52 @@
+{% from "_ui.html" import icone, vazio %}
+{% macro url(vista, d) %}/inicio?vista={{ vista }}&dia={{ d.isoformat() }}#calendario{% endmacro %}
+{% macro ev(e, curto=False) %}<a class="ev ev-{{ e.tipo }}{{ ' feito' if e.feito }}" href="{{ e.href }}" title="{{ e.titulo }}{% if e.detalhe %} — {{ e.detalhe }}{% endif %}"><i></i><span>{{ e.curto if (curto == true or (curto == "semana" and e.tipo == "tarefa")) else e.titulo }}</span>{% if curto != true and e.detalhe %}<small>{{ e.detalhe }}</small>{% endif %}</a>{% endmacro %}
+
+<section class="card" id="calendario">
+  <div class="cal-topo-pag">
+    <h3>{{ icone("calendar-blank") }}Calendário</h3>
+    <div class="cal-controles">
+      <div class="seg" role="group" aria-label="Visualização">
+        {% for v, rot in [("dia","Dia"),("semana","Semana"),("mes","Mês")] %}<a href="{{ url(v, c.dia) }}" class="{{ 'on' if c.vista == v }}" {% if c.vista == v %}aria-current="true"{% endif %}>{{ rot }}</a>{% endfor %}
+      </div>
+      <a class="btn sec pequeno" href="{{ url(c.vista, hoje) }}">Hoje</a>
+      <a class="btn sec icone-so pequeno" href="{{ url(c.vista, c.anterior) }}" aria-label="Anterior">{{ icone("caret-left") }}</a>
+      <a class="btn sec icone-so pequeno" href="{{ url(c.vista, c.proximo) }}" aria-label="Próximo">{{ icone("caret-right") }}</a>
+      <input type="date" aria-label="Ir para a data" value="{{ c.dia.isoformat() }}" data-navega="/inicio?vista={{ c.vista }}&dia=" data-ancora="#calendario" style="min-width:150px">
+    </div>
+  </div>
+  <h2 class="cal-titulo">{{ c.titulo }}</h2>
+
+  {% if c.vista == "mes" %}
+  <div class="mes">
+    <div class="mes-sem">{% for n in c.cabecalho %}<span>{{ n }}</span>{% endfor %}</div>
+    <div class="mes-grade">
+    {% for x in c.celulas %}
+      <div class="mes-cel{{ ' fora' if x.fora }}{{ ' hoje' if x.hoje }}{{ ' sel' if x.selecionado }}">
+        <a class="mes-dia" href="{{ url('mes', x.data) }}" aria-label="{{ x.data.day }} de {{ meses[x.data.month - 1] }}">{{ x.data.day }}</a>
+        {% for e in x.eventos[:3] %}{{ ev(e, true) }}{% endfor %}
+        {% if x.eventos|length > 3 %}<a class="mais" href="{{ url('dia', x.data) }}">+{{ x.eventos|length - 3 }} mais</a>{% endif %}
+      </div>
+    {% endfor %}
+    </div>
+  </div>
+  {% elif c.vista == "semana" %}
+  <div class="sem-grade">
+    {% for x in c.celulas %}
+      <div class="sem-col{{ ' hoje' if x.hoje }}{{ ' sel' if x.selecionado }}">
+        <a class="sem-cab" href="{{ url('dia', x.data) }}"><span>{{ c.cabecalho[loop.index0] }}</span><b>{{ x.data.day }}</b></a>
+        {% for e in x.eventos %}{{ ev(e, "semana") }}{% else %}<p class="caption vazio-dia">Livre</p>{% endfor %}
+      </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  {% if c.vista != "semana" %}
+  <div class="do-dia">
+    {% if c.vista == "mes" %}<h3>{{ c.dia_extenso }}</h3>{% endif %}
+    {% if c.do_dia %}<div class="do-dia-lista">{% for e in c.do_dia %}{{ ev(e) }}{% endfor %}</div>
+    {% else %}<p class="caption" style="padding:8px 0">Nada marcado para este dia.</p>{% endif %}
+  </div>
+  {% endif %}
+  <p class="legenda"><span class="etiqueta e-destaque">Envio</span><span class="etiqueta e-atencao">Retorno</span><span class="etiqueta e-info">Tarefa</span></p>
+</section>

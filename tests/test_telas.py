@@ -1,0 +1,368 @@
+import json
+import re
+from datetime import date, timedelta
+from pathlib import Path
+
+from frota.web.menu import GRUPOS
+
+WEB = Path(__file__).resolve().parent.parent / "frota" / "web"
+
+
+def test_toda_porta_do_menu_abre(client):
+    for _, itens in GRUPOS:
+        for i in itens:
+            r = client.get(i.href)
+            assert r.status_code == 200, i.href
+            assert 'aria-current="page"' in r.text, f"{i.href} não acende no menu"
+
+
+def test_telas_em_breve_dizem_em_breve(client):
+    for _, itens in GRUPOS:
+        for i in itens:
+            if i.breve:
+                assert "Em breve" in client.get(i.href).text, i.href
+
+
+def test_arquivos_do_design_system_existem():
+    for arq in ("app.css", "app.js", "inicio.js", "editor-blocos.js", "icones.svg", "fonts/montserrat-latin-400-normal.woff2",
+                "fonts/atkinson-hyperlegible-latin-400-normal.woff2"):
+        assert (WEB / "static" / arq).stat().st_size > 0, arq
+
+
+def test_todo_icone_pedido_existe_no_sprite():
+    sprite = (WEB / "static" / "icones.svg").read_text()
+    existentes = set(re.findall(r'id="i-([a-z0-9-]+)"', sprite))
+    pedidos = set()
+    for html in (WEB / "templates").glob("*.html"):
+        pedidos |= set(re.findall(r'icone\(\s*"([a-z0-9-]+)"', html.read_text()))
+    for i in {i.icone for _, itens in GRUPOS for i in itens}:
+        pedidos |= {i, i + "-fill"}
+    pedidos |= {n for n in re.findall(r'"([a-z-]+)"', (WEB.parent / "main.py").read_text()) if n in existentes}
+    faltando = sorted(p for p in pedidos if p not in existentes)
+    assert not faltando, f"ícones que não estão em icones.svg: {faltando}"
+
+
+def test_css_nao_escreve_cor_nos_templates():
+    for html in (WEB / "templates").glob("*.html"):
+        assert not re.search(r"#[0-9a-fA-F]{3,8}\b", re.sub(r"&#\d+;", "", html.read_text())), html.name
+
+
+def _frota_de_exemplo(client, hoje):
+    f = lambda d: d.strftime("%d/%m/%Y")  # noqa: E731
+    for placa in ("AAA1A11", "BBB2B22", "CCC3C33", "DDD4D44"):
+        client.post("/veiculos", data={"placa": placa, "modelo": "Onix"})
+    planilha = (
+        "cliente\tplaca\tdata_saida\tdevolucao\n"
+        f"Futura Eventos\tAAA1A11\t{f(hoje + timedelta(days=1))}\t{f(hoje + timedelta(days=9))}\n"       # evento (8 dias)
+        f"Atrasada SA\tBBB2B22\t{f(hoje - timedelta(days=20))}\t{f(hoje - timedelta(days=5))}\n"          # atrasada
+        f"Volta Logo\tCCC3C33\t{f(hoje - timedelta(days=3))}\t{f(hoje + timedelta(days=2))}\n"            # volta em 2 dias
+        f"Contrato Longo\tDDD4D44\t{f(hoje - timedelta(days=1))}\t{f(hoje + timedelta(days=90))}\n"       # comodato > 1 mês
+    )
+    client.post("/comodatos/lote", data={"texto": planilha, "confirmar": "1"})
+
+
+def test_inicio_valores_do_topo(client):
+    _frota_de_exemplo(client, date.today())
+    client.post("/veiculos", data={"placa": "EEE5E55"})  # disponível
+    html = client.get("/inicio").text
+    ordem = ["Total de veículos", "Ativos", "Disponíveis", "Em evento", "Em comodato"]
+    assert [html.index(t) for t in ordem] == sorted(html.index(t) for t in ordem)
+    v = re.findall(r'class="rotulo">([^<]+(?:<span[^<]*</span>)?)</div><div class="valor">(\d+)', html)
+    valores = {re.sub(r"<[^>]+>", "", r).split("(")[0].strip(): int(n) for r, n in v}
+    # 5 veículos; 4 em uso: 3 saídas de até 1 mês viram "evento" e 1 de 91 dias vira "comodato"
+    assert valores == {"Total de veículos": 5, "Ativos": 5, "Disponíveis": 1, "Em evento": 3, "Em comodato": 1}
+
+
+def test_inicio_ordem_dos_blocos(client):
+    html = client.get("/inicio").text
+    ordem = ["boas-vindas", 'id="calendario"', 'id="avisos"', "Próximos envios e retornos", "Próximas tarefas",
+             "Anotações", "Infos contábeis"]
+    pos = [html.index(t) for t in ordem]
+    assert pos == sorted(pos), dict(zip(ordem, pos))
+
+
+def test_avisos_sao_clicaveis_e_levam_ao_assunto(client):
+    _frota_de_exemplo(client, date.today())
+    html = client.get("/inicio").text
+    avisos = re.findall(r'<a class="msg[^"]*aviso-link" href="([^"]+)"><svg.*?<div>([^<]+)</div>', html, re.S)
+    textos = {t: h for h, t in avisos}
+    atraso = next(h for t, h in textos.items() if t.startswith("Devolução atrasada há 5 dias: BBB2B22"))
+    assert atraso.startswith("/comodatos#c-")
+    assert any("CCC3C33 volta em 2 dias" in t for t in textos)
+    assert any("AAA1A11 sai amanhã" in t for t in textos)
+    pagina = client.get("/comodatos").text
+    for href in {h for h in textos.values()}:
+        assert f'id="{href.split("#")[1]}"' in pagina, href  # o destino existe na página
+
+
+def test_sinistrado_leva_ao_veiculo(client):
+    client.post("/veiculos", data={"placa": "SIN1A11"})
+    vid = re.search(r"/veiculos/([0-9a-f-]{36})", client.get("/veiculos").text).group(1)
+    client.post(f"/veiculos/{vid}/status", data={"status": "sinistrado"})
+    assert f'href="/veiculos/{vid}"' in client.get("/inicio").text
+
+
+def test_proximos_envios_e_retornos_num_bloco_so(client):
+    _frota_de_exemplo(client, date.today())
+    html = client.get("/inicio").text
+    bloco = html[html.index("Próximos envios e retornos"):html.index("Próximas tarefas")]
+    assert "Envios" in bloco and "Retornos" in bloco
+    assert "Futura Eventos" in bloco and "Volta Logo" in bloco and "Atrasada SA" not in bloco  # atrasada é aviso
+
+
+def test_tarefas_derivadas_do_andamento_dos_contratos(client):
+    _frota_de_exemplo(client, date.today())
+    html = client.get("/inicio").text
+    tarefas = html[html.index("Próximas tarefas"):html.index("Anotações")]
+    assert "Gerar o Word do comodato" in tarefas
+    assert "Cobrar a devolução de BBB2B22" in tarefas and "atrasada" in tarefas
+    assert "Solicitar o retorno de CCC3C33" in tarefas
+
+
+def test_calendario_tres_visualizacoes_e_navegacao(client):
+    hoje = date.today()
+    _frota_de_exemplo(client, hoje)
+    mes = client.get("/inicio?vista=mes").text
+    assert mes.count('class="mes-cel') == 42 and "DOM" not in mes.upper().split("MES-SEM")[0]
+    assert re.search(r'class="ev ev-envio[^"]*"[^>]*title="Envio · Futura Eventos[^"]*"><i></i><span>AAA1A11</span>', mes)
+    assert re.search(r'class="ev ev-retorno[^"]*"[^>]*title="Retorno · Volta Logo[^"]*"><i></i><span>CCC3C33</span>', mes)
+    sem = client.get("/inicio?vista=semana").text
+    assert sem.count('class="sem-col') == 7
+    dia = client.get(f"/inicio?vista=dia&dia={hoje.isoformat()}").text
+    assert "mes-cel" not in dia and "sem-col" not in dia
+    # avançar e voltar para qualquer mês/dia
+    futuro = date(hoje.year + 1, 3, 15)
+    pg = client.get(f"/inicio?vista=mes&dia={futuro.isoformat()}").text
+    assert "Março de " + str(futuro.year) in pg and 'aria-label="Próximo"' in pg
+    assert "vista=mes&dia=" + date(futuro.year, 4, 15).isoformat() in pg
+    assert client.get("/inicio?vista=semana&dia=2020-02-29").status_code == 200
+    assert client.get("/inicio?vista=qualquer&dia=lixo").status_code == 200  # parâmetro ruim não derruba
+    # eventos do calendário levam ao contrato
+    assert "/comodatos#c-" in mes
+
+
+def test_calendario_mostra_historico_de_meses_passados(client):
+    hoje = date.today()
+    client.post("/veiculos", data={"placa": "OLD1A11"})
+    ontem = (hoje - timedelta(days=40)).strftime("%d/%m/%Y")
+    client.post("/comodatos/lote", data={"texto": f"cliente\tplaca\tdata_saida\tdevolucao\nAntigo\tOLD1A11\t{ontem}\t{(hoje - timedelta(days=35)).strftime('%d/%m/%Y')}", "confirmar": "1"})
+    from sqlalchemy import select
+    from frota import db as dbmod
+    from frota.models import Comodato
+    with dbmod.SessionLocal() as db:
+        cid = db.scalar(select(Comodato.id))
+    client.post(f"/comodatos/{cid}/encerrar")
+    passado = (hoje - timedelta(days=40)).isoformat()
+    assert re.search(r"ev-envio[^>]*title=\"Envio · Antigo", client.get(f"/inicio?vista=mes&dia={passado}").text)
+
+
+def test_inicio_vazio_diz_tudo_em_dia(client):
+    html = client.get("/inicio").text
+    assert "Tudo em dia!" in html and "Nenhum envio programado" in html and "Nenhum retorno previsto" in html
+    assert "Sem tarefas por enquanto" in html
+
+
+def _dados_da_pagina(client, nome="dados-anotacoes"):
+    return json.loads(re.search(rf'id="{nome}">(.*?)</script>', client.get("/inicio").text, re.S).group(1))
+
+
+def test_anotacoes_gravam_todos_os_tipos_de_bloco_e_voltam_na_pagina(client):
+    blocos = [
+        {"id": "a1", "tipo": "titulo", "nivel": 2, "texto": "Reunião", "alinhamento": "centro"},
+        {"id": "a2", "tipo": "texto", "texto": "Pontos"},
+        {"id": "a3", "tipo": "destaque", "tom": "atencao", "texto": "NF só após aprovação"},
+        {"id": "a4", "tipo": "tarefa", "texto": "Ligar", "marcado": True},
+        {"id": "a5", "tipo": "toggle", "texto": "Detalhes", "aberto": True, "filhos": [
+            {"id": "a5a", "tipo": "marcador", "texto": "um", "filhos": [{"id": "a5b", "tipo": "numerada", "texto": "dois"}]}]},
+        {"id": "a6", "tipo": "citacao", "texto": "Frase", "autor": "Fulano"},
+        {"id": "b0", "tipo": "cards", "itens": [{"titulo": "A", "texto": "x"}]},
+        {"id": "b1", "tipo": "metricas", "itens": [{"rotulo": "Veículos", "valor": "25", "detalhe": "ativos"}]},
+        {"id": "b2", "tipo": "antes-depois", "antes": {"titulo": "Antes", "texto": "1"}, "depois": {"titulo": "Depois", "texto": "2"}},
+        {"id": "b3", "tipo": "links", "itens": [{"rotulo": "Site", "url": "https://exemplo.com"}]},
+        {"id": "b4", "tipo": "fluxo", "itens": [{"titulo": "Pedir", "texto": "d"}]},
+        {"id": "b5", "tipo": "matriz", "estilo": "swot", "celulas": [{"titulo": "Forças", "texto": ""}] * 4},
+        {"id": "b6", "tipo": "tabela", "colunas": ["Modelo", "Qtd"], "linhas": [["Onix", "4"]]},
+        {"id": "b7", "tipo": "separador"},
+    ]
+    r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": blocos})
+    assert r.status_code == 200 and r.json() == {"ok": True, "versao": 1}
+    dados = _dados_da_pagina(client)
+    assert dados["versao"] == 1 and [b["tipo"] for b in dados["blocos"]] == [b["tipo"] for b in blocos]
+    assert dados["blocos"][0]["alinhamento"] == "centro" and dados["blocos"][3]["marcado"] is True
+    filho = dados["blocos"][4]["filhos"][0]
+    assert filho["texto"] == "um" and filho["filhos"][0]["tipo"] == "numerada"  # blocos dentro de blocos
+    assert dados["blocos"][12]["linhas"] == [["Onix", "4"]]
+    assert client.put("/api/inicio/anotacoes", json={"versao": 1, "blocos": blocos[:1]}).json()["versao"] == 2
+
+
+def test_anotacoes_da_primeira_versao_sao_convertidas_ao_abrir(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    antigo = [{"id": "1", "tipo": "titulo1", "texto": "Reunião"}, {"id": "2", "tipo": "tarefa", "texto": "Ligar", "feito": True},
+              {"id": "3", "tipo": "tarefa", "texto": "Enviar"}, {"id": "4", "tipo": "lista", "texto": "item"},
+              {"id": "5", "tipo": "destaque", "texto": "atenção"}, {"id": "6", "tipo": "tabela", "celulas": [["a", "b"], ["1", "2"]]},
+              {"id": "7", "tipo": "citacao", "texto": "q"}, {"id": "8", "tipo": "separador"}, {"id": "9", "tipo": "inventado"}]
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="anotacoes", conteudo={"blocos": antigo}, versao=3)); db.commit()
+    d = _dados_da_pagina(client)
+    assert d["versao"] == 3
+    tipos = [(b["tipo"], b.get("nivel") or b.get("tom") or b.get("marcado")) for b in d["blocos"]]
+    assert tipos == [("titulo", 1), ("tarefa", True), ("tarefa", False), ("marcador", None), ("destaque", "info"), ("tabela", None), ("citacao", None), ("separador", None)]
+    assert d["blocos"][5]["colunas"] == ["a", "b"] and d["blocos"][5]["linhas"] == [["1", "2"]]
+    assert client.put("/api/inicio/anotacoes", json={"versao": 3, "blocos": d["blocos"]}).status_code == 200  # grava de volta no formato atual
+
+
+def test_anotacoes_da_segunda_versao_listas_viram_um_bloco_por_linha(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    v2 = [{"id": "t", "tipo": "titulo", "nivel": 2, "texto": "Pauta"},
+          {"id": "l", "tipo": "lista", "estilo": "check", "itens": [{"texto": "Ligar", "feito": True}, {"texto": "Enviar", "feito": False}]},
+          {"id": "n", "tipo": "lista", "estilo": "numerada", "itens": [{"texto": "um", "feito": False}, {"texto": "dois", "feito": False}]},
+          {"id": "m", "tipo": "lista", "estilo": "marcadores", "itens": [{"texto": "x", "feito": False}]},
+          {"id": "c", "tipo": "cards", "itens": [{"titulo": "A", "texto": "b"}]}, {"id": "d", "tipo": "destaque", "tom": "atencao", "texto": "!"}]
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="anotacoes", conteudo={"blocos": v2}, versao=5)); db.commit()
+    d = _dados_da_pagina(client)
+    assert [b["tipo"] for b in d["blocos"]] == ["titulo", "tarefa", "tarefa", "numerada", "numerada", "marcador", "cards", "destaque"]
+    assert [(b["texto"], b.get("marcado")) for b in d["blocos"][1:3]] == [("Ligar", True), ("Enviar", False)]
+    assert len({b["id"] for b in d["blocos"]}) == len(d["blocos"])  # ids continuam únicos
+    assert d["blocos"][7]["tom"] == "atencao"
+
+
+def test_anotacoes_recusam_gravar_por_cima_de_outro_aparelho(client):
+    um = [{"id": "a", "tipo": "texto", "texto": "do celular"}]
+    assert client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": um}).status_code == 200
+    r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": [{"id": "b", "tipo": "texto", "texto": "do PC"}]})
+    assert r.status_code == 409 and r.json()["erro"] == "conflito"
+    assert "do celular" in client.get("/inicio").text and "do PC" not in client.get("/inicio").text
+
+
+def test_anotacoes_validam_a_forma(client):
+    ruim = lambda b: client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": b}).status_code  # noqa: E731
+    assert ruim([{"id": "a", "tipo": "script", "texto": "x"}]) == 422                      # tipo desconhecido
+    assert ruim([{"id": "a", "tipo": "texto", "texto": "x" * 5001}]) == 422                # grande demais
+    assert ruim([{"id": "a", "tipo": "texto"}] * 501) == 422                               # blocos demais
+    assert ruim([{"id": "a", "tipo": "tabela", "colunas": ["x"] * 9, "linhas": []}]) == 422
+    assert ruim([{"id": "a", "tipo": "titulo", "nivel": 7, "texto": ""}]) == 422
+    assert ruim([{"id": "a", "tipo": "destaque", "tom": "neon", "texto": ""}]) == 422
+    assert ruim([{"id": "a", "tipo": "separador", "filhos": [{"id": "b", "tipo": "texto"}]}]) == 200  # separador não tem filhos: o campo é ignorado
+
+
+def _aninhado(niveis):
+    b = {"id": "f0", "tipo": "texto", "texto": "x"}
+    for i in range(1, niveis + 1):
+        b = {"id": f"f{i}", "tipo": "marcador", "texto": "x", "filhos": [b]}
+    return b
+
+
+def test_blocos_dentro_de_blocos_tem_limite_de_niveis_e_de_total(client):
+    ok = lambda b: client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": b}).status_code  # noqa: E731
+    assert ok([_aninhado(5)]) == 200            # 5 níveis de recuo cabem (como no editor do CRM)
+    assert ok([_aninhado(6)]) == 422            # o sexto não
+    # 300 blocos de cima + 300 filhos passam de 500 no total
+    muitos = [{"id": f"m{i}", "tipo": "toggle", "texto": "t", "filhos": [{"id": f"n{i}", "tipo": "texto", "texto": "c"}]} for i in range(260)]
+    assert ok(muitos) == 422
+
+
+def test_link_digitado_sem_https_e_completado_e_nunca_derruba_a_gravacao(client):
+    r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": [{"id": "l", "tipo": "links", "itens": [
+        {"rotulo": "a", "url": "exemplo.com/x"}, {"rotulo": "b", "url": "javascript:alert(1)"}, {"rotulo": "c", "url": "http://ok.com"},
+        {"rotulo": "d", "url": "localhost:3000/painel"}, {"rotulo": "e", "url": "data:text/html,<b>x"}, {"rotulo": "f", "url": "mailto:a@b.com"}]}]})
+    assert r.status_code == 200
+    urls = [i["url"] for i in _dados_da_pagina(client)["blocos"][0]["itens"]]
+    assert urls == ["https://exemplo.com/x", "", "http://ok.com", "https://localhost:3000/painel", "", ""]
+
+
+def test_anotacao_com_html_nao_vira_html_na_pagina(client):
+    client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": [{"id": "a", "tipo": "texto", "texto": "</script><img src=x onerror=alert(1)>"}]})
+    html = client.get("/inicio").text
+    assert "<img src=x" not in html and "</script><img" not in html
+
+
+def test_infos_contabeis_com_grupos(client):
+    itens = [{"tipo": "info", "rotulo": "CNPJ", "valor": "12.345.678/0001-90"},
+             {"tipo": "grupo", "rotulo": "Dados bancários", "itens": [{"rotulo": "Banco", "valor": "Itaú"}, {"rotulo": "Agência", "valor": "0001"},
+                                                                   {"rotulo": "Conta", "valor": "12345-6"}]}]
+    assert client.put("/api/inicio/infos", json={"versao": 0, "itens": itens}).json() == {"ok": True, "versao": 1}
+    d = _dados_da_pagina(client, "dados-infos")
+    assert d["itens"][0]["tipo"] == "info" and d["itens"][1]["tipo"] == "grupo" and len(d["itens"][1]["itens"]) == 3
+    assert d["itens"][1]["itens"][2] == {"rotulo": "Conta", "valor": "12345-6"}
+    # só grupo tem itens; um grupo não guarda valor próprio
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"tipo": "info", "rotulo": "x", "itens": [{"rotulo": "a", "valor": "b"}]}]}).status_code == 422
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"tipo": "grupo", "rotulo": "g", "valor": "ignorado"}]}).status_code == 200
+    assert _dados_da_pagina(client, "dados-infos")["itens"][0]["valor"] == ""
+    assert client.put("/api/inicio/infos", json={"versao": 2, "itens": [{"tipo": "grupo", "rotulo": "g", "itens": [{"rotulo": "a", "valor": ""}] * 31}]}).status_code == 422
+
+
+def test_infos_antigas_sem_tipo_continuam_valendo(client):
+    from frota import db as dbmod
+    from frota.models import Painel
+    with dbmod.SessionLocal() as db:
+        db.add(Painel(chave="infos_contabeis", conteudo={"itens": [{"rotulo": "CNPJ", "valor": "1"}]}, versao=1)); db.commit()
+    assert _dados_da_pagina(client, "dados-infos")["itens"] == [{"rotulo": "CNPJ", "valor": "1"}]  # o navegador trata como "info"
+
+
+def test_avisos_e_infos_sao_paineis_laterais_que_recolhem(client):
+    html = client.get("/inicio").text
+    for chave in ('id="avisos"', 'id="infos"'):
+        painel = html[html.index(chave) - 40: html.index(chave) + 600]
+        assert "painel-lateral" in painel and "data-alternar" in html
+    assert 'id="linha-calendario"' in html and html.count("data-alternar") == 2
+
+
+def test_saudacao_tem_frase_do_dia_em_destaque(client):
+    from frota.services.inicio import FRASES, frase_do_dia
+    html = client.get("/inicio").text
+    assert re.search(r'<p class="frase">“[^”]+”</p>', html)
+    assert frase_do_dia(date(2026, 11, 3)) == frase_do_dia(date(2026, 11, 3)) and len(set(FRASES)) == len(FRASES) >= 10
+    assert frase_do_dia(date(2026, 11, 3)) != frase_do_dia(date(2026, 11, 4))  # muda de um dia para o outro
+
+
+def test_infos_contabeis_gravam_e_validam(client):
+    itens = [{"rotulo": "CNPJ", "valor": "12.345.678/0001-90"}, {"rotulo": "Banco", "valor": "Itaú"}]
+    assert client.put("/api/inicio/infos", json={"versao": 0, "itens": itens}).json() == {"ok": True, "versao": 1}
+    assert "12.345.678/0001-90" in client.get("/inicio").text
+    assert client.put("/api/inicio/infos", json={"versao": 0, "itens": itens}).status_code == 409
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"rotulo": "x" * 81, "valor": ""}]}).status_code == 422
+    assert client.put("/api/inicio/infos", json={"versao": 1, "itens": [{"rotulo": "a", "valor": ""}] * 61}).status_code == 422
+
+
+def test_gravar_painel_exige_login(client, monkeypatch):
+    monkeypatch.setenv("FROTA_SENHA", "s3gredo")
+    r = client.put("/api/inicio/anotacoes", json={"versao": 0, "blocos": []})
+    assert r.status_code == 401
+    assert client.put("/api/inicio/infos", json={"versao": 0, "itens": []}).status_code == 401
+
+
+def test_arquivos_estaticos_tem_versao_na_url_e_sao_revalidados(client):
+    html = client.get("/inicio").text
+    for arq in ("app.css", "app.js", "icones.svg"):
+        assert re.search(rf"/static/{re.escape(arq)}\?v=\d+", html), arq
+    assert client.get("/static/app.css").headers["cache-control"] == "no-cache"
+    assert "?v=" in client.get("/login").text  # a tela de entrada também
+
+
+def test_so_montserrat_sem_fonte_monoespacada():
+    css = (WEB / "static" / "app.css").read_text()
+    assert "Plex" not in css and "monospace" not in css and "font-mono" not in css
+    assert not list((WEB / "static" / "fonts").glob("ibm-plex*"))
+
+
+def test_inicio_carrega_o_editor_de_blocos_antes_do_inicio(client):
+    html = client.get("/inicio").text
+    assert html.index("editor-blocos.js") < html.index("inicio.js")  # o inicio.js entrega os utilitários ao editor
+    js = (WEB / "static" / "editor-blocos.js").read_text()
+    for pedaco in ("window.frotaEditor", "Lista recolhível (toggle)", "Matriz 2x2 (SWOT)", "Ctrl+⇧+", "frota:editor-blocos:copia"):
+        assert pedaco in js, pedaco
+
+
+def test_listas_e_datas_usam_o_seletor_do_app(client):
+    html = client.get("/design").text
+    assert '<select aria-label="Status">' in html and 'type="date"' in html  # o JS troca pelos do app
+    js = (WEB / "static" / "app.js").read_text()
+    assert "sel-lista" in js and "cal-dias" in js
+
+
+def test_atributo_hidden_vence_o_estilo_dos_componentes():
+    # sem isso o aviso de conflito (class="msg" + hidden) aparece sempre
+    assert "[hidden]{display:none!important}" in (WEB / "static" / "app.css").read_text()

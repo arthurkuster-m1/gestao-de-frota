@@ -1,10 +1,8 @@
-<!doctype html><html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Entrar · Frota</title>
-<script>try{var t=localStorage.getItem("tema");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
-<link rel="stylesheet" href="/static/app.css"></head><body>
-<div class="login"><div class="card">
-<div class="marca"><span class="marca-inicial" aria-hidden="true">F</span><span class="marca-nome">Frota<span class="marca-sub">Entre para continuar</span></span></div>
-{% if erro %}<div class="msg bad" role="alert">{{ erro }}</div>{% endif %}
-<form method="post" action="/login"><label for="senha">Senha</label>
-<p style="margin-top:0"><input type="password" id="senha" name="senha" autofocus required></p>
-<button>Entrar</button></form></div></div></body></html>
+{% from "_ui.html" import icone, aviso %}<!doctype html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><title>Entrar · Frota</title>
+<script>try{var t=localStorage.getItem("frota-tema");if(t)document.documentElement.dataset.theme=t}catch(e){}</script>
+<link rel="icon" href="data:,"><link rel="stylesheet" href="{{ asset('app.css') }}"></head><body><main class="entrar"><div class="card">
+<div class="marca"><div class="logo">F</div><div><b>Frota</b><span>Gestão de frota</span></div></div>
+{% if erro %}{{ aviso(erro, "erro") }}{% endif %}
+<form method="post" action="/login" class="pagina"><input type="password" name="senha" placeholder="Senha" autofocus required autocomplete="current-password"><button>Entrar</button></form>
+</div></main></body></html>

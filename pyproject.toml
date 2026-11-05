@@ -12,6 +12,7 @@ dependencies = [
   "jinja2>=3.1",
   "python-multipart>=0.0.9",
   "itsdangerous>=2.2",
+  "tzdata>=2024.1",
   "docxtpl>=0.18",
   "python-docx>=1.1",
 ]
@@ -22,13 +23,9 @@ postgres = ["psycopg[binary]>=3.2"]
 
 [project.scripts]
 frota = "frota.cli:main"
-frota-migracao = "frota.db:nova_migracao"
 
 [tool.setuptools.packages.find]
 include = ["frota*"]
-
-[tool.setuptools.package-data]
-frota = ["migracoes/script.py.mako", "web/templates/*.html", "web/static/*"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

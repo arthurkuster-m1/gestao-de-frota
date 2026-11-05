@@ -66,8 +66,8 @@ Cor nunca é a única informação: toda etiqueta tem o texto do status escrito.
 ## Tipografia
 
 - **Montserrat** em toda a interface, com **Atkinson Hyperlegible** de reserva (a mesma pilha do CRM M1).
-- **IBM Plex Mono** para placa, número de comodato, data, ano e documento: os números ficam alinhados em coluna.
-- Os arquivos das fontes ficam no próprio sistema (`frota/web/static/fonts/`), então a tela não depende de internet para carregar.
+- **Montserrat também para placa, número de comodato, data, ano e documento** (decisão de 03/11/2026: sem fonte monoespaçada). Os números usam `font-variant-numeric: tabular-nums`, então continuam alinhados em coluna.
+- Os arquivos das fontes (Montserrat e Atkinson) ficam no próprio sistema (`frota/web/static/fonts/`), então a tela não depende de internet para carregar.
 
 | Nome | Tamanho / altura da linha | Peso | Uso |
 |---|---|---|---|
@@ -76,12 +76,16 @@ Cor nunca é a única informação: toda etiqueta tem o texto do status escrito.
 | Título de cartão (`h3`) | 15 / 22 | 600 | "Adicionar veículo", "Histórico" |
 | Texto | 14 / 20 | 400 | padrão de tudo |
 | Legenda (`.caption`) | 12 / 16 | 400 | data, ajuda, rótulo pequeno |
-| Dado (`.num`, `.mono`) | 13 | 400 | placa, número, data |
+| Dado (`.num`, `.mono`) | 13 | 400–600 | placa, número, data, em Montserrat com algarismos tabulares |
+
+## Largura da página
+
+O conteúdo ocupa **toda a largura** ao lado do menu (sem coluna central de largura fixa); só o respiro lateral cresce com a tela (`clamp(16px, 2.4vw, 48px)`). Cartões e tabelas se esticam; parágrafos de texto mantêm no máximo ~64 caracteres por linha para ler bem.
 
 ## Espaço, cantos e sombras
 
 - Espaço em múltiplos de 4px: 4, 8, 12, 16, 20, 24, 32, 40, 48.
-- Cantos: 6px (botão e campo), 10px (aviso), 16px (cartão), 12px (item do menu), redondo (etiqueta e filtro).
+- Cantos: **redondo (botão, etiqueta e filtro)**, 12px (campo, lista de opções e item do menu), 10px (aviso), 16px (cartão e janelas flutuantes). Tokens `--r-btn` e `--r-campo`.
 - Sombras em cinza azulado bem leve, nunca preto puro. Cartão usa a menor (`xs`); a gaveta do menu no celular usa a maior.
 
 ## Ícones
@@ -102,12 +106,14 @@ Para um ícone novo, copie o `<symbol>` do pacote `@phosphor-icons/core` (pastas
 | Menu lateral | `.lateral`, `.menu a`, `.on` | item ativo: fundo branco, sombra leve, barrinha azul de 3px à esquerda e ícone preenchido em azul. No celular vira gaveta aberta pelo botão ☰ |
 | Cabeçalho da página | `.cabecalho` | título + frase curta embaixo, ação principal à direita |
 | Cartão | `.card` | toda área de conteúdo mora num cartão |
-| Botão principal | `button`, `.btn` | azul; um por área, no máximo |
+| Botão principal | `button`, `.btn` | azul, em pílula; um por área, no máximo |
 | Botão secundário | `.sec` | cinza com borda; fica azul no hover |
 | Botão fantasma | `.fantasma` | sem fundo; para barra de ferramentas |
 | Botão de perigo | `.perigo` | vermelho; só para ação destrutiva |
 | Tamanhos | `.pequeno`, `.icone-so` | 36px no computador, 44px no celular |
-| Campo | `input`, `select`, `textarea` | fundo da página, borda fina, foco azul com halo suave |
+| Campo | `input`, `textarea` | fundo da página, borda fina de 12px de raio, foco azul com halo suave |
+| Seleção (lista) | `<select>` | **o `<select>` do navegador nunca aparece**: `app.js` o troca por botão + lista do app (`.sel`), com teclado (setas, Enter, Esc, digitar para buscar). O `<select>` original continua no HTML, escondido, e é ele que o formulário envia |
+| Data | `<input type="date">` | também trocado (`.data`): campo digitável `dd/mm/aaaa` + calendário em português. O valor enviado continua `aaaa-mm-dd` |
 | Tabela | `table`, `td.num` | cabeçalho em maiúsculas pequenas, linha realça no hover |
 | Etiqueta de status | `{{ status("disponivel") }}` | pílula com ponto; a cor sai do status (ver tabela de estados) |
 | Filtro em pílula | `.chip`, `.on` | contagem em fonte de dado |

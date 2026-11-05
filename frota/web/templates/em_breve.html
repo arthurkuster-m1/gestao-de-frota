@@ -1,0 +1,9 @@
+{% extends "base.html" %}{% from "_ui.html" import icone, vazio %}
+{% block body %}
+<div class="cabecalho"><div><h1>{{ titulo }}</h1><p>{{ resumo_pagina }}</p></div></div>
+<div class="card breve-pag">
+  {{ vazio(icone_pagina, "Em breve", "Esta tela está sendo planejada e entra em uma das próximas etapas.") }}
+  {% if itens %}<h3 style="margin-top:8px">O que vai ter aqui</h3>
+  <ul class="lista" style="margin-top:8px">{% for i in itens %}<li>{{ icone("check-circle", "p") }}<div class="corpo"><span style="white-space:normal">{{ i }}</span></div></li>{% endfor %}</ul>{% endif %}
+</div>
+{% endblock %}
