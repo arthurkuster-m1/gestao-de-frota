@@ -36,10 +36,9 @@ function Autenticado() {
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<Home />} />
-          <Route path="veiculos" element={<Veiculos />} />
           <Route path="veiculos/novo" element={<FormVeiculo />} />
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
-          <Route path="veiculos/:id" element={<FormVeiculo />} />
+          <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<FormCliente />} />
           <Route path="clientes/:id" element={<FormCliente />} />

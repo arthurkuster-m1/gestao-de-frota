@@ -104,10 +104,10 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 O Arthur apontou (com razão) que a tela de Veículos entregue primeiro era só uma lista simples. O **motor de visualizações** passou a ser feito junto de Veículos, em 3 entregas:
 
 1. ✅ **Tabela estilo CRM** em Veículos: filtros por tipo de campo com E/OU, ordenação (painel e clique no título), agrupamento, propriedades (mostrar/esconder, arrastar, congelar colunas), largura de coluna arrastável, e **visualizações salvas** (criar, salvar alterações, descartar, renomear, duplicar, excluir; migration 0004). A lógica de consulta/colunas foi portada do CRM (`web/src/lib/motor`, cobertura de testes própria); a parte visual foi reescrita no design system da Frota, porque a do CRM é Tailwind.
-2. ⬜ **Cards** e a **janela do veículo** com abas (Agenda, Manutenções, Eventos, Multas, Comentários).
+2. ✅ **Cards** (mesma consulta, mesmas propriedades e mesma edição no lugar da tabela; alternar Tabela/Cards e visualização salva do tipo Cards) e **janela do veículo** (`/veiculos/:id`, abas Dados, Atividade, Comentários; Agenda, Eventos, Manutenções e Multas explicam o que vão mostrar e entram junto das telas que as alimentam).
 3. ⬜ **Linha do tempo** (base da tela de Planejamento).
 
-**Regra do Arthur (06/11/2026): toda visão é editável no lugar — tabela, cards e linha do tempo.** O editor é um só (`web/src/components/motor/EditorDeCelula.tsx` + `edicao.ts`, com a regra de normalizar/validar/gravar) e cada visão o reaproveita. ✅ Tabela: clicar na célula edita (texto, opção, data, caixa), Enter grava, Esc cancela, Tab grava e vai para a próxima célula, erro do banco aparece em português; o código e o ícone abrem a ficha. ⬜ Cards e ⬜ Linha do tempo: entram nas entregas 2 e 3 usando o mesmo editor.
+**Regra do Arthur (06/11/2026): toda visão é editável no lugar — tabela, cards e linha do tempo.** O editor é um só (`web/src/components/motor/EditorDeCelula.tsx` + `edicao.ts`, com a regra de normalizar/validar/gravar) e cada visão o reaproveita. ✅ Tabela: clicar na célula edita (texto, opção, data, caixa), Enter grava, Esc cancela, Tab grava e vai para a próxima célula, erro do banco aparece em português; o código e o ícone abrem a ficha. ✅ Cards e ✅ janela do veículo usam o mesmo editor (`useEdicao`, `CampoEditavel`). ⬜ Linha do tempo: entrega 3, com o mesmo editor.
 
 Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda em texto (dependem de Eventos e Manutenções).
 

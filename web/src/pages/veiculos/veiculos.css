@@ -20,3 +20,20 @@
 .vei-massa { height: 60dvh; min-height: 320px; }
 @media (max-width: 720px) { .vei-tabela { max-height: calc(100dvh - 360px); } }
 .vei-motorista { display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
+
+/* janela do veículo */
+.mt-janela { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(780px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-left: 1px solid var(--color-border); border-radius: 20px 0 0 20px; background: var(--color-bg); color: var(--color-text); box-shadow: var(--shadow-lg); overflow: hidden; }
+.mt-janela::backdrop { background: var(--color-overlay); }
+.mt-janela[open] { animation: ds-pop var(--dur-base) var(--ease-out-slow) both; }
+.mt-janela__corpo { display: grid; grid-template-rows: auto auto 1fr; height: 100%; }
+.mt-janela__topo { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); padding: var(--space-5) var(--space-5) var(--space-3); }
+.mt-janela__sub { margin-top: 6px; }
+.mt-janela__fechar { display: grid; place-items: center; width: 40px; height: 40px; border: 0; border-radius: var(--radius-full); background: var(--color-surface-elevated); color: var(--color-text); }
+.mt-janela .mt-abas { padding: 0 var(--space-4); }
+.mt-janela__conteudo { overflow: auto; padding: var(--space-5); display: grid; gap: var(--space-4); align-content: start; }
+.mt-ficha { display: grid; gap: 2px; margin: 0; }
+.mt-ficha__linha { display: grid; grid-template-columns: 170px minmax(0, 1fr); gap: var(--space-3); align-items: center; min-height: 44px; border-bottom: 1px solid var(--color-border); }
+.mt-ficha__linha dt { font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.mt-ficha__linha dd { margin: 0; min-width: 0; }
+.mt-embreve { display: grid; justify-items: center; gap: var(--space-2); text-align: center; padding: var(--space-8) var(--space-4); border: 1px dashed var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-surface); color: var(--color-text-muted); }
+@media (max-width: 720px) { .mt-janela { width: 100vw; border-radius: 0; border-left: 0; } .mt-ficha__linha { grid-template-columns: 120px minmax(0, 1fr); } }
