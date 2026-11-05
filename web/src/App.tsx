@@ -12,6 +12,8 @@ import { Shell } from "./app/Shell";
 import { Veiculos } from "./pages/veiculos/Veiculos";
 import { FormVeiculo } from "./pages/veiculos/FormVeiculo";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
+import { Clientes } from "./pages/clientes/Clientes";
+import { FormCliente } from "./pages/clientes/FormCliente";
 import { DESTINOS } from "./app/modules";
 import { Button, useTheme } from "./ds";
 
@@ -38,7 +40,10 @@ function Autenticado() {
           <Route path="veiculos/novo" element={<FormVeiculo />} />
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
           <Route path="veiculos/:id" element={<FormVeiculo />} />
-          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos").map((d) => (
+          <Route path="clientes" element={<Clientes />} />
+          <Route path="clientes/novo" element={<FormCliente />} />
+          <Route path="clientes/:id" element={<FormCliente />} />
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
