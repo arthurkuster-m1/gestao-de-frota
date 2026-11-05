@@ -1,11 +1,14 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate } from "react-router-dom";
-import { MagnifyingGlass, Plus, Table, Car } from "@phosphor-icons/react";
-import { Button, Card, EmptyState, Input, Page, Skeleton } from "../../ds";
+import { Link, useNavigate, useParams } from "react-router-dom";
+import { MagnifyingGlass, Plus, Rows, SquaresFour, Table, Car } from "@phosphor-icons/react";
+import { Button, Card, EmptyState, Input, Page, Segmented, Skeleton } from "../../ds";
 import { AbasDeVisualizacao } from "../../components/motor/AbasDeVisualizacao";
 import { BarraDeConsulta } from "../../components/motor/BarraDeConsulta";
 import { Propriedades } from "../../components/motor/Propriedades";
 import { TabelaDoMotor } from "../../components/motor/TabelaDoMotor";
+import { CartoesDoMotor } from "../../components/motor/CartoesDoMotor";
+import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
+import type { OnEditar } from "../../components/motor/useEdicao";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
 import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
@@ -47,6 +50,7 @@ const lerTodas = (): PreferenciasDaTabela => { try { return configSegura(JSON.pa
 
 export function Veiculos() {
   const navigate = useNavigate();
+  const { id: idAberto } = useParams<{ id?: string }>();
   const [lista, setLista] = useState<Veiculo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
@@ -74,6 +78,15 @@ export function Veiculos() {
     return lista.filter((x) => CAMPOS_VEICULO.some((c) => c.tipo === "texto" && String(c.valorDe(x) ?? "").toLowerCase().includes(q)));
   }, [lista, busca]);
 
+  const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
+    const novo = await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>);
+    setLista((l) => (l ?? []).map((x) => (x.id === linha.id ? novo : x)));
+  };
+  const abrir = (x: Veiculo) => navigate(`/veiculos/${x.id}`);
+  const modo = prefs.visualizacao === "galeria" ? "cards" : "tabela";
+  const aberto = idAberto && lista ? (lista.find((x) => x.id === idAberto) ?? null) : null;
+  useEffect(() => { if (idAberto && lista && !lista.some((x) => x.id === idAberto)) navigate("/veiculos", { replace: true }); }, [idAberto, lista, navigate]);
+
   async function comAviso<R>(fn: () => Promise<R>): Promise<R | undefined> { setOcupado(true); setErroVisao(null); try { return await fn(); } catch (e) { setErroVisao((e as Error).message); throw e; } finally { setOcupado(false); } }
 
   return (
@@ -98,6 +111,8 @@ export function Veiculos() {
         <div className="mt-linha-ferramentas">
           <BarraDeConsulta campos={CAMPOS_VEICULO} linhas={lista ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} />
           <Propriedades campos={CAMPOS_VEICULO} prefs={prefs} onChange={onPrefs} />
+          <Segmented options={[{ value: "tabela", label: <span className="mt-modo"><Rows size={16} />Tabela</span> }, { value: "cards", label: <span className="mt-modo"><SquaresFour size={16} />Cards</span> }]} value={modo}
+            onChange={(m) => onPrefs({ ...prefs, visualizacao: m === "cards" ? "galeria" : "tabela" })} />
           <div style={{ position: "relative", flex: "1 1 200px", maxWidth: 300, marginLeft: "auto" }}>
             <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar placa, VIN, modelo…" aria-label="Buscar veículo" />
             <MagnifyingGlass size={18} style={{ position: "absolute", right: 14, top: 13, color: "var(--color-text-subtle)" }} aria-hidden />
@@ -106,11 +121,15 @@ export function Veiculos() {
 
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar os veículos: {erro}</p></Card>
           : !lista ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
-          : <TabelaDoMotor linhas={buscadas} campos={CAMPOS_VEICULO} prefs={prefs} onPrefs={onPrefs} idDe={(x) => x.id} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
-              rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`}
-              onEditar={async (linha, campo, valor) => { const novo = await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>); setLista((l) => (l ?? []).map((x) => (x.id === linha.id ? novo : x))); }}
-              vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>} />}
+          : (() => {
+            const vazio = <EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>;
+            const total = (n: number) => `${n} veículo${n === 1 ? "" : "s"}`;
+            return modo === "cards"
+              ? <CartoesDoMotor linhas={buscadas} campos={CAMPOS_VEICULO} prefs={prefs} idDe={(x) => x.id} onAbrir={abrir} rotuloDoTotal={total} onEditar={editar} vazio={vazio} />
+              : <TabelaDoMotor linhas={buscadas} campos={CAMPOS_VEICULO} prefs={prefs} onPrefs={onPrefs} idDe={(x) => x.id} onAbrir={abrir} rotuloDoTotal={total} onEditar={editar} vazio={vazio} />;
+          })()}
       </div>
+      <JanelaDoVeiculo veiculo={aberto} campos={CAMPOS_VEICULO} onEditar={editar} onFechar={() => navigate("/veiculos")} />
     </Page>
   );
 }

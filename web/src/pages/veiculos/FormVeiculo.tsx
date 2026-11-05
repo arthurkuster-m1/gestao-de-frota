@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft } from "@phosphor-icons/react";
 import { Button, Card, DateField, Field, Input, Page, Segmented, Select, Skeleton, Switch, Textarea, useToast } from "../../ds";
 import { atualizarVeiculo, buscarVeiculo, criarVeiculo, listarAtividades, type Atividade } from "../../lib/veiculos/dados";
+import { textoAtividade, quando } from "../../lib/veiculos/atividade";
 import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type VeiculoNovo } from "../../lib/veiculos/tipos";
 import "./veiculos.css";
 
@@ -17,9 +18,6 @@ export const codigoPrevisto = (modelo: string, vin: string) => {
   const v = normalizarVin(vin);
   return v.length >= 4 && modelo.trim() ? `${modelo.trim().toUpperCase()} ${v.slice(-4)}` : "";
 };
-
-const textoAtividade = (t: string) => CICLO.reduce((s, c) => s.split(c.value).join(c.label), t);
-const quando = (iso: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit", timeZone: "America/Sao_Paulo" }).format(new Date(iso));
 
 export function FormVeiculo() {
   const { id } = useParams();

@@ -80,3 +80,31 @@
 @media (hover: none) { .mt-abrir { opacity: 1; } }
 .mt-erro { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0; padding: 8px 14px; border-radius: var(--radius-lg); background: var(--color-error-bg); color: var(--color-error-fg); font-size: 13px; }
 .mt-erro button { display: grid; place-items: center; border: 0; background: transparent; color: inherit; }
+
+/* valor editável fora da tabela (cards, janela) */
+.mt-valor { display: inline-flex; align-items: center; max-width: 100%; min-height: 32px; padding: 2px 8px; margin: 0 -8px; border: 0; border-radius: var(--radius-md); background: transparent; color: inherit; font: inherit; font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.mt-valor--edita { cursor: text; }
+.mt-valor--edita:hover { background: var(--color-surface-elevated); }
+.mt-valor.is-salvando { opacity: 0.55; }
+.mt-campo-editando { position: relative; height: 40px; border-radius: var(--radius-md); overflow: visible; box-shadow: inset 0 0 0 2px var(--color-accent-ring); background: var(--color-surface); }
+.mt-campo-editando .mt-ed { border-radius: var(--radius-md); padding: 0 10px; }
+.mt-campo-editando .mt-ed-data .ds-datefield { border-radius: var(--radius-md); }
+/* cards */
+.mt-cards { display: grid; gap: var(--space-3); grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); }
+.mt-cards-grupo { display: grid; gap: var(--space-2); margin-bottom: var(--space-3); }
+.mt-card { display: grid; gap: var(--space-3); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); box-shadow: var(--shadow-xs); align-content: start; }
+.mt-card__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--space-2); }
+.mt-card__titulo { padding: 0; border: 0; background: transparent; font-size: 16px; font-weight: 700; color: var(--color-text); text-align: left; font-family: inherit; }
+button.mt-card__titulo:hover { color: var(--color-accent); }
+.mt-abrir--fixo { opacity: 1; }
+.mt-card__campos { display: grid; gap: 2px; margin: 0; }
+.mt-card__linha { display: grid; grid-template-columns: 96px minmax(0, 1fr); gap: var(--space-2); align-items: center; min-height: 34px; }
+.mt-card__linha dt { font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+.mt-card__linha dd { margin: 0; min-width: 0; }
+
+.mt-modo { display: inline-flex; align-items: center; gap: 6px; }
+
+.mt-valor .ds-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.mt-alterada .ds-row { flex-wrap: wrap; }
+@media (max-width: 720px) { .mt-alterada { padding: 10px 12px; } .mt-alterada > div { width: 100%; } .mt-alterada .ds-btn { flex: 1 1 auto; } }
