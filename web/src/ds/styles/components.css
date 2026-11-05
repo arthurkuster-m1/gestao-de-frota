@@ -310,6 +310,8 @@
 .ds-selectbox, .ds-datefield { width: 100%; min-height: var(--touch); background: var(--color-surface); border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); color: var(--color-text);
   font-size: 16px; line-height: 24px; transition: border-color var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) var(--ease-out); }
 @media (min-width: 640px) { .ds-selectbox, .ds-datefield, .ds-datefield input { font-size: 14px; line-height: 20px; } }
+/* No celular o texto dos campos é 16px (evita o zoom do iOS) e o campo de texto fica com 46px: seleção e data acompanham, para a grade do formulário ficar reta. */
+@media (max-width: 639px) { .ds-selectbox, .ds-datefield { min-height: 46px; } .ds-datefield input { min-height: 44px; } }
 .ds-selectbox { display: flex; align-items: center; justify-content: space-between; gap: 8px; padding: 10px 14px 10px 16px; text-align: left; cursor: pointer; }
 .ds-selectbox:hover:not(:disabled), .ds-datefield:hover { border-color: var(--color-text-subtle); }
 .ds-selectbox:focus-visible, .ds-selectbox.is-open, .ds-datefield:focus-within, .ds-datefield.is-open { outline: none; border-color: var(--color-accent-ring); box-shadow: 0 0 0 3px var(--color-accent-soft); }
