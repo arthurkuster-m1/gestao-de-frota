@@ -7,7 +7,7 @@ Escrito em 05/11/2026 a partir das especificações do Arthur. Substitui a ordem
 | Pergunta antiga | Resposta tirada da especificação |
 |---|---|
 | 1. Saída: um carro ou vários? | **Uma linha por carro** (`evento_veiculos`). O **transporte** é que agrupa carros (1 PTA com vários carros). |
-| 2. Contrato: por carro ou por evento? | **Por evento** (e cliente), com aditivo quando os carros mudam. **A confirmar** (ver seção 8). |
+| 2. Contrato: por carro ou por evento? | **Por evento** (e cliente), confirmado pelo Arthur em 05/11/2026. Aditivo para **troca de carros** e para **extensão de prazo**. |
 | 3. 18 status numa coluna só? | **Não. Dois status:** *Ciclo de Vida* e *Status de Uso*. |
 | 4. Banco Sinistros do Notion | **Ainda aberta.** |
 | 5. Fonte de Multas, Faturamentos, Devoluções | **Parcial.** Faturamento vira *Pagamentos* (PTA e NF da TSO). Devolução é etapa do Ciclo de Vida. Multas e Sinistros: ainda aberto. |
@@ -55,7 +55,7 @@ Trigger de banco **nunca** faz chamada de rede; só grava histórico e avisos.
 **Contratos**
 - `contratos_comodato`: evento, cliente, status (rascunho, enviado, aguardando assinaturas, assinado, encerrado), vigência, arquivo, id do D4Sign (futuro).
 - `contrato_veiculos`: os carros que o contrato cobre.
-- `contrato_aditivos`: motivo, carros antes/depois, status.
+- `contrato_aditivos`: tipo (troca de carros, extensão de prazo), motivo, carros antes/depois, vigência antes/depois, status (rascunho, enviado, aguardando assinaturas, assinado). A vigência em vigor é a do último aditivo assinado.
 
 **Manutenção, multas, visões**
 - `manutencoes`: veículo, descrição, status, entrada, saída prevista e real, oficina, custo, `bloqueia_uso`.
@@ -70,7 +70,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 - **Veículos:** visão Tabela, Cards e Linha do tempo, com visões salvas, escolha de propriedades e colunas congeladas (motor do CRM). Ficha do veículo em janela: dados, Atividade, Manutenções, Eventos, Multas, Agenda (visual e em texto) e Comentários. Cadastro por formulário individual e em massa, no estilo de `Lancar.tsx` e `Massa.tsx` de Finanças.
 - **Eventos:** mesmo motor. Formulário e tabela em massa. O cliente já cadastrado preenche sozinho CNPJ, endereço e e-mails; no evento só se preenche o que varia.
 - **Planejamento:** tela dividida, como o desenho. Em cima, tabela de Veículos com filtros e visões; embaixo, tabela de Eventos; à direita, **uma linha do tempo única, sem fim, que serve às duas** (calendário infinito). O carro mostra as reservas (barra cinza) e manutenções (amarelo); o evento mostra a data do evento (cinza) com os prazos de logística antes e depois (azul). Dali se cria evento e manutenção, e se escolhem os carros do evento selecionado.
-- **Contratos:** status, Word por modelo, conferência com os carros do evento e criação de aditivo.
+- **Contratos:** status, Word por modelo, conferência com os carros e o prazo do evento, e criação de aditivo (troca de carros ou extensão de prazo).
 - **Início, Devoluções, Multas, Dashboard:** seguem o mapa de funcionalidades, depois das telas acima.
 
 ## 6. O que vem do CRM e do `familia-kuster`
@@ -94,7 +94,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 
 ## 8. Perguntas abertas (uma de cada vez)
 
-1. **Contrato por evento ou por carro?** (suposição acima: por evento e cliente)
+1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
 2. **Prazo de logística:** é um número de dias fixo, ou varia por evento? Vale o mesmo antes e depois?
 3. **Sinistros:** pedir o banco do Notion (ou descrever os campos).
 4. **Multas:** de onde vêm os dados (planilha, e-mail do órgão)? Quais campos?
