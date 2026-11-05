@@ -106,7 +106,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 3. ~~Sinistros~~ Adiada: são um tipo de Manutenção (seção 4); o banco completo do Notion fica para depois.
 4. **Multas:** campos mínimos definidos (ver seção 4). Status definidos (seção 4), falta o Arthur confirmar a ordem.
 5. ~~Devoluções~~ Planejamento definido (seção 5); checklist e documento da devolução ficam para depois.
-6. **Seguro:** é só um status ("cadastrado / pendente") ou também apólice e vigência?
+6. ~~Seguro~~ Respondida: status simples (Pendente, Cadastrado, Cancelado); apólice e vigência ficam para depois.
 
 ## 9. O que NÃO foi testado
 
