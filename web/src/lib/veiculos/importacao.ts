@@ -4,13 +4,13 @@
  */
 import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type VeiculoNovo } from "./tipos";
 
-export type CampoLinha = "modelo" | "versao" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios";
+export type CampoLinha = "modelo" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios";
 export type LinhaCrua = Partial<Record<CampoLinha, string>>;
 export type Tom = "ok" | "erro" | "dup" | "ign";
 export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
 
 export const CAMPOS: { id: CampoLinha; titulo: string; largura: number }[] = [
-  { id: "modelo", titulo: "Modelo", largura: 130 }, { id: "versao", titulo: "Versão", largura: 110 }, { id: "cor", titulo: "Cor", largura: 110 },
+  { id: "modelo", titulo: "Modelo", largura: 130 }, { id: "cor", titulo: "Cor", largura: 110 },
   { id: "my", titulo: "MY", largura: 80 }, { id: "pedido", titulo: "Pedido", largura: 120 }, { id: "vin", titulo: "VIN (chassi)", largura: 190 },
   { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 100 }, { id: "seguro", titulo: "Seguro", largura: 120 },
   { id: "ciclo", titulo: "Ciclo de vida", largura: 190 }, { id: "comentarios", titulo: "Comentários", largura: 200 },
@@ -20,7 +20,7 @@ const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 
 /** Nomes de coluna aceitos no cabeçalho colado (sem acento, minúsculas). */
 const ALIAS: Record<string, CampoLinha> = {
-  modelo: "modelo", versao: "versao", cor: "cor", my: "my", "ano modelo": "my", "ano-modelo": "my", pedido: "pedido", "n pedido": "pedido",
+  modelo: "modelo", cor: "cor", my: "my", "ano modelo": "my", "ano-modelo": "my", pedido: "pedido", "n pedido": "pedido",
   vin: "vin", chassi: "vin", "vin (chassi)": "vin", placa: "placa", blindado: "blindado", seguro: "seguro",
   ciclo: "ciclo", "ciclo de vida": "ciclo", status: "ciclo", "status do ciclo de vida": "ciclo", comentarios: "comentarios", comentario: "comentarios", obs: "comentarios",
 };
@@ -29,12 +29,15 @@ const ALIAS: Record<string, CampoLinha> = {
 export function linhasDeMatriz(matriz: string[][]): LinhaCrua[] {
   const dados = matriz.filter((l) => l.some((c) => (c ?? "").trim() !== ""));
   if (dados.length === 0) return [];
+  // Se a planilha trouxer uma coluna "Versão", ela é juntada ao modelo ("Onix" + "RS" → "Onix RS"): o app tem um campo só.
+  const colVersao = dados[0].findIndex((c) => semAcento(c ?? "") === "versao");
   const mapa = dados[0].map((c) => ALIAS[semAcento(c ?? "")]);
   const ehCabecalho = mapa.filter(Boolean).length >= 2;
   const ordem: (CampoLinha | undefined)[] = ehCabecalho ? mapa : CAMPOS.map((c) => c.id);
   return (ehCabecalho ? dados.slice(1) : dados).map((l) => {
     const o: LinhaCrua = {};
     l.forEach((c, i) => { const campo = ordem[i]; if (campo && (c ?? "").trim() !== "") o[campo] = c.trim(); });
+    if (ehCabecalho && colVersao >= 0 && (l[colVersao] ?? "").trim() && o.modelo) o.modelo = `${o.modelo} ${l[colVersao].trim()}`;
     return o;
   });
 }
@@ -78,7 +81,7 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   if (placa) vistas.placas.add(placa);
 
   const veiculo: VeiculoNovo = {
-    modelo, versao: vazioParaNulo(l.versao), cor: vazioParaNulo(l.cor), my: vazioParaNulo(l.my), pedido: vazioParaNulo(l.pedido),
+    modelo, cor: vazioParaNulo(l.cor), my: vazioParaNulo(l.my), pedido: vazioParaNulo(l.pedido),
     vin, placa, blindado: blind === null ? false : blind,
     seguro_status: (seguro ?? "pendente") as Seguro, status_ciclo: (ciclo ?? "pedido_recebido") as Ciclo, comentarios: vazioParaNulo(l.comentarios),
   };

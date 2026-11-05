@@ -10,9 +10,12 @@ describe("linhasDeMatriz", () => {
     const l = linhasDeMatriz([["Modelo", "Chassi", "Status", "Cor"], ["Onix", VIN, "Liberado", "Branco"]]);
     expect(l).toEqual([{ modelo: "Onix", vin: VIN, ciclo: "Liberado", cor: "Branco" }]);
   });
-  it("sem cabeçalho, assume a ordem modelo, versão, cor, MY, pedido, VIN, placa…", () => {
-    const l = linhasDeMatriz([["Onix", "PR", "Preto", "2026", "P-1", VIN, "ABC1D23"]]);
-    expect(l[0]).toMatchObject({ modelo: "Onix", versao: "PR", cor: "Preto", my: "2026", pedido: "P-1", vin: VIN, placa: "ABC1D23" });
+  it("sem cabeçalho, assume a ordem modelo, cor, MY, pedido, VIN, placa…", () => {
+    const l = linhasDeMatriz([["Onix PR", "Preto", "2026", "P-1", VIN, "ABC1D23"]]);
+    expect(l[0]).toMatchObject({ modelo: "Onix PR", cor: "Preto", my: "2026", pedido: "P-1", vin: VIN, placa: "ABC1D23" });
+  });
+  it("junta a coluna Versão ao modelo (o app tem um campo só)", () => {
+    expect(linhasDeMatriz([["Modelo", "Versão", "Cor"], ["Onix", "RS", "Preto"], ["S10", "", "Azul"]])).toEqual([{ modelo: "Onix RS", cor: "Preto" }, { modelo: "S10", cor: "Azul" }]);
   });
   it("ignora linhas totalmente vazias", () => { expect(linhasDeMatriz([["", ""], ["Onix"]])).toHaveLength(1); });
 });

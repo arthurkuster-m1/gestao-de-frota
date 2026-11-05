@@ -13,11 +13,10 @@ const TOM_CICLO: Record<string, "success" | "warning" | "error" | "info" | "neut
 };
 
 const COLUNAS: Col[] = [
-  { id: "codigo", titulo: "Código", valor: (v) => v.codigo ?? `${v.modelo}${v.versao ? " " + v.versao : ""}`.toUpperCase(), padrao: true },
+  { id: "codigo", titulo: "Código", valor: (v) => v.codigo ?? v.modelo.toUpperCase(), padrao: true },
   { id: "placa", titulo: "Placa", valor: (v) => v.placa ?? "", padrao: true },
   { id: "vin", titulo: "VIN (chassi)", valor: (v) => v.vin ?? "", padrao: true },
   { id: "modelo", titulo: "Modelo", valor: (v) => v.modelo, padrao: false },
-  { id: "versao", titulo: "Versão", valor: (v) => v.versao ?? "", padrao: false },
   { id: "cor", titulo: "Cor", valor: (v) => v.cor ?? "", padrao: true },
   { id: "my", titulo: "MY", valor: (v) => v.my ?? "", padrao: true },
   { id: "pedido", titulo: "Pedido", valor: (v) => v.pedido ?? "", padrao: false },

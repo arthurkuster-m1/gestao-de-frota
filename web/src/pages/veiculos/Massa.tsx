@@ -105,7 +105,7 @@ export function Massa() {
 
       <Sheet open={colando} onClose={() => setColando(false)} title="Colar do Excel">
         <div className="ds-stack">
-          <p className="t-body-sm t-muted">Copie as células no Excel (com ou sem a linha de títulos) e cole aqui. Colunas aceitas: Modelo, Versão, Cor, MY, Pedido, VIN/Chassi, Placa, Blindado, Seguro, Ciclo de vida, Comentários.</p>
+          <p className="t-body-sm t-muted">Copie as células no Excel (com ou sem a linha de títulos) e cole aqui. Escreva a versão junto do modelo (Onix RS). Colunas aceitas: Modelo, Cor, MY, Pedido, VIN/Chassi, Placa, Blindado, Seguro, Ciclo de vida, Comentários.</p>
           <Textarea rows={8} value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Texto colado" />
           <Button size="lg" block disabled={!texto.trim()} onClick={() => { adicionar(Papa.parse<string[]>(texto, { delimiter: "\t", skipEmptyLines: true }).data); setTexto(""); setColando(false); }}>Adicionar à grade</Button>
         </div>
