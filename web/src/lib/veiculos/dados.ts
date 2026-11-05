@@ -42,6 +42,13 @@ export async function criarVeiculos(vs: VeiculoNovo[]): Promise<number> {
   return vs.length;
 }
 
+/** Muda só alguns campos (edição no lugar, na tabela, nos cards, na linha do tempo). Devolve a linha inteira atualizada (o código é recalculado pelo banco). */
+export async function atualizarCampos(id: string, patch: Partial<VeiculoNovo>): Promise<Veiculo> {
+  const { data, error } = await supabase.from("veiculos").update(patch).eq("id", id).select("*").single();
+  if (error) throw traduzir(error);
+  return data as Veiculo;
+}
+
 export async function atualizarVeiculo(id: string, v: VeiculoNovo): Promise<Veiculo> {
   const { data, error } = await supabase.from("veiculos").update(v).eq("id", id).select("*").single();
   if (error) throw traduzir(error);

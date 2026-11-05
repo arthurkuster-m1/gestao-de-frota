@@ -5,7 +5,21 @@ import type { DefinicaoDeColuna } from "../../lib/motor/layout";
 export type OpcaoDoCampo = { value: string; label: string; tom?: "success" | "warning" | "error" | "info" | "neutral" | "accent" };
 
 /** Um campo da tela: o que a consulta entende (tipo, valor) + o que a tabela mostra (título, largura, célula). */
+/** Como um campo se edita no lugar (tabela, cards, linha do tempo). Campo sem isto é só leitura (ex.: o código, que é calculado). */
+export type EdicaoDoCampo = {
+  /** Coluna do banco que recebe o valor. */
+  coluna: string;
+  obrigatorio?: boolean;
+  maxLength?: number;
+  placeholder?: string;
+  /** Arruma o texto digitado antes de validar e gravar (ex.: placa em maiúsculas, sem hífen). */
+  normalizar?: (texto: string) => string;
+  /** Devolve a mensagem de erro, ou null se o valor serve. Recebe o texto já normalizado e não vazio. */
+  validar?: (texto: string) => string | null;
+};
+
 export type CampoDaTela<T> = CampoConsultavel<T> & DefinicaoDeColuna & {
+  edicao?: EdicaoDoCampo;
   titulo: string;
   /** Opções fixas (status, seguro…). Sem isto, campos de opção usam os valores que existem nas linhas. */
   opcoes?: readonly OpcaoDoCampo[];
