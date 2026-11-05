@@ -77,7 +77,8 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 - **Eventos:** mesmo motor. Formulário e tabela em massa. O cliente já cadastrado preenche sozinho CNPJ, endereço e e-mails; no evento só se preenche o que varia.
 - **Planejamento:** tela dividida, como o desenho. Em cima, tabela de Veículos com filtros e visões; embaixo, tabela de Eventos; à direita, **uma linha do tempo única, sem fim, que serve às duas** (calendário infinito). O carro mostra as reservas (barra cinza) e manutenções (amarelo); o evento mostra a data do evento (cinza) com os prazos de logística antes e depois (azul). Dali se cria evento e manutenção, e se escolhem os carros do evento selecionado.
 - **Contratos:** status, Word por modelo, conferência com os carros e o prazo do evento, e criação de aditivo (troca de carros ou extensão de prazo).
-- **Início, Devoluções, Multas, Dashboard:** seguem o mapa de funcionalidades, depois das telas acima.
+- **Devoluções (planejamento, detalhado mais adiante pelo Arthur):** tela para decidir quais carros saem da frota. O app **pré-filtra sugestões**, todas calculadas: carros mais velhos (tempo desde o faturamento), muito tempo parados, muito tempo disponíveis sem uso real (dias desde a última saída). Gravame e carros em reserva futura aparecem com aviso. Em cada carro o Arthur marca **Devolver** ou **Manter**, com data prevista. Também planeja **trocas**: "este carro vai para tal cliente e o carro que estava lá vai para devolução", o que vira, ao executar, um aditivo de troca de carros no contrato. Mostra o inventário contra a meta de 200. Guardado em `veiculos.decisao_devolucao` + data prevista e em `trocas_planejadas` (carro que sai, carro que entra, contrato, data, situação).
+- **Início, Multas, Dashboard:** seguem o mapa de funcionalidades, depois das telas acima.
 
 ## 6. O que vem do CRM e do `familia-kuster`
 
@@ -104,7 +105,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 2. ~~Prazo de logística~~ Respondida: ver seção 3-A.
 3. ~~Sinistros~~ Adiada: são um tipo de Manutenção (seção 4); o banco completo do Notion fica para depois.
 4. **Multas:** campos mínimos definidos (ver seção 4). Status definidos (seção 4), falta o Arthur confirmar a ordem.
-5. **Devoluções:** além do status, existe um checklist ou documento da devolução para o CVO?
+5. ~~Devoluções~~ Planejamento definido (seção 5); checklist e documento da devolução ficam para depois.
 6. **Seguro:** é só um status ("cadastrado / pendente") ou também apólice e vigência?
 
 ## 9. O que NÃO foi testado
