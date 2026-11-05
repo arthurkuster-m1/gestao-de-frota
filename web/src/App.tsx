@@ -9,6 +9,9 @@ import { Home } from "./pages/Home";
 import { EmBreve } from "./pages/EmBreve";
 import { SemConfig } from "./pages/SemConfig";
 import { Shell } from "./app/Shell";
+import { Veiculos } from "./pages/veiculos/Veiculos";
+import { FormVeiculo } from "./pages/veiculos/FormVeiculo";
+import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { DESTINOS } from "./app/modules";
 import { Button, useTheme } from "./ds";
 
@@ -31,7 +34,11 @@ function Autenticado() {
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<Home />} />
-          {DESTINOS.filter((d) => d.path !== "/").map((d) => (
+          <Route path="veiculos" element={<Veiculos />} />
+          <Route path="veiculos/novo" element={<FormVeiculo />} />
+          <Route path="veiculos/massa" element={<MassaVeiculos />} />
+          <Route path="veiculos/:id" element={<FormVeiculo />} />
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />

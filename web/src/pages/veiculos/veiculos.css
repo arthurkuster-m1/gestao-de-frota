@@ -1,0 +1,20 @@
+.vei-barra { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; }
+.vei-barra .ds-input { max-width: 320px; }
+.vei-tabela { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 300px); }
+.vei-tabela table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
+.vei-tabela th, .vei-tabela td { padding: 10px 14px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); font-size: 13px; }
+.vei-tabela th { position: sticky; top: 0; z-index: 2; background: var(--color-surface-elevated); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; user-select: none; }
+.vei-tabela th:first-child, .vei-tabela td:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-surface); border-right: 1px solid var(--color-border); font-weight: 600; }
+.vei-tabela th:first-child { z-index: 3; background: var(--color-surface-elevated); }
+.vei-tabela tbody tr { cursor: pointer; }
+.vei-tabela tbody tr:hover td { background: var(--color-surface-elevated); }
+.vei-tabela td.vazio { color: var(--color-text-subtle); }
+.vei-form { display: grid; gap: var(--space-4); }
+.vei-form__linha { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); }
+.vei-codigo { font-weight: 700; font-size: 20px; letter-spacing: 0.02em; }
+.vei-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
+.vei-hist li { display: grid; gap: 2px; padding-left: var(--space-4); border-left: 3px solid var(--color-accent-soft); }
+.vei-colunas { display: grid; gap: var(--space-3); }
+.vei-colunas label { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch); }
+.vei-massa { height: 60dvh; min-height: 320px; }
+@media (max-width: 720px) { .vei-tabela { max-height: calc(100dvh - 360px); } }
