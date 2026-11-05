@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CalendarBlank, CalendarCheck, Warning, Wrench, X } from "@phosphor-icons/react";
+import { Link } from "react-router-dom";
 import { Skeleton, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
 import type { CampoDaTela } from "../../components/motor/tipos";
@@ -8,6 +9,10 @@ import { formatar } from "../../components/motor/formatar";
 import { listarAtividades, type Atividade } from "../../lib/veiculos/dados";
 import { quando, textoAtividade } from "../../lib/veiculos/atividade";
 import type { Veiculo } from "../../lib/veiculos/tipos";
+import { ESTADOS_RESERVA, type Evento, type Reserva } from "../../lib/eventos/tipos";
+import { agendaTexto, estaAberta, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
+import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
+import { Tag } from "../../components/motor/Tag";
 import "./veiculos.css";
 
 type Aba = "dados" | "atividade" | "comentarios" | "agenda" | "eventos" | "manutencoes" | "multas";
@@ -21,7 +26,24 @@ function EmBreve({ icone, titulo, children }: { icone: ReactNode; titulo: string
 }
 
 /** A janela do veículo: tudo sobre um carro, em abas. Dados e Comentários se editam no lugar, como na tabela e nos cards. */
-export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar }: { veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void }) {
+function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome: (id: string) => string; vazio: string }) {
+  if (reservas.length === 0) return <p className="t-body t-muted">{vazio}</p>;
+  return (
+    <ul className="mt-reservas" data-testid="lista-reservas">
+      {reservas.map((r) => {
+        const e = ESTADOS_RESERVA.find((x) => x.value === r.estado)!;
+        return (
+          <li key={r.id} className="mt-reserva">
+            <div className="mt-reserva__topo"><Link to={`/eventos/${r.evento_id}`} className="mt-reserva__evento">{nome(r.evento_id)}</Link><Tag opcao={{ value: e.value, label: e.label, tom: e.tom }} /></div>
+            <span className="t-body-sm t-muted">{formatarDiaBr(r.reserva_inicio)} até {formatarDiaBr(r.reserva_fim)}</span>
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
+export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado }: { veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
@@ -36,6 +58,7 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar }: { veicu
   useEffect(() => { setComentario(veiculo?.comentarios ?? ""); setErroComentario(null); }, [id, veiculo?.comentarios]);
   useEffect(() => { if (aba === "atividade" && id) { setHist(null); listarAtividades(id).then(setHist, () => setHist([])); } }, [aba, id, veiculo?.status_ciclo]);
 
+  const nomeDoEvento = (id: string) => eventos.find((e) => e.id === id)?.nome ?? "?";
   const titulo = veiculo ? (veiculo.codigo ?? veiculo.modelo.toUpperCase()) : "";
   const editaveis = campos.filter((c) => c.edicao).map((c) => c.id);
   const lista = campos.filter((c) => c.id !== "codigo" && c.id !== "comentarios");
@@ -48,7 +71,7 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar }: { veicu
   }
 
   return (
-    <dialog ref={ref} className="mt-janela" aria-label={`Veículo ${titulo}`} onClose={onFechar} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
+    <dialog ref={ref} className="mt-janela" aria-label={`Veículo ${titulo}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {veiculo && (
         <div className="mt-janela__corpo" data-testid="janela-veiculo">
           <header className="mt-janela__topo">
@@ -75,8 +98,16 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar }: { veicu
                 {erroComentario && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erroComentario}</p>}
               </div>
             )}
-            {aba === "agenda" && <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Mostra, em calendário e em texto (“EM USO – EVENTO X 04/11 ATÉ 05/11 + RESERVADO – EVENTO Y 07/11 ATÉ 12/11”), tudo o que este carro vai fazer. Entra junto com a tela de Eventos, porque a agenda é calculada das reservas.</EmBreve>}
-            {aba === "eventos" && <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Histórico e eventos futuros deste carro, com o status de cada reserva. Entra com a tela de Eventos.</EmBreve>}
+            {aba === "agenda" && (usoCarregado ? (
+              <div className="ds-stack" data-testid="aba-agenda">
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Status de uso</span><b>{rotuloDoUso(statusDeUso(reservas))}</b></div>
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Agenda</span><p className="t-body" data-testid="agenda-texto">{agendaTexto(reservas, nomeDoEvento, hojeLocal()) || "Sem reservas abertas: o carro está livre."}</p></div>
+                <h3 className="t-h3">Reservas abertas</h3>
+                <ListaDeReservas reservas={reservas.filter(estaAberta)} nome={nomeDoEvento} vazio="Nenhuma reserva aberta." />
+              </div>
+            ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
+            {aba === "eventos" && (usoCarregado ? <ListaDeReservas reservas={[...reservas].sort((a, b) => b.reserva_inicio.localeCompare(a.reserva_inicio))} nome={nomeDoEvento} vazio="Este carro ainda não foi reservado para nenhum evento." />
+              : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "manutencoes" && <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">Todas as manutenções e sinistros que o carro já teve e as que estão em aberto. Entra com a tela de Manutenções.</EmBreve>}
             {aba === "multas" && <EmBreve icone={<Warning size={32} />} titulo="Multas">Multas do carro, com o evento e o cliente que estavam com ele na hora. Entra com a tela de Multas.</EmBreve>}
           </div>

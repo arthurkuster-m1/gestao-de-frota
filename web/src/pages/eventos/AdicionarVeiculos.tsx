@@ -1,0 +1,84 @@
+import { useMemo, useState } from "react";
+import { Warning } from "@phosphor-icons/react";
+import { Button, DateField, Field, Input, Sheet } from "../../ds";
+import { Tag } from "../../components/motor/Tag";
+import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
+import type { Evento, Reserva } from "../../lib/eventos/tipos";
+import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
+import type { Veiculo } from "../../lib/veiculos/tipos";
+
+/** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
+export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, onReservar }: {
+  aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[];
+  onReservar: (veiculoIds: string[], inicio: string, fim: string) => Promise<void>;
+}) {
+  const [inicio, setInicio] = useState(hojeLocal());
+  const [fim, setFim] = useState(somarDias(hojeLocal(), 2));
+  const [busca, setBusca] = useState("");
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [erro, setErro] = useState<string | null>(null);
+  const [enviando, setEnviando] = useState(false);
+
+  const porCarro = useMemo(() => reservasPorVeiculo(reservas), [reservas]);
+  const nomes = useMemo(() => new Map(eventos.map((e) => [e.id, e.nome])), [eventos]);
+  const jaNoEvento = useMemo(() => new Set(reservas.filter((r) => r.evento_id === evento.id && r.estado !== "cancelado").map((r) => r.veiculo_id)), [reservas, evento.id]);
+  const periodoOk = !!inicio && !!fim && fim >= inicio;
+
+  const linhas = useMemo(() => {
+    const q = busca.trim().toLowerCase();
+    return veiculos
+      .filter((v) => v.status_ciclo !== "devolvido" && !jaNoEvento.has(v.id))
+      .filter((v) => !q || `${v.codigo ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""}`.toLowerCase().includes(q))
+      .map((v) => {
+        const r = porCarro.get(v.id) ?? [];
+        const choques = periodoOk ? conflitos({ inicio, fim }, r, evento.id) : [];
+        return { v, uso: statusDeUso(r), choques };
+      })
+      .sort((a, b) => Number(a.choques.length > 0) - Number(b.choques.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
+  }, [veiculos, busca, jaNoEvento, porCarro, periodoOk, inicio, fim, evento.id]);
+
+  const alterna = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
+  const comConflito = linhas.filter((l) => marcados.has(l.v.id) && l.choques.length > 0).length;
+
+  async function reservar() {
+    setErro(null); setEnviando(true);
+    try { await onReservar([...marcados], inicio, fim); setMarcados(new Set()); onFechar(); } catch (e) { setErro((e as Error).message); } finally { setEnviando(false); }
+  }
+
+  return (
+    <Sheet open={aberto} onClose={onFechar} title="Reservar carros">
+      <div className="ds-stack" data-testid="adicionar-veiculos">
+        <p className="t-body-sm t-muted">Evento: <b>{evento.nome}</b>. O período já deve contar o tempo de logística (ida e volta).</p>
+        <div className="vei-form__linha">
+          <Field label="Início da reserva"><DateField value={inicio} onChange={(e) => setInicio(e.target.value)} /></Field>
+          <Field label="Fim da reserva" error={inicio && fim && fim < inicio ? "O fim não pode ser antes do início." : null}><DateField value={fim} onChange={(e) => setFim(e.target.value)} /></Field>
+        </div>
+        <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor)…" aria-label="Buscar carro para reservar" />
+        <ul className="mt-escolha" role="list">
+          {linhas.length === 0 && <li className="t-body t-muted">Nenhum carro disponível para escolher.</li>}
+          {linhas.map(({ v, uso, choques }) => {
+            const u = STATUS_DE_USO.find((x) => x.value === uso)!;
+            return (
+              <li key={v.id} className="mt-escolha__item">
+                <label className="mt-escolha__linha">
+                  <input type="checkbox" checked={marcados.has(v.id)} onChange={() => alterna(v.id)} aria-label={`Reservar ${v.codigo ?? v.modelo}`} />
+                  <span className="mt-escolha__nome">{v.codigo ?? v.modelo.toUpperCase()}</span>
+                  <span className="t-body-sm t-muted">{[v.cor, v.placa].filter(Boolean).join(" · ")}</span>
+                  <Tag opcao={{ value: u.value, label: u.label, tom: u.tom }} />
+                </label>
+                {choques.length > 0 && (
+                  <p className="mt-escolha__aviso" role="note" data-testid="aviso-conflito"><Warning size={16} weight="fill" />Já reservado nesse período: {agendaTexto(choques, (id) => nomes.get(id) ?? "?", hojeLocal())}</p>
+                )}
+              </li>
+            );
+          })}
+        </ul>
+        {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
+        {erro && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
+        <Button size="lg" block disabled={marcados.size === 0 || !periodoOk} loading={enviando} onClick={() => void reservar()} data-testid="confirmar-reserva">
+          Reservar {marcados.size} carro{marcados.size === 1 ? "" : "s"}{periodoOk ? ` · ${formatarDiaBr(inicio).slice(0, 5)} a ${formatarDiaBr(fim).slice(0, 5)}` : ""}
+        </Button>
+      </div>
+    </Sheet>
+  );
+}
