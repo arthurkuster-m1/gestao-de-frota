@@ -107,7 +107,9 @@ O Arthur apontou (com razão) que a tela de Veículos entregue primeiro era só 
 2. ⬜ **Cards** e a **janela do veículo** com abas (Agenda, Manutenções, Eventos, Multas, Comentários).
 3. ⬜ **Linha do tempo** (base da tela de Planejamento).
 
-Ainda sem tela: seleção de linhas e edição em massa, edição direto na célula, Status de Uso e agenda em texto (dependem de Eventos e Manutenções).
+**Regra do Arthur (06/11/2026): toda visão é editável no lugar — tabela, cards e linha do tempo.** O editor é um só (`web/src/components/motor/EditorDeCelula.tsx` + `edicao.ts`, com a regra de normalizar/validar/gravar) e cada visão o reaproveita. ✅ Tabela: clicar na célula edita (texto, opção, data, caixa), Enter grava, Esc cancela, Tab grava e vai para a próxima célula, erro do banco aparece em português; o código e o ícone abrem a ficha. ⬜ Cards e ⬜ Linha do tempo: entram nas entregas 2 e 3 usando o mesmo editor.
+
+Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda em texto (dependem de Eventos e Manutenções).
 
 ## 8. Perguntas abertas (uma de cada vez)
 

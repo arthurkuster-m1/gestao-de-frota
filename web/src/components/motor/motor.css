@@ -57,3 +57,26 @@
 .mt-total { padding-left: 4px; }
 @media (max-width: 720px) { .mt-tabela { max-height: calc(100dvh - 380px); } .mt-filtro__valor { padding-left: 0; } .mt-filtro__topo { flex-wrap: wrap; } .mt-filtro__campo, .mt-filtro__op { flex: 1 1 140px; } .mt-data { grid-template-columns: 1fr; } }
 .mt-linha-ferramentas { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+
+/* edição no lugar */
+.mt-tabela tr.is-link { cursor: default; }
+.mt-tabela td.mt-editavel { cursor: cell; }
+.mt-tabela td.mt-editavel:hover { box-shadow: inset 0 0 0 1px var(--color-border-strong); }
+.mt-tabela td.mt-abre { cursor: pointer; }
+.mt-tabela td.is-salvando { opacity: 0.55; }
+.mt-tabela td.mt-editando { padding: 0; overflow: visible; box-shadow: inset 0 0 0 2px var(--color-accent-ring); }
+.mt-ed { width: 100%; height: 100%; border: 0; background: var(--color-surface); color: var(--color-text); padding: 0 14px; font: inherit; font-size: 13px; outline: none; text-align: left; }
+.mt-ed.is-erro { box-shadow: inset 0 0 0 2px var(--color-error); }
+.mt-ed--opcao { cursor: pointer; }
+.mt-ed-data { display: flex; align-items: center; height: 100%; }
+.mt-ed-data .ds-datefield { border: 0; border-radius: 0; min-height: 100%; height: 100%; }
+.mt-ed-limpar { display: grid; place-items: center; width: 32px; height: 32px; flex: none; margin-right: 4px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); }
+.mt-ed-limpar:hover { background: var(--color-surface-elevated); }
+.mt-lista { padding: 6px; }
+.mt-primeira { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.mt-primeira__txt { overflow: hidden; text-overflow: ellipsis; }
+.mt-abrir { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); opacity: 0; }
+.mt-tabela tr:hover .mt-abrir, .mt-abrir:focus-visible { opacity: 1; }
+@media (hover: none) { .mt-abrir { opacity: 1; } }
+.mt-erro { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0; padding: 8px 14px; border-radius: var(--radius-lg); background: var(--color-error-bg); color: var(--color-error-fg); font-size: 13px; }
+.mt-erro button { display: grid; place-items: center; border: 0; background: transparent; color: inherit; }

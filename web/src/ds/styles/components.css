@@ -163,7 +163,7 @@
 
 /* ───── Toast ───── */
 .ds-toasts { position: fixed; left: 16px; right: 16px; bottom: calc(96px + var(--safe-bottom)); z-index: var(--z-toast); display: grid; gap: 8px; justify-items: center; pointer-events: none; }
-.ds-toast { pointer-events: auto; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: var(--radius-full);
+.ds-toast { pointer-events: none; display: flex; align-items: center; gap: 10px; padding: 12px 18px; border-radius: var(--radius-full);
   background: var(--color-text); color: var(--color-bg); font-weight: 700; box-shadow: var(--shadow-lg); animation: ds-rise var(--dur-base) var(--ease-out-slow) both; }
 .ds-toast svg { color: var(--color-success); }
 :root[data-theme="dark"] .ds-toast svg { color: #41673f; } /* toast claro sobre fundo escuro: verde escuro */
@@ -1209,3 +1209,6 @@ html:root.tr-sam { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
   .tr-sam .ds-page { padding-bottom: calc(176px + var(--safe-bottom)); }
 }
 @media (min-width: 900px) { .ds-atalhos { display: none; } }
+
+/* O aviso "Salvo" não tem botões: não pode bloquear toques nas células que ficam embaixo dele. */
+.ds-toasts { pointer-events: none; }

@@ -7,8 +7,8 @@ import { BarraDeConsulta } from "../../components/motor/BarraDeConsulta";
 import { Propriedades } from "../../components/motor/Propriedades";
 import { TabelaDoMotor } from "../../components/motor/TabelaDoMotor";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
-import { listarVeiculos } from "../../lib/veiculos/dados";
-import { CICLO, SEGURO, type Veiculo } from "../../lib/veiculos/tipos";
+import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
+import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { configSegura, type VisaoSalva } from "../../lib/motor/visoes";
@@ -24,21 +24,21 @@ const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label
 /** Os campos de veículo: o que a consulta filtra/ordena/agrupa e o que a tabela mostra. Os não marcados `padrao:false` começam visíveis. */
 export const CAMPOS_VEICULO: CampoDaTela<Veiculo>[] = [
   { id: "codigo", titulo: "Código", tipo: "texto", valorDe: (v) => v.codigo ?? v.modelo.toUpperCase(), largura: 180, fixa: true },
-  { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110 },
-  { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190 },
-  { id: "modelo", titulo: "Modelo", tipo: "texto", valorDe: (v) => v.modelo, largura: 160, padrao: false },
-  { id: "cor", titulo: "Cor", tipo: "texto", valorDe: (v) => v.cor, largura: 130 },
-  { id: "my", titulo: "MY", tipo: "texto", valorDe: (v) => v.my, largura: 90 },
-  { id: "pedido", titulo: "Pedido", tipo: "texto", valorDe: (v) => v.pedido, largura: 140, padrao: false },
-  { id: "ciclo", titulo: "Ciclo de vida", tipo: "opcao", valorDe: (v) => v.status_ciclo, opcoes: OPCOES_CICLO, rotuloDoValor: (x) => OPCOES_CICLO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => CICLO.findIndex((c) => c.value === x), largura: 230 },
-  { id: "seguro", titulo: "Seguro", tipo: "opcao", valorDe: (v) => v.seguro_status, opcoes: OPCOES_SEGURO, rotuloDoValor: (x) => OPCOES_SEGURO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => SEGURO.findIndex((s) => s.value === x), largura: 130 },
-  { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false },
-  { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 170, padrao: false },
-  { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 140, padrao: false },
-  { id: "faturadoEm", titulo: "Faturado em", tipo: "data", valorDe: (v) => v.data_faturamento, largura: 140, padrao: false },
-  { id: "emplacadoEm", titulo: "Emplacado em", tipo: "data", valorDe: (v) => v.data_emplacamento, largura: 150, padrao: false },
-  { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 140, padrao: false },
-  { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, padrao: false },
+  { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110, edicao: { coluna: "placa", maxLength: 8, placeholder: "ABC1D23", normalizar: normalizarPlaca, validar: (t) => (placaValida(t) ? null : "A placa tem 7 caracteres.") } },
+  { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190, edicao: { coluna: "vin", maxLength: 20, placeholder: "17 caracteres", normalizar: normalizarVin, validar: (t) => (vinValido(t) ? null : "O VIN tem 17 letras e números.") } },
+  { id: "modelo", titulo: "Modelo", tipo: "texto", valorDe: (v) => v.modelo, largura: 160, padrao: false, edicao: { coluna: "modelo", obrigatorio: true } },
+  { id: "cor", titulo: "Cor", tipo: "texto", valorDe: (v) => v.cor, largura: 130, edicao: { coluna: "cor" } },
+  { id: "my", titulo: "MY", tipo: "texto", valorDe: (v) => v.my, largura: 90, edicao: { coluna: "my", maxLength: 9 } },
+  { id: "pedido", titulo: "Pedido", tipo: "texto", valorDe: (v) => v.pedido, largura: 140, padrao: false, edicao: { coluna: "pedido" } },
+  { id: "ciclo", titulo: "Ciclo de vida", tipo: "opcao", valorDe: (v) => v.status_ciclo, opcoes: OPCOES_CICLO, rotuloDoValor: (x) => OPCOES_CICLO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => CICLO.findIndex((c) => c.value === x), largura: 230, edicao: { coluna: "status_ciclo", obrigatorio: true } },
+  { id: "seguro", titulo: "Seguro", tipo: "opcao", valorDe: (v) => v.seguro_status, opcoes: OPCOES_SEGURO, rotuloDoValor: (x) => OPCOES_SEGURO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => SEGURO.findIndex((s) => s.value === x), largura: 130, edicao: { coluna: "seguro_status", obrigatorio: true } },
+  { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false, edicao: { coluna: "blindado" } },
+  { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 170, padrao: false, edicao: { coluna: "data_pedido" } },
+  { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 140, padrao: false, edicao: { coluna: "data_liberacao" } },
+  { id: "faturadoEm", titulo: "Faturado em", tipo: "data", valorDe: (v) => v.data_faturamento, largura: 140, padrao: false, edicao: { coluna: "data_faturamento" } },
+  { id: "emplacadoEm", titulo: "Emplacado em", tipo: "data", valorDe: (v) => v.data_emplacamento, largura: 150, padrao: false, edicao: { coluna: "data_emplacamento" } },
+  { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 140, padrao: false, edicao: { coluna: "data_devolucao" } },
+  { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
   { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 150, padrao: false },
 ];
 
@@ -108,6 +108,7 @@ export function Veiculos() {
           : !lista ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
           : <TabelaDoMotor linhas={buscadas} campos={CAMPOS_VEICULO} prefs={prefs} onPrefs={onPrefs} idDe={(x) => x.id} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
               rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`}
+              onEditar={async (linha, campo, valor) => { const novo = await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>); setLista((l) => (l ?? []).map((x) => (x.id === linha.id ? novo : x))); }}
               vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>} />}
       </div>
     </Page>

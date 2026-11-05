@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
-import { CaretDown, CaretRight, CaretUp } from "@phosphor-icons/react";
-import { Badge, cx } from "../../ds";
+import { ArrowSquareOut, CaretDown, CaretRight, CaretUp, X } from "@phosphor-icons/react";
+import { Badge, cx, useToast } from "../../ds";
 import { aplicarConsulta, type ValorDoCampo } from "../../lib/motor/consulta";
 import { formatarDiaBr, hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { proximaOrdenacao } from "../../lib/motor/ordenar-por-coluna";
+import { EditorDeCelula, type Movimento } from "./EditorDeCelula";
+import { prepararEdicao, valorParaEditor, type ValorEditavel } from "./edicao";
 import type { CampoDaTela } from "./tipos";
 import "./motor.css";
 
 type Props<T> = {
   linhas: readonly T[]; campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; onPrefs: (p: PreferenciasDaTabela) => void;
   idDe: (l: T) => string; onAbrir?: (l: T) => void; vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
+  /** Grava um campo editado na célula. Rejeita com `Error(mensagem)` se o banco recusar. Sem isto, a tabela é só de leitura. */
+  onEditar?: (linha: T, campo: CampoDaTela<T>, valor: ValorEditavel) => Promise<void>;
 };
 
 function formatar<T>(c: CampoDaTela<T>, l: T): ReactNode {
@@ -30,7 +34,11 @@ function formatar<T>(c: CampoDaTela<T>, l: T): ReactNode {
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
 
-export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal }: Props<T>) {
+export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar }: Props<T>) {
+  const toast = useToast();
+  const [editando, setEditando] = useState<{ id: string; campo: string } | null>(null);
+  const [salvando, setSalvando] = useState<string | null>(null);
+  const [erroEdicao, setErroEdicao] = useState<string | null>(null);
   const colunas = useMemo(() => resolverColunas(campos, prefs).filter((c) => c.visivel), [campos, prefs]);
   const resultado = useMemo(() => aplicarConsulta(linhas, campos, prefs, { hoje: hojeLocal() }), [linhas, campos, prefs]);
   const [fechados, setFechados] = useState<Set<string>>(new Set());
@@ -64,17 +72,63 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar);
   };
 
+  const editaveis = colunas.filter((c) => campoPorId.get(c.id)?.edicao).map((c) => c.id);
+  const abrirEditor = (l: T, c: CampoDaTela<T>) => { setErroEdicao(null); setEditando({ id: idDe(l), campo: c.id }); };
+
+  async function confirmar(l: T, c: CampoDaTela<T>, bruto: ValorEditavel, mover?: Movimento) {
+    const prep = prepararEdicao(c.tipo, c.edicao!, bruto);
+    setEditando(null);
+    if (!prep.ok) { setErroEdicao(`${c.titulo}: ${prep.erro}`); return; }
+    const atual = valorParaEditor(c.tipo, c.valorDe(l));
+    if (prep.valor !== atual && onEditar) {
+      const chave = `${idDe(l)}:${c.id}`;
+      setSalvando(chave);
+      try { await onEditar(l, c, prep.valor); toast("Salvo"); }
+      catch (e) { setErroEdicao(`${c.titulo}: ${(e as Error).message}`); setSalvando(null); return; }
+      setSalvando(null);
+    }
+    if (mover) {
+      const i = editaveis.indexOf(c.id); const j = i + (mover === "proximo" ? 1 : -1);
+      const alvo = editaveis[j];
+      if (alvo) setEditando({ id: idDe(l), campo: alvo });
+    }
+  }
+
   const celulaStyle = (i: number) => (i < congeladas ? { position: "sticky" as const, left: esquerda[i] } : undefined);
   const classeCongelada = (i: number) => cx(i < congeladas && "mt-cong", i === congeladas - 1 && "mt-cong--ultima");
+  const celula = (l: T, c: { id: string }, i: number) => {
+    const campo = campoPorId.get(c.id)!;
+    const chave = `${idDe(l)}:${c.id}`;
+    const editavel = !!(onEditar && campo.edicao);
+    const ativo = editando?.id === idDe(l) && editando.campo === c.id;
+    if (ativo && campo.edicao) {
+      return (
+        <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), "mt-editando")} data-testid="celula-editando">
+          <EditorDeCelula tipo={campo.tipo} valor={valorParaEditor(campo.tipo, campo.valorDe(l))} opcoes={campo.opcoes} obrigatorio={campo.edicao.obrigatorio} edicao={campo.edicao} rotulo={campo.titulo}
+            validar={(v) => { const r = prepararEdicao(campo.tipo, campo.edicao!, v); if (!r.ok) setErroEdicao(`${campo.titulo}: ${r.erro}`); else setErroEdicao(null); return r.ok ? null : r.erro; }}
+            onConfirmar={(v, mover) => void confirmar(l, campo, v, mover)} onCancelar={() => setEditando(null)} />
+        </td>
+      );
+    }
+    const clique = editavel
+      ? (e: React.MouseEvent) => { e.stopPropagation(); if (campo.tipo === "caixa") void confirmar(l, campo, !(campo.valorDe(l) === true)); else abrirEditor(l, campo); }
+      : onAbrir ? () => onAbrir(l) : undefined;
+    return (
+      <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", salvando === chave && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined}>
+        {i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l)}
+      </td>
+    );
+  };
   const linha = (l: T) => (
-    <tr key={idDe(l)} onClick={onAbrir ? () => onAbrir(l) : undefined} data-testid="linha-motor" className={onAbrir ? "is-link" : undefined}>
-      {colunas.map((c, i) => <td key={c.id} style={celulaStyle(i)} className={classeCongelada(i)}>{formatar(campoPorId.get(c.id)!, l)}</td>)}
+    <tr key={idDe(l)} data-testid="linha-motor">
+      {colunas.map((c, i) => celula(l, c, i))}
     </tr>
   );
   const semLinhas = resultado.linhas.length === 0;
 
   return (
     <div className="mt-tabela-wrap">
+      {erroEdicao && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{erroEdicao}</span><button type="button" aria-label="Fechar aviso" onClick={() => setErroEdicao(null)}><X size={16} /></button></p>}
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
         <div className="mt-tabela" data-testid="tabela-motor" ref={caixa}>
           <table style={{ width: total, tableLayout: "fixed" }}>
