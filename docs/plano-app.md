@@ -66,7 +66,7 @@ Trigger de banco **nunca** faz chamada de rede; só grava histórico e avisos.
 
 **Manutenção, multas, visões**
 - `manutencoes` (**inclui os sinistros**, decisão do Arthur em 05/11/2026): nome, veículo, **tipo** (Sinistro/funilaria, Mecânica, Revisão, Outro; lista editável), data da ocorrência, data em que a DA foi solicitada (só sinistro), descrição (do acidente, no caso de sinistro), comentários, status (**Solicitar DA, Em reparo, Pronto**; "Solicitar DA" só aparece para sinistro, a adaptar), oficina e custo (depois), `bloqueia_uso` (**o Arthur decide por registro** se o carro ainda pode ir a evento), e **evento responsável** (`evento_veiculo_id`): preenchido sozinho com a reserva que o carro tinha na data da ocorrência; refinamento mais adiante. O banco completo de Sinistros do Notion fica para depois e entra por migration nova.
-- `multas` (versão simples): nome, **AIT** (código da multa), veículo, data e hora da infração, valor, status, comentários, endereço do local, e **evento** (`evento_veiculo_id`), preenchido sozinho com a reserva que o carro tinha naquele dia e hora; dali se chega ao cliente e aos contatos. Se nenhuma reserva cobre o horário, fica em branco e avisa. Status a definir (pergunta 4).
+- `multas` (versão simples): nome, **AIT** (código da multa), veículo, data e hora da infração, valor, status, comentários, endereço do local, e **evento** (`evento_veiculo_id`), preenchido sozinho com a reserva que o carro tinha naquele dia e hora; dali se chega ao cliente e aos contatos. Se nenhuma reserva cobre o horário, fica em branco e avisa. Status (a confirmar com o Arthur): **1. Notificação recebida → 2. Pagamento realizado (cobrar do cliente) → 3. Solicitar boleto → 4. Pago pelo cliente (finalizada)**. A empresa paga primeiro e depois cobra do cliente.
 - `visoes_salvas` e `propriedades_personalizadas`: como no CRM, por tela (tabela, cards, linha do tempo, filtros, ordem, colunas visíveis, colunas congeladas).
 
 ## 5. Telas
@@ -103,7 +103,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
 2. ~~Prazo de logística~~ Respondida: ver seção 3-A.
 3. ~~Sinistros~~ Adiada: são um tipo de Manutenção (seção 4); o banco completo do Notion fica para depois.
-4. **Multas:** campos mínimos definidos (ver seção 4). Falta: quais **status** de multa (ex.: Recebida, Indicar condutor, Paga)?
+4. **Multas:** campos mínimos definidos (ver seção 4). Status definidos (seção 4), falta o Arthur confirmar a ordem.
 5. **Devoluções:** além do status, existe um checklist ou documento da devolução para o CVO?
 6. **Seguro:** é só um status ("cadastrado / pendente") ou também apólice e vigência?
 
