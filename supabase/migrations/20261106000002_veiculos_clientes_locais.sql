@@ -7,7 +7,8 @@
 create table if not exists public.veiculos (
   id uuid primary key default gen_random_uuid(),
   workspace_id uuid not null default public.fn_default_workspace() references public.workspaces(id) on delete cascade,
-  modelo text not null check (length(trim(modelo)) > 0),
+  modelo text not null check (length(trim(modelo)) > 0),   -- ex.: ONIX, S10
+  versao text,                               -- ex.: PR, RS, TRAILBOSS (entra no código)
   cor text,
   my text,                                   -- ano-modelo, como vier ("2026", "26/27")
   pedido text,                               -- número do pedido na fábrica
@@ -23,9 +24,11 @@ create table if not exists public.veiculos (
   data_devolucao_prevista date,
   comentarios text,
   custom jsonb not null default '{}'::jsonb,
-  -- Código = MODELO + 4 últimos dígitos do VIN. Calculado, nunca digitado (vazio enquanto não há VIN).
+  -- Código = MODELO [+ VERSÃO] + 4 últimos dígitos do VIN ("ONIX PR 0000", "S10 TRAILBOSS 0000").
+  -- Calculado, nunca digitado (vazio enquanto não há VIN).
   codigo text generated always as (
-    case when vin is null then null else upper(trim(modelo)) || ' ' || right(vin, 4) end
+    case when vin is null then null
+         else upper(trim(modelo)) || coalesce(' ' || upper(nullif(trim(versao), '')), '') || ' ' || right(vin, 4) end
   ) stored,
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now(),

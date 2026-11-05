@@ -28,13 +28,17 @@ begin
 
   insert into public.veiculos (modelo, vin) values ('Onix', '9BGKS48X0NG123456') returning id, codigo into va, cod;  -- mesmo VIN do B: não conflita (unicidade é por espaço)
   if cod <> 'ONIX 3456' then raise exception 'código calculado errado: %', cod; end if;
+  insert into public.veiculos (modelo, versao, vin) values ('S10', 'Trailboss', '9BG1234567N654321') returning codigo into cod;
+  if cod <> 'S10 TRAILBOSS 4321' then raise exception 'código com versão errado: %', cod; end if;
+  insert into public.veiculos (modelo, versao, vin) values ('Onix', '  ', '9BG1234567N111111') returning codigo into cod;
+  if cod <> 'ONIX 1111' then raise exception 'versão em branco devia ser ignorada: %', cod; end if;
   insert into public.veiculos (modelo) values ('Tracker');                                                          -- sem VIN: código vazio
   select count(*) into n from public.veiculos where codigo is null; if n <> 1 then raise exception 'carro sem VIN devia ter código vazio'; end if;
   insert into public.clientes (nome, tipo_pessoa, documento) values ('Empresa A', 'juridica', '12345678000199') returning id into ca;
   insert into public.cliente_motoristas (cliente_id, nome, cpf) values (ca, 'Fulano', '12345678901');
   insert into public.locais (nome) values ('CTS A');
 
-  select count(*) into n from public.veiculos;           if n <> 2 then raise exception 'A enxerga % veículos (devia ser 2)', n; end if;
+  select count(*) into n from public.veiculos;           if n <> 4 then raise exception 'A enxerga % veículos (devia ser 4)', n; end if;
   select count(*) into n from public.clientes;           if n <> 1 then raise exception 'A enxerga % clientes (devia ser 1)', n; end if;
   select count(*) into n from public.locais;            if n <> 1 then raise exception 'A enxerga % locais (devia ser 1)', n; end if;
   select count(*) into n from public.veiculo_atividades where veiculo_id = vb; if n <> 0 then raise exception 'A enxerga histórico de carro do B'; end if;
