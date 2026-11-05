@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CalendarBlank, CalendarCheck, Warning, Wrench, X } from "@phosphor-icons/react";
+import { CalendarBlank, CalendarCheck, Plus, Warning, Wrench, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { Skeleton, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
@@ -13,6 +13,9 @@ import { ESTADOS_RESERVA, type Evento, type Reserva } from "../../lib/eventos/ti
 import { agendaTexto, estaAberta, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
 import { Tag } from "../../components/motor/Tag";
+import { Button } from "../../ds";
+import { NovaManutencao } from "../manutencoes/NovaManutencao";
+import { STATUS_MANUTENCAO, type Manutencao, type ManutencaoNova } from "../../lib/manutencoes/tipos";
 import "./veiculos.css";
 
 type Aba = "dados" | "atividade" | "comentarios" | "agenda" | "eventos" | "manutencoes" | "multas";
@@ -43,13 +46,14 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome:
   );
 }
 
-export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado }: { veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean }) {
+export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
   const ed = useEdicao<Veiculo>((v) => v.id, onEditar);
   const toast = useToast();
   const id = veiculo?.id;
+  const [novaManutencao, setNovaManutencao] = useState(false);
   const [comentario, setComentario] = useState("");
   const [erroComentario, setErroComentario] = useState<string | null>(null);
 
@@ -100,17 +104,37 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
             )}
             {aba === "agenda" && (usoCarregado ? (
               <div className="ds-stack" data-testid="aba-agenda">
-                <div className="mt-agenda"><span className="t-body-sm t-muted">Status de uso</span><b>{rotuloDoUso(statusDeUso(reservas))}</b></div>
-                <div className="mt-agenda"><span className="t-body-sm t-muted">Agenda</span><p className="t-body" data-testid="agenda-texto">{agendaTexto(reservas, nomeDoEvento, hojeLocal()) || "Sem reservas abertas: o carro está livre."}</p></div>
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Status de uso</span><b>{rotuloDoUso(statusDeUso(reservas, manutencoes, hojeLocal()))}</b></div>
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Agenda</span><p className="t-body" data-testid="agenda-texto">{agendaTexto(reservas, nomeDoEvento, hojeLocal(), manutencoes) || "Sem reservas abertas: o carro está livre."}</p></div>
                 <h3 className="t-h3">Reservas abertas</h3>
                 <ListaDeReservas reservas={reservas.filter(estaAberta)} nome={nomeDoEvento} vazio="Nenhuma reserva aberta." />
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "eventos" && (usoCarregado ? <ListaDeReservas reservas={[...reservas].sort((a, b) => b.reserva_inicio.localeCompare(a.reserva_inicio))} nome={nomeDoEvento} vazio="Este carro ainda não foi reservado para nenhum evento." />
               : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
-            {aba === "manutencoes" && <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">Todas as manutenções e sinistros que o carro já teve e as que estão em aberto. Entra com a tela de Manutenções.</EmBreve>}
+            {aba === "manutencoes" && (manutencoesErro ? <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">{manutencoesErro}</EmBreve> : (
+              <div className="mt-reservas-ed" data-testid="aba-manutencoes">
+                <div className="ds-row" style={{ justifyContent: "space-between" }}>
+                  <h3 className="t-h3">Manutenções e sinistros</h3>
+                  {onCriarManutencao && <Button icon={<Plus size={18} />} onClick={() => setNovaManutencao(true)} data-testid="nova-manutencao-do-carro">Nova manutenção</Button>}
+                </div>
+                {manutencoes.length === 0 && <p className="t-body t-muted">Este carro não tem manutenção registrada.</p>}
+                <ul className="mt-reservas" data-testid="lista-manutencoes">
+                  {[...manutencoes].sort((a, b) => b.data_inicio.localeCompare(a.data_inicio)).map((m) => {
+                    const s = STATUS_MANUTENCAO.find((x) => x.value === m.status)!;
+                    return (
+                      <li key={m.id} className="mt-reserva">
+                        <div className="mt-reserva__topo"><Link to={`/manutencoes/${m.id}`} className="mt-reserva__evento">{m.nome}</Link><Tag opcao={{ value: s.value, label: s.label, tom: s.tom }} /></div>
+                        <span className="t-body-sm t-muted">{[m.tipo, `${formatarDiaBr(m.data_inicio)} até ${m.data_fim ? formatarDiaBr(m.data_fim) : "em aberto"}`, m.bloqueia_uso ? "bloqueia o uso" : "não bloqueia o uso"].filter(Boolean).join(" · ")}</span>
+                      </li>
+                    );
+                  })}
+                </ul>
+              </div>
+            ))}
             {aba === "multas" && <EmBreve icone={<Warning size={32} />} titulo="Multas">Multas do carro, com o evento e o cliente que estavam com ele na hora. Entra com a tela de Multas.</EmBreve>}
           </div>
+          {onCriarManutencao && <NovaManutencao aberto={novaManutencao} onFechar={() => setNovaManutencao(false)} veiculos={[veiculo]} veiculoInicial={veiculo.id} onCriar={onCriarManutencao} />}
         </div>
       )}
     </dialog>

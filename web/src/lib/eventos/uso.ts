@@ -1,6 +1,8 @@
+import type { Manutencao } from "../manutencoes/tipos";
+import { bloqueiaAgora, estaEmAberto } from "../manutencoes/regras";
 import type { EstadoReserva, Reserva } from "./tipos";
 
-/** O Status de Uso do carro (o que ele está fazendo na operação). "Manutenção" entra junto com a tela de Manutenções. */
+/** O Status de Uso do carro (o que ele está fazendo na operação). */
 export const STATUS_DE_USO = [
   { value: "disponivel", label: "Disponível", tom: "success" },
   { value: "reservado", label: "Reservado", tom: "info" },
@@ -19,10 +21,11 @@ export const estaAberta = (r: Pick<Reserva, "estado">) => ESTADOS_ABERTOS.includ
 const PRIORIDADE: Record<string, number> = { em_retorno: 0, em_uso: 1, reservado: 2 };
 
 /**
- * O Status de Uso é CALCULADO das reservas abertas (nunca digitado): em retorno > em uso > reservado > disponível.
- * Um carro pode ter várias reservas; basta uma em uso para ele estar em uso.
+ * O Status de Uso é CALCULADO (nunca digitado): manutenção que bloqueia > em retorno > em uso > reservado > disponível.
+ * Um carro pode ter várias reservas; basta uma em uso para ele estar em uso. Com `hoje`, manutenção que começa no futuro ainda não conta.
  */
-export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[]): StatusDeUso {
+export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[], manutencoes: readonly Pick<Manutencao, "status" | "bloqueia_uso" | "data_inicio">[] = [], hoje?: string): StatusDeUso {
+  if (manutencoes.some((m) => bloqueiaAgora(m) && (!hoje || m.data_inicio <= hoje))) return "manutencao";
   const abertas = reservas.filter(estaAberta);
   if (abertas.some((r) => r.estado === "em_retorno")) return "em_retorno";
   if (abertas.some((r) => r.estado === "em_uso")) return "em_uso";
@@ -38,12 +41,15 @@ const dm = (iso: string, anoAtual: string) => (iso.slice(0, 4) === anoAtual ? `$
  * "EM USO - EVENTO TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - EVENTO X 07/11 ATÉ 12/11 + RESERVADO - EVENTO Y 20/11 ATÉ 22/11".
  * Datas em dd/mm (com o ano só quando não é o ano de `hoje`). Vazio quando não há reserva aberta.
  */
-export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string): string {
+export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string, manutencoes: readonly Manutencao[] = []): string {
   const ano = hoje.slice(0, 4);
-  return reservas.filter(estaAberta)
+  const oficina = manutencoes.filter(estaEmAberto).sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+    .map((m) => `EM MANUTENÇÃO - ${m.nome.toUpperCase()} ${m.data_fim ? `${dm(m.data_inicio, ano)} ATÉ ${dm(m.data_fim, ano)}` : `DESDE ${dm(m.data_inicio, ano)}`}`);
+  const eventos = reservas.filter(estaAberta)
     .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
     .map((r) => `${ROTULO_DA_AGENDA[r.estado]} - EVENTO ${nomeDoEvento(r.evento_id).toUpperCase()} ${dm(r.reserva_inicio, ano)} ATÉ ${dm(r.reserva_fim, ano)}`)
-    .join(" + ");
+  ;
+  return [...oficina, ...eventos].join(" + ");
 }
 
 /** As reservas abertas do carro que se sobrepõem ao período (datas inclusivas). `ignorarEvento`: o próprio evento, ao editá-lo. */

@@ -10,6 +10,9 @@ import { barrasDoVeiculo } from "../../lib/eventos/barras";
 import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import type { ModoDeArrasto, Barra } from "../../lib/linhaDoTempo/tipos";
 import type { Evento, Reserva } from "../../lib/eventos/tipos";
+import { barrasDeManutencao, ehBarraDeManutencao } from "../../lib/manutencoes/barras";
+import type { Manutencao } from "../../lib/manutencoes/tipos";
+import { useManutencoes } from "../manutencoes/useManutencoes";
 import { STATUS_DE_USO, agendaTexto, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
@@ -25,7 +28,7 @@ const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label
 
 /** Os campos de veículo: o que a consulta filtra/ordena/agrupa e o que a tabela mostra. Os não marcados `padrao:false` começam visíveis. */
 /** O que os campos calculados (Status de uso, Agenda) precisam saber: as reservas de cada carro. `carregado: false` = ainda sem as tabelas de eventos. */
-export type ContextoDeUso = { reservas: Map<string, Reserva[]>; nomeDoEvento: (id: string) => string; carregado: boolean; hoje: string };
+export type ContextoDeUso = { reservas: Map<string, Reserva[]>; nomeDoEvento: (id: string) => string; carregado: boolean; hoje: string; manutencoes?: Map<string, Manutencao[]> };
 const SEM_USO: ContextoDeUso = { reservas: new Map(), nomeDoEvento: () => "?", carregado: false, hoje: "" };
 const TOM_USO = Object.fromEntries(STATUS_DE_USO.map((u) => [u.value, u.tom])) as Record<string, OpcaoDoCampo["tom"]>;
 const OPCOES_USO: OpcaoDoCampo[] = STATUS_DE_USO.map((u) => ({ value: u.value, label: u.label, tom: TOM_USO[u.value] }));
@@ -34,8 +37,8 @@ const OPCOES_USO: OpcaoDoCampo[] = STATUS_DE_USO.map((u) => ({ value: u.value, l
 export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "codigo", titulo: "Código", tipo: "texto", valorDe: (v) => v.codigo ?? v.modelo.toUpperCase(), largura: 180, fixa: true },
   { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110, edicao: { coluna: "placa", maxLength: 8, placeholder: "ABC1D23", normalizar: normalizarPlaca, validar: (t) => (placaValida(t) ? null : "A placa tem 7 caracteres.") } },
-  { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? []) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
-  { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje) || null : null), largura: 420 },
+  { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? [], ctx.manutencoes?.get(v.id) ?? [], ctx.hoje) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
+  { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) || null : null), largura: 420 },
   { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190, edicao: { coluna: "vin", maxLength: 20, placeholder: "17 caracteres", normalizar: normalizarVin, validar: (t) => (vinValido(t) ? null : "O VIN tem 17 letras e números.") } },
   { id: "modelo", titulo: "Modelo", tipo: "texto", valorDe: (v) => v.modelo, largura: 160, padrao: false, edicao: { coluna: "modelo", obrigatorio: true } },
   { id: "cor", titulo: "Cor", tipo: "texto", valorDe: (v) => v.cor, largura: 130, edicao: { coluna: "cor" } },
@@ -63,6 +66,7 @@ export function Veiculos() {
   const [reservas, setReservas] = useState<Reserva[] | null>(null);
   const [eventos, setEventos] = useState<Evento[]>([]);
   const [erroUso, setErroUso] = useState<string | null>(null);
+  const man = useManutencoes();
 
   useEffect(() => { listarVeiculos().then(setLista, (e: Error) => setErro(e.message)); }, []);
   useEffect(() => { Promise.all([listarReservas(), listarEventos()]).then(([r, e]) => { setReservas(r); setEventos(e); }, (e: Error) => setErroUso(e.message)); }, []);
@@ -70,8 +74,8 @@ export function Veiculos() {
   const ctx = useMemo<ContextoDeUso>(() => {
     if (!reservas) return SEM_USO;
     const nomes = new Map(eventos.map((e) => [e.id, e.nome]));
-    return { reservas: reservasPorVeiculo(reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal() };
-  }, [reservas, eventos]);
+    return { reservas: reservasPorVeiculo(reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal(), manutencoes: man.doCarro };
+  }, [reservas, eventos, man.doCarro]);
   const campos = useMemo(() => camposDoVeiculo(ctx), [ctx]);
 
   const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
@@ -82,6 +86,7 @@ export function Veiculos() {
   };
   /** Arrastar uma barra de reserva na linha do tempo muda as datas da reserva (mover leva chegada e retirada junto). */
   const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
+    if (ehBarraDeManutencao(barra)) { await man.mover(barra.id, modo, delta); return; }
     const r = reservas?.find((x) => x.id === barra.id); if (!r) return;
     const dif = diferencas(r, reajustarReserva(r, modo, delta));
     if (Object.keys(dif).length === 0) return;
@@ -99,9 +104,9 @@ export function Veiculos() {
       </>}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
-      linhaDoTempo={{ barrasDe: (v) => barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), onAlterarBarra: alterarReserva, onAbrirBarra: (_v, b) => navigate(`/eventos/${(b.dados as { eventoId: string }).eventoId}`) }}
+      linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal())], onAlterarBarra: alterarReserva, onAbrirBarra: (_v, b) => navigate(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`) }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
-      filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} />} />
+      filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
   );
 }

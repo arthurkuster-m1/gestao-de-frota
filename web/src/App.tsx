@@ -13,6 +13,7 @@ import { Veiculos } from "./pages/veiculos/Veiculos";
 import { FormVeiculo } from "./pages/veiculos/FormVeiculo";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { Eventos } from "./pages/eventos/Eventos";
+import { Manutencoes } from "./pages/manutencoes/Manutencoes";
 import { Planejamento } from "./pages/planejamento/Planejamento";
 import { Clientes } from "./pages/clientes/Clientes";
 import { FormCliente } from "./pages/clientes/FormCliente";
@@ -43,10 +44,11 @@ function Autenticado() {
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />
           <Route path="eventos/:id?" element={<Eventos />} />
+          <Route path="manutencoes/:id?" element={<Manutencoes />} />
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<FormCliente />} />
           <Route path="clientes/:id" element={<FormCliente />} />
-          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/planejamento").map((d) => (
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/planejamento").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
