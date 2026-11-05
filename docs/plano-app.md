@@ -138,6 +138,15 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ **Barras amarelas** (bloqueia) / azuis (não bloqueia) / verdes (pronta) nos Veículos e no Planejamento, arrastáveis; botão "Nova manutenção" no Planejamento.
 - Ainda não: criar manutenção com duplo clique na linha do carro no Planejamento; multas; transportes e pagamentos; checklist.
 
+## 7-E. Estado em 10/11/2026: Transportes e Pagamentos
+
+- ✅ **Transportes** (migration 0009, `/transportes`): uma ida ou uma volta de um evento. Modalidade **PTA (Workcar), TSO ou Retirada**; referência (ex.: PTAS00666314), transportadora, **distância em km**, **dias de viagem = km ÷ 500 para cima** (calculado pelo banco; retirada = 0; dá para ajustar à mão e o ajuste vale), valor planejado em reais.
+- ✅ **Carros por transporte**: cada reserva aponta para o seu transporte de ida e o de volta; vários carros dividem o mesmo transporte. Na criação os carros do evento já vêm marcados; na janela do transporte marca e desmarca. O banco confere que o transporte é do mesmo evento e do sentido certo.
+- ✅ **Pagamentos**: **PTA** (Solicitado → Aprovado → Pago) e **NF da TSO** (Orçamento recebido → Aprovar NF → Aprovado), número único por tipo, valor planejado, valor real, data (preenchida com hoje ao marcar Pago), departamento. Um pagamento pode cobrir vários transportes (a TSO combina ida e volta); PTA só liga com PTA e TSO só com NF (o banco confere). Apagar o pagamento solta os transportes, não os apaga.
+- ✅ Tudo editável no lugar (tabela, cards, janela), com visões salvas. Valores aceitam "1.499,90". **Corrigido de passagem:** a edição de qualquer coluna numérica recusava ponto de milhar.
+- ✅ Eventos ganhou a coluna **Transporte (R$)** (soma dos valores planejados dos transportes; escondida por padrão, ativa em Propriedades).
+- Ainda não: valor real por transporte (hoje só no pagamento), pagamento que muda o status do evento, calcular km por endereço, aprovação por papel, checklist.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.

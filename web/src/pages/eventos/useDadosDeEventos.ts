@@ -4,6 +4,7 @@ import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos } from "../../lib/eventos/dados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
+import { useTransportes } from "../transportes/useTransportes";
 import type { Evento, EventoLocal, EventoLocalNovo, EventoNovo, Reserva } from "../../lib/eventos/tipos";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -17,6 +18,7 @@ export function useDadosDeEventos() {
   const [locais, setLocais] = useState<EventoLocal[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const man = useManutencoes();
+  const tr = useTransportes();
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -29,8 +31,8 @@ export function useDadosDeEventos() {
     for (const r of reservas) { const l = m.get(r.evento_id); if (l) l.push(r); else m.set(r.evento_id, [r]); }
     const lm = new Map<string, EventoLocal[]>();
     for (const l of [...locais].sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
-    return { reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true };
-  }, [reservas, veiculos, locais]);
+    return { reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento };
+  }, [reservas, veiculos, locais, tr.valorDoEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
@@ -72,5 +74,5 @@ export function useDadosDeEventos() {
     return criado;
   };
 
-  return { manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }
