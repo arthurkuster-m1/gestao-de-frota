@@ -99,6 +99,16 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 8. **Manutenções (com sinistros), Multas, Devoluções**, Início, Dashboard financeiro.
 9. **Backup automático**, segunda pessoa na conta, importação do que valer a pena, desligar a VPS antiga.
 
+## 7-A. Estado em 06/11/2026 (o que mudou na ordem)
+
+O Arthur apontou (com razão) que a tela de Veículos entregue primeiro era só uma lista simples. O **motor de visualizações** passou a ser feito junto de Veículos, em 3 entregas:
+
+1. ✅ **Tabela estilo CRM** em Veículos: filtros por tipo de campo com E/OU, ordenação (painel e clique no título), agrupamento, propriedades (mostrar/esconder, arrastar, congelar colunas), largura de coluna arrastável, e **visualizações salvas** (criar, salvar alterações, descartar, renomear, duplicar, excluir; migration 0004). A lógica de consulta/colunas foi portada do CRM (`web/src/lib/motor`, cobertura de testes própria); a parte visual foi reescrita no design system da Frota, porque a do CRM é Tailwind.
+2. ⬜ **Cards** e a **janela do veículo** com abas (Agenda, Manutenções, Eventos, Multas, Comentários).
+3. ⬜ **Linha do tempo** (base da tela de Planejamento).
+
+Ainda sem tela: seleção de linhas e edição em massa, edição direto na célula, Status de Uso e agenda em texto (dependem de Eventos e Manutenções).
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.

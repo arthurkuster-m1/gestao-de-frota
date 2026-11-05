@@ -1,0 +1,59 @@
+/* Motor de tabelas (filtros, ordem, agrupamento, propriedades, visualizações). Só tokens do design system. */
+.mt-barra { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
+.mt-btn { display: inline-flex; align-items: center; gap: 6px; min-height: 38px; padding: 0 14px; border-radius: var(--radius-full); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text); font-weight: 600; font-size: 13px; }
+.mt-btn:hover { border-color: var(--color-accent-ring); }
+.mt-btn.is-on { background: var(--color-accent-soft); border-color: var(--color-accent-ring); color: var(--color-accent); }
+.mt-btn__n { display: inline-grid; place-items: center; min-width: 20px; height: 20px; padding: 0 6px; border-radius: var(--radius-full); background: var(--color-accent); color: var(--color-accent-fg); font-size: 11px; }
+.mt-painel { padding: 0; }
+.mt-painel__corpo { display: grid; gap: var(--space-3); padding: var(--space-4); }
+.mt-filtro { display: grid; gap: var(--space-2); padding-bottom: var(--space-3); border-bottom: 1px dashed var(--color-border); }
+.mt-filtro__topo { display: flex; gap: var(--space-2); align-items: center; }
+.mt-filtro__onde { width: 96px; flex: none; font-size: 13px; font-weight: 600; color: var(--color-text-muted); }
+.mt-filtro__juncao { width: 96px; flex: none; }
+.mt-filtro__campo { flex: 1 1 0; min-width: 0; }
+.mt-filtro__op { flex: 1 1 0; min-width: 0; }
+.mt-filtro__valor { padding-left: 104px; }
+.mt-opcoes { display: flex; flex-wrap: wrap; gap: 6px; }
+.mt-data { display: grid; gap: var(--space-2); grid-template-columns: 1fr 1fr; }
+.mt-item { display: flex; align-items: center; gap: 10px; min-height: 40px; padding: 0 12px; border: 0; border-radius: var(--radius-md); background: transparent; text-align: left; font-size: 14px; }
+.mt-item:hover { background: var(--color-surface-elevated); }
+.mt-item--perigo { color: var(--color-error-fg); }
+.mt-props { list-style: none; margin: 0; padding: 0; display: grid; gap: 2px; }
+.mt-prop { display: flex; align-items: center; gap: 8px; min-height: 40px; padding: 0 6px; border-radius: var(--radius-md); background: var(--color-surface); }
+.mt-prop:hover { background: var(--color-surface-elevated); }
+.mt-prop__alca, .mt-prop__olho { display: grid; place-items: center; width: 32px; height: 32px; border: 0; background: transparent; border-radius: var(--radius-md); color: var(--color-text-subtle); touch-action: none; }
+.mt-prop__alca { cursor: grab; } .mt-prop__olho { color: var(--color-accent); } .mt-prop__olho[aria-pressed="false"] { color: var(--color-text-subtle); }
+.mt-prop__alca:disabled, .mt-prop__olho:disabled { opacity: 0.35; cursor: default; }
+.mt-prop__nome { flex: 1; font-size: 14px; }
+.mt-congelar { display: grid; gap: var(--space-2); }
+/* abas */
+.mt-abas-wrap { display: grid; gap: var(--space-2); }
+.mt-abas { display: flex; align-items: center; gap: 2px; overflow-x: auto; border-bottom: 1px solid var(--color-border); scrollbar-width: thin; }
+.mt-aba { flex: none; min-height: 40px; padding: 0 14px; border: 0; border-bottom: 2px solid transparent; background: transparent; font-weight: 600; font-size: 14px; color: var(--color-text-muted); white-space: nowrap; }
+.mt-aba:hover { color: var(--color-text); }
+.mt-aba.is-on { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+.mt-aba--nova { padding: 0 10px; }
+.mt-abas .mt-btn { border: 0; background: transparent; min-height: 36px; padding: 0 8px; }
+.mt-alterada { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; padding: 8px 14px; border-radius: var(--radius-lg); background: var(--color-warning-bg); color: var(--color-warning-fg); }
+/* tabela */
+.mt-tabela-wrap { display: grid; gap: var(--space-2); }
+.mt-tabela { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 330px); min-height: 160px; }
+.mt-tabela table { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
+.mt-tabela th, .mt-tabela td { padding: 0 14px; height: 44px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--color-border); font-size: 13px; background: var(--color-surface); }
+.mt-tabela th { position: sticky; top: 0; z-index: 3; background: var(--color-surface-elevated); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; user-select: none; }
+.mt-tabela th.mt-cong, .mt-tabela td.mt-cong { z-index: 2; }
+.mt-tabela th.mt-cong { z-index: 4; }
+.mt-cong--ultima { border-right: 1px solid var(--color-border-strong); box-shadow: 6px 0 8px -6px rgba(16, 30, 60, 0.18); }
+.mt-th { display: inline-flex; align-items: center; gap: 4px; }
+.mt-alca { position: absolute; top: 0; right: 0; width: 8px; height: 100%; cursor: col-resize; touch-action: none; }
+.mt-alca:hover, .mt-alca:active { background: var(--color-accent-ring); opacity: 0.5; }
+.mt-tabela tr.is-link { cursor: pointer; }
+.mt-tabela tbody tr:hover td { background: var(--color-surface-elevated); }
+.mt-vazio { color: var(--color-text-subtle); }
+.mt-grupo td { background: var(--color-bg); height: 40px; padding: 0 8px; }
+.mt-grupo__btn { display: inline-flex; align-items: center; gap: 8px; border: 0; background: transparent; font-size: 13px; }
+.mt-grupo__n { padding: 1px 8px; border-radius: var(--radius-full); background: var(--color-surface-elevated); color: var(--color-text-muted); font-size: 12px; }
+.mt-sem { padding: var(--space-6) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.mt-total { padding-left: 4px; }
+@media (max-width: 720px) { .mt-tabela { max-height: calc(100dvh - 380px); } .mt-filtro__valor { padding-left: 0; } .mt-filtro__topo { flex-wrap: wrap; } .mt-filtro__campo, .mt-filtro__op { flex: 1 1 140px; } .mt-data { grid-template-columns: 1fr; } }
+.mt-linha-ferramentas { display: flex; flex-wrap: wrap; gap: var(--space-2); align-items: center; }
