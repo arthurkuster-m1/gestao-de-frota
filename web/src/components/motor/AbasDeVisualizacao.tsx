@@ -4,8 +4,8 @@ import { Button, Field, Input, Segmented, Sheet, cx } from "../../ds";
 import { MAXIMO_DE_VISUALIZACOES, ROTULO_DO_TIPO, TIPOS_DE_VISUALIZACAO, type TipoDeVisualizacao, type VisaoSalva } from "../../lib/motor/visoes";
 import { Painel } from "./Painel";
 
-/** Tipos que já têm tela. Os outros aparecem como "em breve" (a Linha do tempo vem na próxima entrega). */
-const DISPONIVEIS: readonly TipoDeVisualizacao[] = ["tabela", "galeria"];
+/** Tipos que já têm tela. Os outros aparecem como "em breve" . */
+const DISPONIVEIS: readonly TipoDeVisualizacao[] = ["tabela", "galeria", "timeline"];
 
 type Props = {
   visoes: VisaoSalva[]; abaId: string; onAba: (id: string) => void; alterada: boolean; ocupado?: boolean; erro?: string | null;

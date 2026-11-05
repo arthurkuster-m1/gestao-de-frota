@@ -26,7 +26,13 @@ export type EstadoReserva = (typeof ESTADOS_RESERVA)[number]["value"];
 
 export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string };
 export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null };
-export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; estado: EstadoReserva; comentarios: string | null };
+export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; chegada: string | null; retirada: string | null; estado: EstadoReserva; comentarios: string | null };
+
+/** Um endereço do evento (digitado em cada evento; um evento pode ter vários). */
+export type EventoLocal = { id: string; evento_id: string; rotulo: string | null; endereco: string; cidade: string | null; estado: string | null; posicao: number };
+export type EventoLocalNovo = { rotulo?: string | null; endereco: string; cidade?: string | null; estado?: string | null };
+
+export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"] as const;
 
 export const rotuloStatusEvento = (v: string) => STATUS_EVENTO.find((s) => s.value === v)?.label ?? v;
 export const rotuloEstadoReserva = (v: string) => ESTADOS_RESERVA.find((s) => s.value === v)?.label ?? v;

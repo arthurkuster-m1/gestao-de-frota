@@ -3,6 +3,7 @@ import { Warning } from "@phosphor-icons/react";
 import { Button, DateField, Field, Input, Sheet } from "../../ds";
 import { Tag } from "../../components/motor/Tag";
 import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
+import { periodoDaReserva } from "../../lib/eventos/barras";
 import type { Evento, Reserva } from "../../lib/eventos/tipos";
 import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -10,10 +11,12 @@ import type { Veiculo } from "../../lib/veiculos/tipos";
 /** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
 export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, onReservar }: {
   aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[];
-  onReservar: (veiculoIds: string[], inicio: string, fim: string) => Promise<void>;
+  onReservar: (veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
 }) {
-  const [inicio, setInicio] = useState(hojeLocal());
-  const [fim, setFim] = useState(somarDias(hojeLocal(), 2));
+  const [chegada, setChegada] = useState(somarDias(hojeLocal(), 2));
+  const [retirada, setRetirada] = useState(somarDias(hojeLocal(), 4));
+  const [diasIda, setDiasIda] = useState("0");
+  const [diasVolta, setDiasVolta] = useState("0");
   const [busca, setBusca] = useState("");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
@@ -22,7 +25,8 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const porCarro = useMemo(() => reservasPorVeiculo(reservas), [reservas]);
   const nomes = useMemo(() => new Map(eventos.map((e) => [e.id, e.nome])), [eventos]);
   const jaNoEvento = useMemo(() => new Set(reservas.filter((r) => r.evento_id === evento.id && r.estado !== "cancelado").map((r) => r.veiculo_id)), [reservas, evento.id]);
-  const periodoOk = !!inicio && !!fim && fim >= inicio;
+  const periodoOk = !!chegada && !!retirada && retirada >= chegada;
+  const { inicio, fim } = periodoOk ? periodoDaReserva(chegada, retirada, Number(diasIda) || 0, Number(diasVolta) || 0) : { inicio: chegada, fim: retirada };
 
   const linhas = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -42,17 +46,22 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
 
   async function reservar() {
     setErro(null); setEnviando(true);
-    try { await onReservar([...marcados], inicio, fim); setMarcados(new Set()); onFechar(); } catch (e) { setErro((e as Error).message); } finally { setEnviando(false); }
+    try { await onReservar([...marcados], inicio, fim, { chegada, retirada }); setMarcados(new Set()); onFechar(); } catch (e) { setErro((e as Error).message); } finally { setEnviando(false); }
   }
 
   return (
     <Sheet open={aberto} onClose={onFechar} title="Reservar carros">
       <div className="ds-stack" data-testid="adicionar-veiculos">
-        <p className="t-body-sm t-muted">Evento: <b>{evento.nome}</b>. O período já deve contar o tempo de logística (ida e volta).</p>
+        <p className="t-body-sm t-muted">Evento: <b>{evento.nome}</b>. Informe quando os carros chegam e quando saem; a logística (dias de estrada) vem antes e depois.</p>
         <div className="vei-form__linha">
-          <Field label="Início da reserva"><DateField value={inicio} onChange={(e) => setInicio(e.target.value)} /></Field>
-          <Field label="Fim da reserva" error={inicio && fim && fim < inicio ? "O fim não pode ser antes do início." : null}><DateField value={fim} onChange={(e) => setFim(e.target.value)} /></Field>
+          <Field label="Chegada dos carros"><DateField value={chegada} onChange={(e) => setChegada(e.target.value)} /></Field>
+          <Field label="Retirada dos carros" error={chegada && retirada && retirada < chegada ? "A retirada não pode ser antes da chegada." : null}><DateField value={retirada} onChange={(e) => setRetirada(e.target.value)} /></Field>
         </div>
+        <div className="vei-form__linha">
+          <Field label="Dias de logística (ida)"><Input type="number" inputMode="numeric" min={0} value={diasIda} onChange={(e) => setDiasIda(e.target.value)} /></Field>
+          <Field label="Dias de logística (volta)"><Input type="number" inputMode="numeric" min={0} value={diasVolta} onChange={(e) => setDiasVolta(e.target.value)} /></Field>
+        </div>
+        {periodoOk && <p className="t-body-sm" data-testid="periodo-reserva">Reserva do carro: <b>{formatarDiaBr(inicio)} a {formatarDiaBr(fim)}</b>, já contando a logística.</p>}
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor)…" aria-label="Buscar carro para reservar" />
         <ul className="mt-escolha" role="list">
           {linhas.length === 0 && <li className="t-body t-muted">Nenhum carro disponível para escolher.</li>}

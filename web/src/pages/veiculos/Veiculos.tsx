@@ -5,7 +5,10 @@ import { Button, Card, EmptyState, useToast } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
 import { hojeLocal } from "../../lib/motor/datas";
-import { listarEventos, listarReservas } from "../../lib/eventos/dados";
+import { atualizarReserva, listarEventos, listarReservas } from "../../lib/eventos/dados";
+import { barrasDoVeiculo } from "../../lib/eventos/barras";
+import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
+import type { ModoDeArrasto, Barra } from "../../lib/linhaDoTempo/tipos";
 import type { Evento, Reserva } from "../../lib/eventos/tipos";
 import { STATUS_DE_USO, agendaTexto, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -77,6 +80,14 @@ export function Veiculos() {
     const aviso = avisoDoCicloAutomatico(linha, novo, campo.edicao!.coluna);
     if (aviso) toast(aviso);
   };
+  /** Arrastar uma barra de reserva na linha do tempo muda as datas da reserva (mover leva chegada e retirada junto). */
+  const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
+    const r = reservas?.find((x) => x.id === barra.id); if (!r) return;
+    const dif = diferencas(r, reajustarReserva(r, modo, delta));
+    if (Object.keys(dif).length === 0) return;
+    const salva = await atualizarReserva(r.id, dif);
+    setReservas((l) => (l ?? []).map((x) => (x.id === r.id ? salva : x)));
+  };
   const aberto = idAberto && lista ? (lista.find((x) => x.id === idAberto) ?? null) : null;
   useEffect(() => { if (idAberto && lista && !lista.some((x) => x.id === idAberto)) navigate("/veiculos", { replace: true }); }, [idAberto, lista, navigate]);
 
@@ -88,6 +99,7 @@ export function Veiculos() {
       </>}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
+      linhaDoTempo={{ barrasDe: (v) => barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), onAlterarBarra: alterarReserva, onAbrirBarra: (_v, b) => navigate(`/eventos/${(b.dados as { eventoId: string }).eventoId}`) }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
       filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} />} />

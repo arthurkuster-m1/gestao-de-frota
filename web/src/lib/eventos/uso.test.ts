@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "./uso";
 import type { Reserva } from "./tipos";
 
-const R = (id: string, evento: string, ini: string, fim: string, estado: Reserva["estado"], veiculo = "v1"): Reserva => ({ id, evento_id: evento, veiculo_id: veiculo, reserva_inicio: ini, reserva_fim: fim, estado, comentarios: null });
+const R = (id: string, evento: string, ini: string, fim: string, estado: Reserva["estado"], veiculo = "v1"): Reserva => ({ id, evento_id: evento, veiculo_id: veiculo, reserva_inicio: ini, reserva_fim: fim, chegada: null, retirada: null, estado, comentarios: null });
 const nomes: Record<string, string> = { e1: "Tesouraria", e2: "Feira do Campo", e3: "Gravação Verão" };
 const nome = (id: string) => nomes[id] ?? "?";
 const hoje = "2026-11-05";

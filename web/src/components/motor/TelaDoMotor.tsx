@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { MagnifyingGlass, Rows, SquaresFour } from "@phosphor-icons/react";
+import { ChartBarHorizontal, MagnifyingGlass, Rows, SquaresFour } from "@phosphor-icons/react";
 import { Card, Input, Page, Segmented, Skeleton } from "../../ds";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
@@ -10,6 +10,9 @@ import { BarraDeConsulta } from "./BarraDeConsulta";
 import { CartoesDoMotor } from "./CartoesDoMotor";
 import { Propriedades } from "./Propriedades";
 import { TabelaDoMotor } from "./TabelaDoMotor";
+import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
+import { useEixoDoTempo, type EixoDoTempo } from "./useEixoDoTempo";
+import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
 import type { CampoDaTela } from "./tipos";
 import type { OnEditar } from "./useEdicao";
 import "./motor.css";
@@ -21,13 +24,28 @@ type Props<T> = {
   onEditar: OnEditar<T>; onAbrir: (l: T) => void; vazio: ReactNode; rotuloDoTotal: (n: number) => string; placeholderDaBusca: string;
   /** Janelas e outros elementos por cima da tela (ex.: a janela do veículo). */
   filhos?: ReactNode;
+  /** Liga a visão Linha do tempo: como cada linha vira barras e o que acontece ao arrastá-las. */
+  linhaDoTempo?: {
+    barrasDe: (l: T) => Barra[];
+    onAlterarBarra?: (linha: T, barra: Barra, modo: ModoDeArrasto, delta: number) => Promise<void>;
+    onAbrirBarra?: (linha: T, barra: Barra) => void;
+  };
+  /** Usado pelo Planejamento: eixo do tempo COMPARTILHADO entre duas telas, visão fixa em linha do tempo, sem cabeçalho grande. */
+  eixo?: EixoDoTempo; modoFixo?: "timeline"; compacta?: boolean; selecionadoId?: string | null; aoSelecionar?: (l: T) => void; alturaDaLinhaDoTempo?: string; larguraEsquerda?: number;
 };
+
+/** A moldura da tela. Fica FORA da função da tela de propósito: um componente criado a cada render faria React desmontar e montar tudo de novo. */
+function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string; children: ReactNode }) {
+  return compacta ? <div data-testid={`tela-${tela}`}>{children}</div> : <Page wide>{children}</Page>;
+}
 
 /**
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+  const eixoProprio = useEixoDoTempo("dia");
+  const eixo = eixoExterno ?? eixoProprio;
   const chaveTodas = `frota.motor.${tela}.todas`;
   const v = useVisoes(tela);
   const [busca, setBusca] = useState("");
@@ -45,7 +63,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   const alterada = ativa ? rascunho !== null && !prefsIguais(rascunho, ativa.config) : !prefsIguais(todas, {});
   const onPrefs = (p: PreferenciasDaTabela) => { if (ativa) setRascunho(p); else setTodas(p); };
   const irParaAba = (id: string) => { setAbaId(id); setRascunho(null); setErroVisao(null); };
-  const modo = prefs.visualizacao === "galeria" ? "cards" : "tabela";
+  const modo: "tabela" | "cards" | "timeline" = modoFixo === "timeline" ? "timeline" : prefs.visualizacao === "galeria" ? "cards" : prefs.visualizacao === "timeline" && linhaDoTempo ? "timeline" : "tabela";
 
   const buscadas = useMemo(() => {
     const q = busca.trim().toLowerCase();
@@ -56,12 +74,14 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   async function comAviso<R>(fn: () => Promise<R>): Promise<R | undefined> { setOcupado(true); setErroVisao(null); try { return await fn(); } catch (e) { setErroVisao((e as Error).message); throw e; } finally { setOcupado(false); } }
 
   return (
-    <Page wide>
+    <Casca compacta={compacta} tela={tela}>
       <div className="ds-stack">
-        <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-          <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>
-          {acoes && <div className="ds-row" style={{ flexWrap: "wrap" }}>{acoes}</div>}
-        </div>
+        {compacta ? (acoes && <div className="ds-row" style={{ flexWrap: "wrap" }}>{acoes}</div>) : (
+          <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
+            <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>
+            {acoes && <div className="ds-row" style={{ flexWrap: "wrap" }}>{acoes}</div>}
+          </div>
+        )}
         {avisos}
 
         <AbasDeVisualizacao visoes={v.visoes} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
@@ -75,8 +95,11 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
         <div className="mt-linha-ferramentas">
           <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} />
           <Propriedades campos={campos} prefs={prefs} onChange={onPrefs} />
-          <Segmented options={[{ value: "tabela", label: <span className="mt-modo"><Rows size={16} />Tabela</span> }, { value: "cards", label: <span className="mt-modo"><SquaresFour size={16} />Cards</span> }]} value={modo}
-            onChange={(m) => onPrefs({ ...prefs, visualizacao: m === "cards" ? "galeria" : "tabela" })} />
+          {!modoFixo && (
+            <Segmented options={[{ value: "tabela", label: <span className="mt-modo"><Rows size={16} />Tabela</span> }, { value: "cards", label: <span className="mt-modo"><SquaresFour size={16} />Cards</span> },
+              ...(linhaDoTempo ? [{ value: "timeline", label: <span className="mt-modo"><ChartBarHorizontal size={16} />Linha do tempo</span> }] : [])]} value={modo}
+              onChange={(m) => onPrefs({ ...prefs, visualizacao: m === "cards" ? "galeria" : m === "timeline" ? "timeline" : "tabela" })} />
+          )}
           <div style={{ position: "relative", flex: "1 1 200px", maxWidth: 300, marginLeft: "auto" }}>
             <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={placeholderDaBusca} aria-label={`Buscar em ${titulo}`} />
             <MagnifyingGlass size={18} style={{ position: "absolute", right: 14, top: 13, color: "var(--color-text-subtle)" }} aria-hidden />
@@ -85,11 +108,13 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
 
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
+          : modo === "timeline" && linhaDoTempo
+            ? <LinhaDoTempoDoMotor linhas={buscadas} campos={campos} prefs={prefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
           : modo === "cards"
             ? <CartoesDoMotor linhas={buscadas} campos={campos} prefs={prefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} />
             : <TabelaDoMotor linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} />}
       </div>
       {filhos}
-    </Page>
+    </Casca>
   );
 }
