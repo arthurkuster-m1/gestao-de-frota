@@ -105,8 +105,24 @@ def test_modelo_com_campo_desconhecido_falha_claro(client):
 
 
 def test_paginas_abrem(client):
-    for rota in ("/veiculos", "/clientes", "/comodatos", "/comodatos/lote", "/modelos"):
+    for rota in ("/veiculos", "/clientes", "/comodatos", "/comodatos/lote", "/modelos", "/design"):
         assert client.get(rota).status_code == 200, rota
+
+
+def test_arquivos_do_design_system_existem(client):
+    # Ícone ou fonte faltando não dá erro na tela: some calado. Por isso o teste confere cada um.
+    import re
+    from frota.main import WEB
+    css = client.get("/static/app.css").text
+    for fonte in re.findall(r'url\("([^"]+)"\)', css):
+        assert client.get(f"/static/{fonte}").status_code == 200, fonte
+    sprite = client.get("/static/icones.svg").text
+    usados = set()
+    for tpl in (WEB / "templates").glob("*.html"):
+        usados |= set(re.findall(r'icone\("([a-z-]+)"', tpl.read_text()))
+    usados |= {n + "-fill" for n in ("car", "users", "clipboard-text", "stack", "file-doc", "palette")}
+    for nome in usados:
+        assert f'id="{nome}"' in sprite, nome
 
 
 def test_login_protege_tudo_quando_ha_senha(client, monkeypatch):

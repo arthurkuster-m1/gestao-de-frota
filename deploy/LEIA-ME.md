@@ -34,8 +34,16 @@ Teste na própria VPS: `curl http://127.0.0.1:8001/saude` → `{"ok":true}`.
 Alternativa que não mexe no Caddy: Cloudflare Tunnel apontando `frota.…` para `http://127.0.0.1:8001`.
 
 ## Como você vê as mudanças
-Eu faço push na branch → em até 2 minutos a VPS atualiza e reinicia só o Frota → você atualiza a página no celular.
-O banco fica fora do repositório, então atualizar nunca apaga seus dados.
+Push na `main` → em até 2 minutos a VPS atualiza e reinicia só o Frota → você atualiza a página no celular.
+O banco fica fora do repositório, então atualizar nunca apaga seus dados. Quando o commit traz migration
+nova, o atualizador guarda antes uma cópia do banco em `/var/backups/frota/antes-<commit>.sqlite`; se o
+Frota não subir, ele volta o código e essa cópia juntos. Os scripts e serviços de `deploy/` também se
+atualizam sozinhos.
+
+## VPS instalada antes da `main` (uma vez só)
+Quem instalou quando o Frota seguia a branch `claude/fleet-management-software-rf1gki` continua nela.
+Para passar a seguir a `main`, rode de novo: `sudo bash /opt/frota/deploy/instalar-frota.sh`.
+Senha, dados e backups ficam como estão.
 
 ## Parar / remover (CRM intacto)
 `sudo systemctl disable --now frota frota-atualizar.timer frota-backup.timer`

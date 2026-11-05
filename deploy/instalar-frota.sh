@@ -5,7 +5,7 @@
 set -euo pipefail
 
 REPO="${FROTA_REPO:-git@github-frota:arthurkuster-m1/gestao-de-frota.git}"
-BRANCH="${FROTA_BRANCH:-claude/fleet-management-software-rf1gki}"
+BRANCH="${FROTA_BRANCH:-main}"
 DIR=/opt/frota
 DADOS=/var/lib/frota
 PORTA=8001
@@ -46,7 +46,7 @@ fi
 id frota >/dev/null 2>&1 || useradd --system --home "$DADOS" --shell /usr/sbin/nologin frota
 mkdir -p "$DADOS" && chown frota:frota "$DADOS" && chmod 700 "$DADOS"
 GIT_SSH_COMMAND="ssh -o StrictHostKeyChecking=accept-new"; export GIT_SSH_COMMAND
-if [ -d "$DIR/.git" ]; then git -C "$DIR" fetch -q origin "$BRANCH" && git -C "$DIR" checkout -q "$BRANCH" && git -C "$DIR" reset -q --hard "origin/$BRANCH"
+if [ -d "$DIR/.git" ]; then git -C "$DIR" fetch -q origin "$BRANCH" && git -C "$DIR" checkout -q -B "$BRANCH" "origin/$BRANCH"
 else git clone -q --branch "$BRANCH" "$REPO" "$DIR"; fi
 [ -d "$DIR/.venv" ] || "$PY" -m venv "$DIR/.venv"
 "$DIR/.venv/bin/pip" install -q --upgrade pip && "$DIR/.venv/bin/pip" install -q -e "$DIR"
