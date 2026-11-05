@@ -21,7 +21,8 @@
     "react": "^19.3.1",
     "react-datasheet-grid": "^4.11.6",
     "react-dom": "^19.3.1",
-    "react-router-dom": "^7.18.5"
+    "react-router-dom": "^7.18.5",
+    "zod": "^3.25.76"
   },
   "devDependencies": {
     "@fontsource-variable/montserrat": "^5.2.8",
@@ -37,5 +38,7 @@
     "workbox-precaching": "7.4.1",
     "workbox-routing": "7.4.1"
   },
-  "overrides": { "react-resize-detector": "12.3.0" }
+  "overrides": {
+    "react-resize-detector": "12.3.0"
+  }
 }
