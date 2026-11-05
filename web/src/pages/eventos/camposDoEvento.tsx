@@ -7,7 +7,7 @@ export const OPCOES_STATUS_EVENTO: OpcaoDoCampo[] = STATUS_EVENTO.map((s) => ({ 
 export const OPCOES_ESTADO_RESERVA: OpcaoDoCampo[] = ESTADOS_RESERVA.map((s) => ({ value: s.value, label: s.label, tom: s.tom }));
 const OPCOES_TIPO: OpcaoDoCampo[] = TIPOS_EVENTO.map((t) => ({ value: t, label: t, tom: "neutral" }));
 
-export type ContextoDeEventos = { reservasDoEvento: Map<string, Reserva[]>; locaisDoEvento: Map<string, EventoLocal[]>; veiculos: Map<string, Veiculo>; carregado: boolean };
+export type ContextoDeEventos = { reservasDoEvento: Map<string, Reserva[]>; locaisDoEvento: Map<string, EventoLocal[]>; veiculos: Map<string, Veiculo>; carregado: boolean; valorDoEvento?: Map<string, number> };
 
 /** "Av. Paulista, 1000 — São Paulo/SP" (e o rótulo, se houver). */
 export const textoDoLocal = (l: EventoLocal) => [l.rotulo ? `${l.rotulo}:` : null, l.endereco, [l.cidade, l.estado].filter(Boolean).join("/") ? `— ${[l.cidade, l.estado].filter(Boolean).join("/")}` : null].filter(Boolean).join(" ");
@@ -22,6 +22,7 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
     { id: "status", titulo: "Status", tipo: "opcao", valorDe: (e) => e.status, opcoes: OPCOES_STATUS_EVENTO, rotuloDoValor: (x) => OPCOES_STATUS_EVENTO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_EVENTO.findIndex((s) => s.value === x), largura: 200, edicao: { coluna: "status", obrigatorio: true } },
     { id: "carros", titulo: "Carros", tipo: "texto", valorDe: (e) => { if (!ctx.carregado) return null; const l = abertas(e); return l.length ? `${l.length} · ${l.map((r) => codigo(ctx.veiculos.get(r.veiculo_id))).join(", ")}` : null; }, largura: 360 },
     { id: "locais", titulo: "Locais", tipo: "texto", valorDe: (e) => { const l = ctx.locaisDoEvento.get(e.id) ?? []; return l.length ? `${textoDoLocal(l[0]!)}${l.length > 1 ? ` (+${l.length - 1})` : ""}` : null; }, largura: 380 },
+    { id: "transporte", titulo: "Transporte (R$)", tipo: "numero", valorDe: (e) => ctx.valorDoEvento?.get(e.id) ?? null, celula: (e) => { const v = ctx.valorDoEvento?.get(e.id); return v ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : <span className="mt-vazio">—</span>; }, largura: 170, padrao: false },
     { id: "inicio", titulo: "Início", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_inicio).sort()[0]! : null; }, largura: 130 },
     { id: "fim", titulo: "Fim", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_fim).sort().at(-1)! : null; }, largura: 130 },
     { id: "solicitante", titulo: "Solicitante", tipo: "texto", valorDe: (e) => e.solicitante, largura: 200, edicao: { coluna: "solicitante" } },

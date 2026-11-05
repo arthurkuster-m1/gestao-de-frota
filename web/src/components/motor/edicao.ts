@@ -21,7 +21,7 @@ export function prepararEdicao(tipo: TipoDeCampo, edicao: EdicaoDoCampo, bruto: 
   let t = bruto.trim();
   if (tipo === "texto" && edicao.normalizar) t = edicao.normalizar(t);
   if (t === "") return edicao.obrigatorio ? { ok: false, erro: "Este campo é obrigatório." } : { ok: true, valor: null };
-  if (tipo === "numero" && !Number.isFinite(Number(t.replace(",", ".")))) return { ok: false, erro: "Digite um número." };
+  if (tipo === "numero" && !Number.isFinite(Number((t.includes(",") ? t.replace(/\./g, "").replace(",", ".") : t).replace(/^R\$\s*/i, "")))) return { ok: false, erro: "Digite um número." };
   const erro = edicao.validar?.(t) ?? null;
   return erro ? { ok: false, erro } : { ok: true, valor: t };
 }
