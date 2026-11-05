@@ -7,15 +7,15 @@ import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNu
 import "./veiculos.css";
 
 type Estado = {
-  modelo: string; versao: string; cor: string; my: string; pedido: string; vin: string; placa: string; blindado: boolean;
+  modelo: string; cor: string; my: string; pedido: string; vin: string; placa: string; blindado: boolean;
   seguro: Seguro; ciclo: Ciclo; d_pedido: string; d_lib: string; d_fat: string; d_empl: string; d_dev: string; comentarios: string;
 };
-const VAZIO: Estado = { modelo: "", versao: "", cor: "", my: "", pedido: "", vin: "", placa: "", blindado: false, seguro: "pendente", ciclo: "pedido_recebido", d_pedido: "", d_lib: "", d_fat: "", d_empl: "", d_dev: "", comentarios: "" };
+const VAZIO: Estado = { modelo: "", cor: "", my: "", pedido: "", vin: "", placa: "", blindado: false, seguro: "pendente", ciclo: "pedido_recebido", d_pedido: "", d_lib: "", d_fat: "", d_empl: "", d_dev: "", comentarios: "" };
 
-/** "ONIX PR 3456": a mesma conta do banco (modelo + versão + 4 últimos do VIN), só para mostrar enquanto digita. */
-export const codigoPrevisto = (modelo: string, versao: string, vin: string) => {
+/** "ONIX RS 3456": a mesma conta do banco (modelo + 4 últimos do VIN; a versão vai escrita no modelo), só para mostrar enquanto digita. */
+export const codigoPrevisto = (modelo: string, vin: string) => {
   const v = normalizarVin(vin);
-  return v.length >= 4 && modelo.trim() ? [modelo.trim().toUpperCase(), versao.trim().toUpperCase(), v.slice(-4)].filter(Boolean).join(" ") : "";
+  return v.length >= 4 && modelo.trim() ? `${modelo.trim().toUpperCase()} ${v.slice(-4)}` : "";
 };
 
 const textoAtividade = (t: string) => CICLO.reduce((s, c) => s.split(c.value).join(c.label), t);
@@ -38,7 +38,7 @@ export function FormVeiculo() {
     if (!id) return;
     buscarVeiculo(id).then((v) => {
       if (!v) { setErro("Veículo não encontrado."); return; }
-      setF({ modelo: v.modelo, versao: v.versao ?? "", cor: v.cor ?? "", my: v.my ?? "", pedido: v.pedido ?? "", vin: v.vin ?? "", placa: v.placa ?? "", blindado: v.blindado, seguro: v.seguro_status, ciclo: v.status_ciclo,
+      setF({ modelo: v.modelo, cor: v.cor ?? "", my: v.my ?? "", pedido: v.pedido ?? "", vin: v.vin ?? "", placa: v.placa ?? "", blindado: v.blindado, seguro: v.seguro_status, ciclo: v.status_ciclo,
         d_pedido: v.data_pedido ?? "", d_lib: v.data_liberacao ?? "", d_fat: v.data_faturamento ?? "", d_empl: v.data_emplacamento ?? "", d_dev: v.data_devolucao ?? "", comentarios: v.comentarios ?? "" });
       void listarAtividades(id).then(setHist, () => setHist([]));
     }, (e: Error) => setErro(e.message)).finally(() => setCarregando(false));
@@ -51,10 +51,10 @@ export function FormVeiculo() {
     placa: !placa || placaValida(placa) ? null : `A placa tem 7 caracteres (digitou ${placa.length}).`,
   }), [f.modelo, vin, placa]);
   const invalido = Object.values(erros).some(Boolean);
-  const codigo = codigoPrevisto(f.modelo, f.versao, f.vin);
+  const codigo = codigoPrevisto(f.modelo, f.vin);
 
   const corpo = (): VeiculoNovo => ({
-    modelo: f.modelo.trim(), versao: vazioParaNulo(f.versao), cor: vazioParaNulo(f.cor), my: vazioParaNulo(f.my), pedido: vazioParaNulo(f.pedido),
+    modelo: f.modelo.trim(), cor: vazioParaNulo(f.cor), my: vazioParaNulo(f.my), pedido: vazioParaNulo(f.pedido),
     vin: vin || null, placa: placa || null, blindado: f.blindado, seguro_status: f.seguro, status_ciclo: f.ciclo,
     data_pedido: f.d_pedido || null, data_liberacao: f.d_lib || null, data_faturamento: f.d_fat || null, data_emplacamento: f.d_empl || null, data_devolucao: f.d_dev || null,
     comentarios: vazioParaNulo(f.comentarios),
@@ -70,7 +70,7 @@ export function FormVeiculo() {
       else {
         const v = await criarVeiculo(corpo());
         toast(`Cadastrado: ${v.codigo ?? v.modelo}`);
-        if (outro) { setF({ ...VAZIO, modelo: f.modelo, versao: f.versao, cor: f.cor, my: f.my }); setTocado(false); window.scrollTo({ top: 0 }); }
+        if (outro) { setF({ ...VAZIO, modelo: f.modelo, cor: f.cor, my: f.my }); setTocado(false); window.scrollTo({ top: 0 }); }
         else navigate("/veiculos");
       }
     } catch (x) { setErro((x as Error).message); } finally { setEnviando(false); }
@@ -90,17 +90,16 @@ export function FormVeiculo() {
         <Card>
           <div className="vei-form">
             <div className="vei-form__linha">
-              <Field label="Modelo" error={tocado ? erros.modelo : null}><Input value={f.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Onix" autoCapitalize="characters" /></Field>
-              <Field label="Versão" hint="Entra no código (PR, RS, TRAILBOSS)"><Input value={f.versao} onChange={(e) => set("versao", e.target.value)} placeholder="PR" /></Field>
-            </div>
-            <div className="vei-form__linha">
+              <Field label="Modelo" error={tocado ? erros.modelo : null}><Input value={f.modelo} onChange={(e) => set("modelo", e.target.value)} placeholder="Onix RS" autoCapitalize="characters" /></Field>
               <Field label="Cor"><Input value={f.cor} onChange={(e) => set("cor", e.target.value)} /></Field>
-              <Field label="MY (ano-modelo)"><Input value={f.my} onChange={(e) => set("my", e.target.value)} placeholder="2026" inputMode="numeric" /></Field>
-              <Field label="Pedido" hint="Número do pedido na fábrica"><Input value={f.pedido} onChange={(e) => set("pedido", e.target.value)} /></Field>
             </div>
             <div className="vei-form__linha">
-              <Field label="VIN (chassi)" error={tocado || vin.length > 17 ? erros.vin : null} hint="17 caracteres. Pode ficar vazio até a fábrica informar"><Input value={f.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} autoCapitalize="characters" spellCheck={false} maxLength={20} /></Field>
-              <Field label="Placa" error={tocado ? erros.placa : null}><Input value={f.placa} onChange={(e) => set("placa", e.target.value.toUpperCase())} autoCapitalize="characters" spellCheck={false} maxLength={8} /></Field>
+              <Field label="MY (ano-modelo)"><Input value={f.my} onChange={(e) => set("my", e.target.value)} placeholder="2026" inputMode="numeric" /></Field>
+              <Field label="Pedido"><Input value={f.pedido} onChange={(e) => set("pedido", e.target.value)} placeholder="Nº do pedido na fábrica" /></Field>
+            </div>
+            <div className="vei-form__linha">
+              <Field label="VIN (chassi)" error={tocado || vin.length > 17 ? erros.vin : null}><Input value={f.vin} onChange={(e) => set("vin", e.target.value.toUpperCase())} placeholder="17 caracteres" autoCapitalize="characters" spellCheck={false} maxLength={20} /></Field>
+              <Field label="Placa" error={tocado ? erros.placa : null}><Input value={f.placa} onChange={(e) => set("placa", e.target.value.toUpperCase())} placeholder="ABC1D23" autoCapitalize="characters" spellCheck={false} maxLength={8} /></Field>
             </div>
             <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 600 }}>Blindado</span><Switch checked={f.blindado} onChange={(v) => set("blindado", v)} label="Blindado" /></div>
           </div>
@@ -120,7 +119,7 @@ export function FormVeiculo() {
           </div>
         </Card>
 
-        <Card><Field label="Comentários" hint="Anotações livres sobre o carro"><Textarea rows={4} value={f.comentarios} onChange={(e) => set("comentarios", e.target.value)} /></Field></Card>
+        <Card><Field label="Comentários"><Textarea rows={4} value={f.comentarios} onChange={(e) => set("comentarios", e.target.value)} /></Field></Card>
 
         {erro && <p className="t-body" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
         <div className="ds-row" style={{ flexWrap: "wrap" }}>

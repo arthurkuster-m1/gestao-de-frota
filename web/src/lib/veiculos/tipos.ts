@@ -38,7 +38,7 @@ export type Veiculo = {
 
 /** O que o formulário e a importação enviam ao banco (o código e o espaço de trabalho o banco preenche). */
 export type VeiculoNovo = {
-  modelo: string; versao?: string | null; cor?: string | null; my?: string | null; pedido?: string | null;
+  modelo: string; cor?: string | null; my?: string | null; pedido?: string | null;
   vin?: string | null; placa?: string | null; blindado?: boolean;
   seguro_status?: Seguro; status_ciclo?: Ciclo;
   data_pedido?: string | null; data_liberacao?: string | null; data_faturamento?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
