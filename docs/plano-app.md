@@ -34,6 +34,13 @@ Para o status e o comentário dos carros nunca ficarem desatualizados, **eles n�
 
 Trigger de banco **nunca** faz chamada de rede; só grava histórico e avisos.
 
+## 3-A. Prazo de logística (regra do Arthur, 05/11/2026)
+
+**Dias de viagem = distância em km ÷ 500, arredondado para cima** (3.000 km = 6 dias; 600 km = 2 dias, suposição de arredondamento a confirmar). Depende do trajeto e do transporte:
+- Cada **transporte** tem a sua distância (`distancia_km`, digitada; o app calcula os dias e deixa ajustar à mão). A reserva do carro começa `dias_ida` antes da chegada e termina `dias_volta` depois da retirada.
+- **Retirada** pelos próprios funcionários ou clientes: 0 dia de logística (a conferir).
+- Cálculo automático da distância por endereço (CEP/cidade) fica para depois; exigiria um serviço de mapas.
+
 ## 4. Tabelas (todas com `workspace_id`, RLS "sou membro do espaço" e teste de isolamento)
 
 **Veículos e histórico**
@@ -46,9 +53,9 @@ Trigger de banco **nunca** faz chamada de rede; só grava histórico e avisos.
 - `locais`: nome, endereço, contato (nome e telefone). Usado como Local de Saída e Local do Evento, e reaproveitado.
 
 **Eventos**
-- `eventos`: nome (único por espaço), tipo, cliente, solicitante, status (Planejado, Solicitar Transporte, Envio Solicitado, Em Uso, Solicitar Retorno, Retorno Solicitado, Concluído), prazo de logística.
+- `eventos`: nome (único por espaço), tipo, cliente, solicitante, status (Planejado, Solicitar Transporte, Envio Solicitado, Em Uso, Solicitar Retorno, Retorno Solicitado, Concluído), 
 - `evento_veiculos` (reserva): evento, veículo, local de saída, local do evento, chegada e retirada (data e hora), início e fim da reserva (já com a logística), estado (reservado, em uso, em retorno, concluído, trocado/cancelado), transporte de ida, transporte de volta. O formulário permite "para todos" e "por carro" e grava sempre **por carro**.
-- `transportes`: evento, sentido (ida/volta), modalidade (PTA, TSO, retirada), referência (ex.: PTAS00666314), transportadora, valor planejado, situação, pagamento.
+- `transportes`: evento, sentido (ida/volta), modalidade (PTA, TSO, retirada), distância em km e dias de viagem (calculado, ajustável), referência (ex.: PTAS00666314), transportadora, valor planejado, situação, pagamento.
 - `pagamentos`: tipo (PTA, NF TSO), número, valor planejado, valor real, data de pagamento, departamento responsável, situação (pendente, aprovado, pago).
 - `checklists`: reserva, momento (saída/retorno), data/hora, km, combustível ou carga, limpeza, entregue para, anotações, fotos (Storage privado).
 
@@ -95,7 +102,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
-2. **Prazo de logística:** é um número de dias fixo, ou varia por evento? Vale o mesmo antes e depois?
+2. ~~Prazo de logística~~ Respondida: ver seção 3-A.
 3. **Sinistros:** pedir o banco do Notion (ou descrever os campos).
 4. **Multas:** de onde vêm os dados (planilha, e-mail do órgão)? Quais campos?
 5. **Devoluções:** além do status, existe um checklist ou documento da devolução para o CVO?
