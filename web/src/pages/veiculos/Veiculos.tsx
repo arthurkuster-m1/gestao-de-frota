@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { MagnifyingGlass, Plus, Rows, SquaresFour, Table, Car } from "@phosphor-icons/react";
-import { Button, Card, EmptyState, Input, Page, Segmented, Skeleton } from "../../ds";
+import { Button, Card, EmptyState, Input, Page, Segmented, Skeleton, useToast } from "../../ds";
 import { AbasDeVisualizacao } from "../../components/motor/AbasDeVisualizacao";
 import { BarraDeConsulta } from "../../components/motor/BarraDeConsulta";
 import { Propriedades } from "../../components/motor/Propriedades";
@@ -11,6 +11,7 @@ import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
+import { avisoDoCicloAutomatico } from "../../lib/veiculos/ciclo";
 import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
@@ -20,7 +21,7 @@ import "../veiculos/veiculos.css";
 
 const TELA = "veiculos";
 const dia = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
-const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { disponivel: "success", disponivel_sem_faturamento: "info", gravame: "error", em_devolucao: "warning", devolvido: "neutral", venda_vip: "accent" };
+const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { pedido_recebido: "neutral", liberado: "info", em_transporte_0km: "info", disponivel_sem_faturamento: "warning", revisao_emplacamento: "warning", em_blindagem: "accent", disponivel: "success", gravame: "error", venda_vip: "accent", em_devolucao: "warning", devolvido: "neutral" };
 const OPCOES_CICLO: OpcaoDoCampo[] = CICLO.map((c) => ({ value: c.value, label: c.label, tom: TOM_CICLO[c.value] ?? "neutral" }));
 const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label: s.label, tom: s.value === "cadastrado" ? "success" : s.value === "cancelado" ? "error" : "warning" }));
 
@@ -36,13 +37,13 @@ export const CAMPOS_VEICULO: CampoDaTela<Veiculo>[] = [
   { id: "ciclo", titulo: "Ciclo de vida", tipo: "opcao", valorDe: (v) => v.status_ciclo, opcoes: OPCOES_CICLO, rotuloDoValor: (x) => OPCOES_CICLO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => CICLO.findIndex((c) => c.value === x), largura: 230, edicao: { coluna: "status_ciclo", obrigatorio: true } },
   { id: "seguro", titulo: "Seguro", tipo: "opcao", valorDe: (v) => v.seguro_status, opcoes: OPCOES_SEGURO, rotuloDoValor: (x) => OPCOES_SEGURO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => SEGURO.findIndex((s) => s.value === x), largura: 130, edicao: { coluna: "seguro_status", obrigatorio: true } },
   { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false, edicao: { coluna: "blindado" } },
-  { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 170, padrao: false, edicao: { coluna: "data_pedido" } },
-  { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 140, padrao: false, edicao: { coluna: "data_liberacao" } },
-  { id: "faturadoEm", titulo: "Faturado em", tipo: "data", valorDe: (v) => v.data_faturamento, largura: 140, padrao: false, edicao: { coluna: "data_faturamento" } },
-  { id: "emplacadoEm", titulo: "Emplacado em", tipo: "data", valorDe: (v) => v.data_emplacamento, largura: 150, padrao: false, edicao: { coluna: "data_emplacamento" } },
-  { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 140, padrao: false, edicao: { coluna: "data_devolucao" } },
+  { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 200, padrao: false, edicao: { coluna: "data_pedido" } },
+  { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 170, padrao: false, edicao: { coluna: "data_liberacao" } },
+  { id: "faturadoEm", titulo: "Faturado em", tipo: "data", valorDe: (v) => v.data_faturamento, largura: 170, padrao: false, edicao: { coluna: "data_faturamento" } },
+  { id: "emplacadoEm", titulo: "Emplacado em", tipo: "data", valorDe: (v) => v.data_emplacamento, largura: 170, padrao: false, edicao: { coluna: "data_emplacamento" } },
+  { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 170, padrao: false, edicao: { coluna: "data_devolucao" } },
   { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
-  { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 150, padrao: false },
+  { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 170, padrao: false },
 ];
 
 const CHAVE_TODAS = `frota.motor.${TELA}.todas`;
@@ -50,6 +51,7 @@ const lerTodas = (): PreferenciasDaTabela => { try { return configSegura(JSON.pa
 
 export function Veiculos() {
   const navigate = useNavigate();
+  const toast = useToast();
   const { id: idAberto } = useParams<{ id?: string }>();
   const [lista, setLista] = useState<Veiculo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -81,6 +83,8 @@ export function Veiculos() {
   const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
     const novo = await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>);
     setLista((l) => (l ?? []).map((x) => (x.id === linha.id ? novo : x)));
+    const aviso = avisoDoCicloAutomatico(linha, novo, campo.edicao!.coluna);
+    if (aviso) toast(aviso);
   };
   const abrir = (x: Veiculo) => navigate(`/veiculos/${x.id}`);
   const modo = prefs.visualizacao === "galeria" ? "cards" : "tabela";

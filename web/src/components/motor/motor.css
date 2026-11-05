@@ -108,3 +108,17 @@ button.mt-card__titulo:hover { color: var(--color-accent); }
 
 .mt-alterada .ds-row { flex-wrap: wrap; }
 @media (max-width: 720px) { .mt-alterada { padding: 10px 12px; } .mt-alterada > div { width: 100%; } .mt-alterada .ds-btn { flex: 1 1 auto; } }
+
+/* opções como tags */
+.mt-tag { display: inline-flex; align-items: center; gap: 4px; border: 0; font: inherit; font-size: 12px; line-height: 20px; max-width: 100%; white-space: normal; text-align: left; }
+button.mt-tag { cursor: pointer; padding: 3px 12px; }
+button.mt-tag:hover { filter: brightness(0.96); }
+.mt-tag.is-sel { box-shadow: 0 0 0 2px var(--color-accent-ring); }
+.mt-lista { padding: 6px; overflow-x: hidden; }
+.mt-lista__item { display: flex; align-items: center; min-height: 40px; padding: 4px 8px; border-radius: var(--radius-md); border: 0; background: transparent; width: 100%; text-align: left; font: inherit; }
+.mt-lista__item:hover { background: var(--color-surface-elevated); }
+.mt-lista__item.is-atual { background: var(--color-accent-soft); }
+.mt-lista__sem { font-size: 13px; color: var(--color-text-subtle); padding: 0 4px; }
+
+.mt-ed-data .ds-datefield { flex: 1; min-width: 0; padding-left: 10px; }
+.mt-ed-data .ds-datefield input { min-width: 0; }

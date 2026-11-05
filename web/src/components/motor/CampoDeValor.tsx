@@ -1,6 +1,7 @@
 import { DateField, Input, Select } from "../../ds";
 import { DATAS_RELATIVAS, PERIODOS_RELATIVOS, type Filtro } from "../../lib/motor/consulta";
 import { ROTULO_DA_DATA, ROTULO_DO_PERIODO } from "./rotulos";
+import { Tag } from "./Tag";
 import type { OpcaoDoCampo } from "./tipos";
 
 /** O valor de um filtro, no controle certo para o tipo do campo e o operador. */
@@ -13,7 +14,7 @@ export function CampoDeValor({ tipo, operador, valor, opcoes, onChange }: { tipo
     if (opcoes.length === 0) return <p className="t-body-sm t-muted">Sem valores para escolher ainda.</p>;
     return (
       <div className="mt-opcoes" role="group" aria-label="Valores do filtro">
-        {opcoes.map((o) => <button key={o.value} type="button" className="ds-chip" aria-pressed={marcados.includes(o.value)} onClick={() => alterna(o.value)}>{o.label}</button>)}
+        {opcoes.map((o) => <Tag key={o.value} opcao={o} selecionada={marcados.includes(o.value)} comCheck onClick={() => alterna(o.value)} />)}
       </div>
     );
   }
