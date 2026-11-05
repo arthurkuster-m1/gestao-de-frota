@@ -7,7 +7,7 @@ export const CICLO = [
   { value: "disponivel_sem_faturamento", label: "Disponível sem faturamento" },
   { value: "revisao_emplacamento", label: "Revisão e emplacamento" },
   { value: "em_blindagem", label: "Em blindagem" },
-  { value: "disponivel", label: "Disponível (emplacado e pronto)" },
+  { value: "disponivel", label: "Pronto" },
   { value: "gravame", label: "Gravame" },
   { value: "venda_vip", label: "Venda VIP" },
   { value: "em_devolucao", label: "Em devolução" },

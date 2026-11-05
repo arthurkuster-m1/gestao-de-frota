@@ -4,6 +4,7 @@ import { DateField, cx } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import type { TipoDeCampo } from "../../lib/motor/consulta";
 import type { ValorEditavel } from "./edicao";
+import { Tag } from "./Tag";
 import type { EdicaoDoCampo, OpcaoDoCampo } from "./tipos";
 
 export type Movimento = "proximo" | "anterior";
@@ -69,7 +70,7 @@ function EditorDeData({ valor, obrigatorio, rotulo, onConfirmar, onCancelar }: P
 
 function EditorDeOpcao({ valor, opcoes, obrigatorio, rotulo, onConfirmar, onCancelar }: Pick<Props, "opcoes" | "obrigatorio" | "rotulo" | "onConfirmar" | "onCancelar"> & { valor: string | null }) {
   const gatilho = useRef<HTMLButtonElement>(null);
-  const { ref, aberto, setAberto } = usePopover(gatilho, { largura: 280, alturaMax: 360 });
+  const { ref, aberto, setAberto } = usePopover(gatilho, { largura: 300, alturaMax: 420 });
   const abriu = useRef(false);
   const feito = useRef(false);
   useEffect(() => { setAberto(true); }, [setAberto]);
@@ -80,8 +81,12 @@ function EditorDeOpcao({ valor, opcoes, obrigatorio, rotulo, onConfirmar, onCanc
     <>
       <button ref={gatilho} type="button" className="mt-ed mt-ed--opcao" aria-label={`Editar ${rotulo}`} aria-expanded={aberto} data-testid="editor-celula">{atual?.label ?? "—"}</button>
       <div ref={ref} popover="auto" role="listbox" aria-label={rotulo} className="ds-pop mt-lista" data-testid="lista-opcoes">
-        {!obrigatorio && <button type="button" role="option" aria-selected={valor === null} className="ds-pop__opcao" onClick={() => escolher(null)}><span className="t-muted">Sem valor</span></button>}
-        {opcoes?.map((o) => <button key={o.value} type="button" role="option" aria-selected={o.value === valor} className="ds-pop__opcao" onClick={() => escolher(o.value)}><span>{o.label}</span>{o.value === valor && <Check size={16} weight="bold" />}</button>)}
+        {!obrigatorio && <button type="button" role="option" aria-selected={valor === null} className="mt-lista__item" onClick={() => escolher(null)}><span className="mt-lista__sem">Sem valor</span></button>}
+        {opcoes?.map((o) => (
+          <div key={o.value} className={cx("mt-lista__item", o.value === valor && "is-atual")} role="presentation">
+            <Tag opcao={o} selecionada={o.value === valor} comCheck comoOpcao onClick={() => escolher(o.value)} />
+          </div>
+        ))}
       </div>
     </>
   );
