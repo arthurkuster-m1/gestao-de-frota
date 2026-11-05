@@ -67,7 +67,7 @@ Trigger de banco **nunca** faz chamada de rede; só grava histórico e avisos.
 **Manutenção, multas, visões**
 - `manutencoes`: veículo, descrição, status, entrada, saída prevista e real, oficina, custo, `bloqueia_uso`.
 - `multas`: veículo, data/hora, local, valor, situação (a responsável sai da reserva vigente naquela hora). Detalhes dependem da pergunta 5.
-- `sinistros`: depende da pergunta 4.
+- `sinistros` (versão simples, 05/11/2026; o banco completo do Notion fica para depois): nome, veículo, data em que a DA foi solicitada, responsável, descrição do acidente, comentários, status (**Solicitar DA, Em reparo, Pronto**). Não bloqueia o uso do carro sozinho: tem a marca `bloqueia_uso` como a manutenção (suposição, a conferir). Quando o Notion for lido, os campos são ampliados por migration nova.
 - `visoes_salvas` e `propriedades_personalizadas`: como no CRM, por tela (tabela, cards, linha do tempo, filtros, ordem, colunas visíveis, colunas congeladas).
 
 ## 5. Telas
@@ -103,7 +103,7 @@ Menu: **Início, Planejamento, Veículos, Eventos, Clientes, Contratos, Transpor
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
 2. ~~Prazo de logística~~ Respondida: ver seção 3-A.
-3. **Sinistros:** pedir o banco do Notion (ou descrever os campos).
+3. ~~Sinistros~~ Adiada pelo Arthur: entra a versão simples da seção 4; o banco completo do Notion fica para depois.
 4. **Multas:** de onde vêm os dados (planilha, e-mail do órgão)? Quais campos?
 5. **Devoluções:** além do status, existe um checklist ou documento da devolução para o CVO?
 6. **Seguro:** é só um status ("cadastrado / pendente") ou também apólice e vigência?
