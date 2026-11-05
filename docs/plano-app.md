@@ -120,6 +120,14 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - Ainda não: local de saída/evento por carro, transportes, pagamentos, checklists e contrato do evento; horários (as reservas hoje são por data); o botão "Em uso" automático pelo checklist; carro em Manutenção no Status de uso.
 - Refatoração: a casca das telas de lista virou `TelaDoMotor` (abas, filtros, Tabela/Cards, busca, edição no lugar); telas novas só trazem campos e dados.
 
+## 7-C. Estado em 08/11/2026: Linha do tempo e Planejamento
+
+- ✅ **Linha do tempo** como terceira visão do motor (Tabela | Cards | Linha do tempo), em Veículos (barras = reservas) e em Eventos (barra = período do evento, com a logística em azul antes e depois). Eixo "infinito": cresce para os dois lados ao rolar; escala Dia/Semana; botão Hoje; colunas congeladas à esquerda (as mesmas da tabela); agrupamento e filtros valem. **Editável arrastando:** mover a barra de uma reserva (leva chegada e retirada junto), esticar as pontas (a chegada/retirada que ficarem de fora são presas na borda), mover o evento inteiro (todas as reservas dele). Clicar na barra abre o evento.
+- ✅ **Planejamento** (`/planejamento`), como o desenho do Arthur: veículos em cima, eventos embaixo, **um eixo do tempo compartilhado** (rolam juntos e os dias ficam alinhados). Escolher um evento destaca as reservas dele nos carros e abre "Reservar carros" ali mesmo, com aviso de conflito. Cada painel tem as próprias visualizações salvas.
+- ✅ **Chegada e retirada** por carro (migration 0007): o período da reserva já inclui a logística; "dias de logística" de ida e de volta no formulário (por enquanto digitados; a regra km ÷ 500 entra com os transportes).
+- ✅ **Locais do evento** (migration 0007), **digitados em cada evento** (decisão do Arthur: não é cadastro reaproveitado), quantos forem precisos: no formulário de novo evento ("Adicionar outro local"), numa aba da janela do evento (editáveis no lugar) e como coluna "Locais" na tabela.
+- Ainda não: criar **manutenção** pelo Planejamento (a entidade Manutenções ainda não existe), local por carro, contato (nome e telefone, criptografados) de cada local, transportes, pagamentos, checklist e contrato.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
