@@ -1,0 +1,59 @@
+import type { EstadoReserva, Reserva } from "./tipos";
+
+/** O Status de Uso do carro (o que ele está fazendo na operação). "Manutenção" entra junto com a tela de Manutenções. */
+export const STATUS_DE_USO = [
+  { value: "disponivel", label: "Disponível", tom: "success" },
+  { value: "reservado", label: "Reservado", tom: "info" },
+  { value: "em_uso", label: "Em uso", tom: "accent" },
+  { value: "em_retorno", label: "Em retorno", tom: "warning" },
+  { value: "manutencao", label: "Manutenção", tom: "error" },
+] as const;
+export type StatusDeUso = (typeof STATUS_DE_USO)[number]["value"];
+export const rotuloDoUso = (v: string) => STATUS_DE_USO.find((s) => s.value === v)?.label ?? v;
+
+/** Reservas que ainda "pesam" na agenda do carro (concluída e cancelada saem). */
+export const ESTADOS_ABERTOS: readonly EstadoReserva[] = ["reservado", "em_uso", "em_retorno"];
+export const estaAberta = (r: Pick<Reserva, "estado">) => ESTADOS_ABERTOS.includes(r.estado);
+
+/** Quem aparece primeiro na agenda e no status: o que o carro está fazendo agora vem antes do que vem depois. */
+const PRIORIDADE: Record<string, number> = { em_retorno: 0, em_uso: 1, reservado: 2 };
+
+/**
+ * O Status de Uso é CALCULADO das reservas abertas (nunca digitado): em retorno > em uso > reservado > disponível.
+ * Um carro pode ter várias reservas; basta uma em uso para ele estar em uso.
+ */
+export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[]): StatusDeUso {
+  const abertas = reservas.filter(estaAberta);
+  if (abertas.some((r) => r.estado === "em_retorno")) return "em_retorno";
+  if (abertas.some((r) => r.estado === "em_uso")) return "em_uso";
+  if (abertas.length > 0) return "reservado";
+  return "disponivel";
+}
+
+const ROTULO_DA_AGENDA: Record<string, string> = { reservado: "RESERVADO", em_uso: "EM USO", em_retorno: "EM RETORNO" };
+const dm = (iso: string, anoAtual: string) => (iso.slice(0, 4) === anoAtual ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`);
+
+/**
+ * A agenda do carro em uma linha, acumulando tudo:
+ * "EM USO - EVENTO TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - EVENTO X 07/11 ATÉ 12/11 + RESERVADO - EVENTO Y 20/11 ATÉ 22/11".
+ * Datas em dd/mm (com o ano só quando não é o ano de `hoje`). Vazio quando não há reserva aberta.
+ */
+export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string): string {
+  const ano = hoje.slice(0, 4);
+  return reservas.filter(estaAberta)
+    .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
+    .map((r) => `${ROTULO_DA_AGENDA[r.estado]} - EVENTO ${nomeDoEvento(r.evento_id).toUpperCase()} ${dm(r.reserva_inicio, ano)} ATÉ ${dm(r.reserva_fim, ano)}`)
+    .join(" + ");
+}
+
+/** As reservas abertas do carro que se sobrepõem ao período (datas inclusivas). `ignorarEvento`: o próprio evento, ao editá-lo. */
+export function conflitos(periodo: { inicio: string; fim: string }, reservasDoCarro: readonly Reserva[], ignorarEvento?: string): Reserva[] {
+  return reservasDoCarro.filter((r) => estaAberta(r) && r.evento_id !== ignorarEvento && r.reserva_inicio <= periodo.fim && periodo.inicio <= r.reserva_fim);
+}
+
+/** Agrupa as reservas por carro (para calcular status e agenda de toda a frota de uma vez). */
+export function reservasPorVeiculo(reservas: readonly Reserva[]): Map<string, Reserva[]> {
+  const m = new Map<string, Reserva[]>();
+  for (const r of reservas) { const l = m.get(r.veiculo_id); if (l) l.push(r); else m.set(r.veiculo_id, [r]); }
+  return m;
+}

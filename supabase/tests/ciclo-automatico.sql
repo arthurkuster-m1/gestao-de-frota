@@ -76,5 +76,6 @@ begin
   reset role;
   if has_function_privilege('authenticated', 'public.fn_veiculo_ciclo_auto()', 'execute') then raise exception 'authenticated pode executar fn_veiculo_ciclo_auto'; end if;
   if has_function_privilege('anon', 'public.fn_veiculo_ciclo_auto()', 'execute') then raise exception 'anon pode executar fn_veiculo_ciclo_auto'; end if;
+  if has_function_privilege('authenticated', 'public.fn_veiculo_historico()', 'execute') or has_function_privilege('anon', 'public.fn_veiculo_historico()', 'execute') then raise exception 'fn_veiculo_historico (migration 0002) segue exposta'; end if;
   raise exception 'TESTE_OK: data e status andam juntos (só para a frente), status preenche a data com hoje, escolha manual é respeitada, gravame não é movido, histórico registra.';
 end $$;

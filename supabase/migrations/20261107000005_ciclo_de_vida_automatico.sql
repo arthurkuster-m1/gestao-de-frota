@@ -47,5 +47,8 @@ end $$;
 drop trigger if exists veiculos_ciclo_auto on public.veiculos;
 create trigger veiculos_ciclo_auto before insert or update on public.veiculos for each row execute function public.fn_veiculo_ciclo_auto();
 
--- Função nova em public nasce exposta: revoga as DUAS origens (PUBLIC e anon).
-revoke execute on function public.fn_veiculo_ciclo_auto() from public, anon;
+-- Função nova em public nasce exposta: revoga PUBLIC, anon E authenticated (o Supabase concede os três por padrão).
+-- Gatilho não precisa de EXECUTE do usuário (a permissão é conferida só ao criar o gatilho).
+-- Aproveita para fechar a função de gatilho da migration 0002, que ficou aberta a authenticated.
+revoke execute on function public.fn_veiculo_ciclo_auto() from public, anon, authenticated;
+revoke execute on function public.fn_veiculo_historico() from public, anon, authenticated;

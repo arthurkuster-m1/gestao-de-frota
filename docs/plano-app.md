@@ -111,6 +111,15 @@ O Arthur apontou (com razão) que a tela de Veículos entregue primeiro era só 
 
 Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda em texto (dependem de Eventos e Manutenções).
 
+## 7-B. Estado em 07/11/2026: eventos, reservas e uso do carro
+
+- ✅ **Eventos e reservas (v1):** tabelas `eventos` e `evento_veiculos` (migration 0006). Tela **Eventos** no mesmo motor de Veículos (abas salvas, filtros, Tabela/Cards, edição no lugar), janela do evento com os carros reservados (início, fim e estado editáveis no lugar; **aviso de conflito** quando o carro já está em outra reserva) e seletor "Reservar carros".
+- ✅ **Status de uso e Agenda em texto** em Veículos: calculados das reservas abertas (em retorno > em uso > reservado > disponível; "Manutenção" entra com a tela de Manutenções). Agenda no formato "EM USO - EVENTO X 04/11 ATÉ 05/11 + RESERVADO - EVENTO Y 07/11 ATÉ 12/11", acumulando todas as reservas abertas. Aparecem também nos Cards e na janela do veículo (abas Agenda e Eventos).
+- ✅ **Ciclo de vida automático** (migration 0005): data e status andam juntos (só para a frente); escolher um status de marco preenche a data com hoje; a tela avisa o que mudou sozinho. Premissas a confirmar: carro blindado vai a "Em blindagem" ao emplacar; faturar com o carro ainda em transporte não muda o status.
+- ✅ Opções de status em formato de **tags**; a etapa "Disponível (emplacado e pronto)" passou a se chamar **"Pronto"**.
+- Ainda não: local de saída/evento por carro, transportes, pagamentos, checklists e contrato do evento; horários (as reservas hoje são por data); o botão "Em uso" automático pelo checklist; carro em Manutenção no Status de uso.
+- Refatoração: a casca das telas de lista virou `TelaDoMotor` (abas, filtros, Tabela/Cards, busca, edição no lugar); telas novas só trazem campos e dados.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.

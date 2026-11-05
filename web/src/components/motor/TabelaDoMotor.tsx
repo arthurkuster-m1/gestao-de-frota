@@ -30,7 +30,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const [arrastando, setArrastando] = useState<{ id: string; largura: number } | null>(null);
   const campoPorId = useMemo(() => new Map(campos.map((c) => [c.id, c])), [campos]);
 
-  const larguraDe = (c: { id: string; largura: number }) => (arrastando?.id === c.id ? arrastando.largura : c.largura);
+  const larguraBruta = (c: { id: string; largura: number }) => (arrastando?.id === c.id ? arrastando.largura : c.largura);
   // Largura disponível: no celular, congelar colunas demais esconderia o resto. Congela só enquanto couber em ~55% da tela
   // (a primeira coluna sempre, se foi pedida).
   const caixa = useRef<HTMLDivElement>(null);
@@ -41,6 +41,8 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     ler(); const ro = new ResizeObserver(ler); ro.observe(el); return () => ro.disconnect();
   }, [semLinhasInicial(linhas.length)]);
   const pedidas = Math.min(prefs.congelar ?? 1, colunas.length);
+  // Se a coluna congelada for mais larga que ~55% da tela (celular), ela é reduzida: senão cobriria as outras colunas.
+  const larguraDe = (c: { id: string; largura: number }) => (pedidas > 0 && disponivel > 0 && c.id === colunas[0]?.id ? Math.min(larguraBruta(c), Math.round(disponivel * 0.55)) : larguraBruta(c));
   let congeladas = 0, somaCong = 0;
   for (let i = 0; i < pedidas; i++) { const w = larguraDe(colunas[i]!); if (i > 0 && disponivel > 0 && somaCong + w > disponivel * 0.55) break; somaCong += w; congeladas++; }
   const esquerda: number[] = []; let acc = 0;
@@ -75,7 +77,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       ? (e: React.MouseEvent) => { e.stopPropagation(); if (campo.tipo === "caixa") void ed.confirmar(l, campo, !(campo.valorDe(l) === true), undefined, editaveis); else ed.abrir(l, campo); }
       : onAbrir ? () => onAbrir(l) : undefined;
     return (
-      <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined}>
+      <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
         {i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l)}
       </td>
     );
