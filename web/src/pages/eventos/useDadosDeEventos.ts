@@ -3,6 +3,7 @@ import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos } from "../../lib/eventos/dados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
+import { useManutencoes } from "../manutencoes/useManutencoes";
 import type { Evento, EventoLocal, EventoLocalNovo, EventoNovo, Reserva } from "../../lib/eventos/tipos";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -15,6 +16,7 @@ export function useDadosDeEventos() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [locais, setLocais] = useState<EventoLocal[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const man = useManutencoes();
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -70,5 +72,5 @@ export function useDadosDeEventos() {
     return criado;
   };
 
-  return { eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

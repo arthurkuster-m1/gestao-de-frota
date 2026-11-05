@@ -28,7 +28,7 @@ export function Eventos() {
         linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => navigate(`/eventos/${e.id}`) }}
         rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento, tipo, solicitante…"
         vazio={<EmptyState icon={<CalendarCheck size={30} />} title="Nenhum evento ainda" action={<Button icon={<Plus size={20} />} onClick={() => setCriando(true)}>Criar o primeiro</Button>}>Crie o evento e depois escolha os carros. O Status de uso e a Agenda de cada carro se atualizam sozinhos.</EmptyState>}
-        filhos={<JanelaDoEvento evento={aberto} campos={d.campos} abaInicial={aba} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} locais={d.locais} onEditarLocal={d.editarLocal} onAdicionarLocais={d.adicionarLocais} onRemoverLocal={d.tirarLocal}
+        filhos={<JanelaDoEvento evento={aberto} campos={d.campos} abaInicial={aba} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} locais={d.locais} manutencoes={d.manutencoes} onEditarLocal={d.editarLocal} onAdicionarLocais={d.adicionarLocais} onRemoverLocal={d.tirarLocal}
           onEditarEvento={d.editarEvento} onEditarReserva={d.editarReserva} onReservar={d.reservar} onRemoverReserva={d.remover} onExcluir={async (e) => { await d.excluir(e); navigate("/eventos"); }} onFechar={() => navigate("/eventos")} />} />
       <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => { setAba("veiculos"); navigate(`/eventos/${e.id}`); }} />
     </>

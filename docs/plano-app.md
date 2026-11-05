@@ -117,7 +117,7 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ **Status de uso e Agenda em texto** em Veículos: calculados das reservas abertas (em retorno > em uso > reservado > disponível; "Manutenção" entra com a tela de Manutenções). Agenda no formato "EM USO - EVENTO X 04/11 ATÉ 05/11 + RESERVADO - EVENTO Y 07/11 ATÉ 12/11", acumulando todas as reservas abertas. Aparecem também nos Cards e na janela do veículo (abas Agenda e Eventos).
 - ✅ **Ciclo de vida automático** (migration 0005): data e status andam juntos (só para a frente); escolher um status de marco preenche a data com hoje; a tela avisa o que mudou sozinho. Premissas a confirmar: carro blindado vai a "Em blindagem" ao emplacar; faturar com o carro ainda em transporte não muda o status.
 - ✅ Opções de status em formato de **tags**; a etapa "Disponível (emplacado e pronto)" passou a se chamar **"Pronto"**.
-- Ainda não: local de saída/evento por carro, transportes, pagamentos, checklists e contrato do evento; horários (as reservas hoje são por data); o botão "Em uso" automático pelo checklist; carro em Manutenção no Status de uso.
+- Ainda não: local de saída/evento por carro, transportes, pagamentos, checklists e contrato do evento; horários (as reservas hoje são por data); o botão "Em uso" automático pelo checklist; 
 - Refatoração: a casca das telas de lista virou `TelaDoMotor` (abas, filtros, Tabela/Cards, busca, edição no lugar); telas novas só trazem campos e dados.
 
 ## 7-C. Estado em 08/11/2026: Linha do tempo e Planejamento
@@ -127,6 +127,16 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ **Chegada e retirada** por carro (migration 0007): o período da reserva já inclui a logística; "dias de logística" de ida e de volta no formulário (por enquanto digitados; a regra km ÷ 500 entra com os transportes).
 - ✅ **Locais do evento** (migration 0007), **digitados em cada evento** (decisão do Arthur: não é cadastro reaproveitado), quantos forem precisos: no formulário de novo evento ("Adicionar outro local"), numa aba da janela do evento (editáveis no lugar) e como coluna "Locais" na tabela.
 - Ainda não: criar **manutenção** pelo Planejamento (a entidade Manutenções ainda não existe), local por carro, contato (nome e telefone, criptografados) de cada local, transportes, pagamentos, checklist e contrato.
+
+## 7-D. Estado em 09/11/2026: Manutenções (com sinistros)
+
+- ✅ **Manutenções** (migration 0008, `/manutencoes`): tabela, cards e linha do tempo, tudo editável no lugar, com visões salvas. Campos: nome, veículo, tipo (Sinistro, Mecânica, Funilaria e pintura, Revisão, Pneus, Outro), status **Solicitar DA / Em reparo / Pronto**, início, fim, data do acidente, DA solicitada em, descrição do acidente, comentários e **"Bloqueia o uso"** (o Arthur decide por registro se o carro ainda pode ir a evento).
+- ✅ **Evento responsável calculado**: é o evento cuja reserva cobria o carro no dia do acidente (nunca digitado).
+- ✅ **Status de uso "Manutenção"**: manutenção aberta que bloqueia vence todos os outros status (e só vale a partir do dia de início). A **Agenda** do carro mostra `EM MANUTENÇÃO - NOME 04/11 ATÉ 08/11` (ou `DESDE 04/11` se ainda sem fim) antes dos eventos.
+- ✅ Ficar **Pronto** sem data de fim fecha o fim em hoje (banco). Histórico do carro registra abertura e mudanças de status.
+- ✅ **Reservar carro**: aviso "Em manutenção nesse período" (dá para reservar mesmo assim). Aba **Manutenções** da janela do veículo é real, com "Nova manutenção".
+- ✅ **Barras amarelas** (bloqueia) / azuis (não bloqueia) / verdes (pronta) nos Veículos e no Planejamento, arrastáveis; botão "Nova manutenção" no Planejamento.
+- Ainda não: criar manutenção com duplo clique na linha do carro no Planejamento; multas; transportes e pagamentos; checklist.
 
 ## 8. Perguntas abertas (uma de cada vez)
 

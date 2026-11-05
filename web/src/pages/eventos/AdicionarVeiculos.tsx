@@ -6,11 +6,13 @@ import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { periodoDaReserva } from "../../lib/eventos/barras";
 import type { Evento, Reserva } from "../../lib/eventos/tipos";
 import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
+import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
+import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
 /** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
-export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, onReservar }: {
-  aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[];
+export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], onReservar }: {
+  aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; manutencoes?: Manutencao[];
   onReservar: (veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
 }) {
   const [chegada, setChegada] = useState(somarDias(hojeLocal(), 2));
@@ -23,6 +25,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const [enviando, setEnviando] = useState(false);
 
   const porCarro = useMemo(() => reservasPorVeiculo(reservas), [reservas]);
+  const oficina = useMemo(() => manutencoesPorVeiculo(manutencoes), [manutencoes]);
   const nomes = useMemo(() => new Map(eventos.map((e) => [e.id, e.nome])), [eventos]);
   const jaNoEvento = useMemo(() => new Set(reservas.filter((r) => r.evento_id === evento.id && r.estado !== "cancelado").map((r) => r.veiculo_id)), [reservas, evento.id]);
   const periodoOk = !!chegada && !!retirada && retirada >= chegada;
@@ -36,13 +39,14 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
         const choques = periodoOk ? conflitos({ inicio, fim }, r, evento.id) : [];
-        return { v, uso: statusDeUso(r), choques };
+        const noConserto = periodoOk ? manutencoesQueBloqueiam({ inicio, fim }, oficina.get(v.id) ?? []) : [];
+        return { v, uso: statusDeUso(r, oficina.get(v.id) ?? [], hojeLocal()), choques, noConserto };
       })
-      .sort((a, b) => Number(a.choques.length > 0) - Number(b.choques.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
-  }, [veiculos, busca, jaNoEvento, porCarro, periodoOk, inicio, fim, evento.id]);
+      .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0) - Number(b.choques.length + b.noConserto.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
+  }, [veiculos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id]);
 
   const alterna = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-  const comConflito = linhas.filter((l) => marcados.has(l.v.id) && l.choques.length > 0).length;
+  const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0)).length;
 
   async function reservar() {
     setErro(null); setEnviando(true);
@@ -65,7 +69,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor)…" aria-label="Buscar carro para reservar" />
         <ul className="mt-escolha" role="list">
           {linhas.length === 0 && <li className="t-body t-muted">Nenhum carro disponível para escolher.</li>}
-          {linhas.map(({ v, uso, choques }) => {
+          {linhas.map(({ v, uso, choques, noConserto }) => {
             const u = STATUS_DE_USO.find((x) => x.value === uso)!;
             return (
               <li key={v.id} className="mt-escolha__item">
@@ -75,6 +79,9 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
                   <span className="t-body-sm t-muted">{[v.cor, v.placa].filter(Boolean).join(" · ")}</span>
                   <Tag opcao={{ value: u.value, label: u.label, tom: u.tom }} />
                 </label>
+                {noConserto.length > 0 && (
+                  <p className="mt-escolha__aviso" role="note" data-testid="aviso-manutencao"><Warning size={16} weight="fill" />Em manutenção nesse período: {noConserto.map((m) => m.nome).join(", ")}</p>
+                )}
                 {choques.length > 0 && (
                   <p className="mt-escolha__aviso" role="note" data-testid="aviso-conflito"><Warning size={16} weight="fill" />Já reservado nesse período: {agendaTexto(choques, (id) => nomes.get(id) ?? "?", hojeLocal())}</p>
                 )}
@@ -82,7 +89,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
             );
           })}
         </ul>
-        {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
+        {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva ou manutenção nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
         {erro && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
         <Button size="lg" block disabled={marcados.size === 0 || !periodoOk} loading={enviando} onClick={() => void reservar()} data-testid="confirmar-reserva">
           Reservar {marcados.size} carro{marcados.size === 1 ? "" : "s"}{periodoOk ? ` · ${formatarDiaBr(inicio).slice(0, 5)} a ${formatarDiaBr(fim).slice(0, 5)}` : ""}

@@ -10,6 +10,7 @@ import { hojeLocal } from "../../lib/motor/datas";
 import type { Evento, EventoLocal, EventoLocalNovo, Reserva } from "../../lib/eventos/tipos";
 import { agendaTexto, conflitos, reservasPorVeiculo } from "../../lib/eventos/uso";
 import type { Veiculo } from "../../lib/veiculos/tipos";
+import type { Manutencao } from "../../lib/manutencoes/tipos";
 import { AdicionarVeiculos } from "./AdicionarVeiculos";
 import { camposDaReserva, camposDoLocal, type ReservaLinha } from "./camposDoEvento";
 import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
@@ -20,14 +21,14 @@ type Aba = AbaDoEvento;
 const ABAS: { id: Aba; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "locais", rotulo: "Locais" }, { id: "comentarios", rotulo: "Comentários" }];
 
 type Props = {
-  evento: Evento | null; campos: readonly CampoDaTela<Evento>[]; abaInicial: Aba; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[];
+  evento: Evento | null; campos: readonly CampoDaTela<Evento>[]; abaInicial: Aba; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; manutencoes?: Manutencao[];
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
   onEditarEvento: OnEditar<Evento>; onEditarReserva: OnEditar<ReservaLinha>; onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
   onRemoverReserva: (r: Reserva) => Promise<void>; onExcluir: (e: Evento) => Promise<void>; onFechar: () => void;
 };
 
 /** A janela do evento: dados, os carros reservados (período e estado editáveis no lugar, com aviso de conflito) e comentários. */
-export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas, eventos, locais, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
+export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas, eventos, locais, manutencoes, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const toast = useToast();
   const [aba, setAba] = useState<Aba>(abaInicial);
@@ -139,7 +140,7 @@ export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas,
             )}
           </div>
 
-          <AdicionarVeiculos aberto={adicionando} onFechar={() => setAdicionando(false)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela)} />
+          <AdicionarVeiculos aberto={adicionando} onFechar={() => setAdicionando(false)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela)} />
           <Sheet open={!!novoLocal} onClose={() => setNovoLocal(null)} title="Adicionar local">
             <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoLocal) return; setEnviandoLocal(true); void onAdicionarLocais(evento.id, novoLocal).then(() => setNovoLocal(null), (er: Error) => setFalha(er.message)).finally(() => setEnviandoLocal(false)); }}>
               <FormularioDeLocais locais={novoLocal ?? []} onChange={setNovoLocal} />
