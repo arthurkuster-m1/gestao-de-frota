@@ -1,7 +1,16 @@
 # CONTEXTO-FROTA — leia isto primeiro
 
-Passagem de bastão entre sessões do Claude. Escrito em 05/11/2026, no fim da sessão que montou o protótipo em Python.
+Passagem de bastão entre sessões do Claude. Escrito em 05/11/2026, no fim da sessão que montou o protótipo em Python, e **atualizado no mesmo dia com as decisões do Arthur** (seção 0).
 Se algo aqui contradisser o que o Arthur disser hoje, vale o que ele disser, e este arquivo deve ser corrigido.
+
+## 0. Decisões do Arthur em 05/11/2026 (valem sobre o resto do documento)
+
+1. **Caminho A:** refazer a Frota **na mesma stack do `familia-kuster`**: React + TypeScript + Supabase, publicada no **Cloudflare Pages**, sem VPS. Ele foi avisado de que isso **abandona "majoritariamente Python"** e o "100% local no PC", e aceitou. O protótipo Python **não recebe mais funcionalidade grande**: vira **referência de regras** (colagem do Excel, status, cálculos do Início, mapeamento do Word) e de aparência.
+2. **Supabase:** o banco antigo do CRM (`M1-Growth-CRM-dev-pc`) tinha **só dados de teste**, sem necessidade de backup. **Foi pausado** nesta sessão (status `INACTIVE`) e o Arthur **vai excluí-lo no painel** (Settings › General › Delete project). Nada foi apagado por nós.
+3. **Projeto novo `frota` criado** (São Paulo, ref `hqivwljmjnagjuxzdanj`, URL `https://hqivwljmjnagjuxzdanj.supabase.co`). A senha do banco foi gerada pelo Supabase e **ninguém a conhece**: o Arthur precisa redefini-la no painel. O projeto `Família Kuster` **não foi tocado**.
+4. **O núcleo do banco (com RLS) está escrito, validado e testado, mas NÃO aplicado.** O Supabase pede a aprovação do Arthur na tela para o assistente aplicar migration, e o pedido expirou (60 s). Tudo está em `supabase/` (`migrations/20261105000001_core_workspaces.sql`, `seed.example.sql`, `tests/rls-core.sql`, `README.md` com o passo a passo). Validado num Postgres 16 descartável: aplica duas vezes sem quebrar, a semente não duplica, o teste de isolamento passa, e **falha de verdade** quando a política é aberta ou a função fica exposta a `anon`. **Ainda não rodou no Supabase real.** Primeira tarefa da próxima sessão: confirmar com o Arthur que ele aplicou (`list_migrations` deve listar o núcleo), rodar `get_advisors` (security) e seguir.
+5. **A VPS antiga NÃO ficará no ar.** O protótipo Python (`frota.infra-assessoria-m1.cloud`) vai cair. **Antes de desligar**, o Arthur pode baixar o que for útil: os **modelos Word** que ele enviou (`/var/lib/frota/arquivos/modelos/`) e, se houver algo que valha, `/var/lib/frota/frota.sqlite` (`scp -r root@IP:/var/lib/frota/arquivos .`). Perguntar se ele já baixou os modelos Word: serão necessários para testar a geração de contrato na versão nova.
+6. **Ainda pendentes** (não respondidas): as 5 perguntas do Notion da seção 5.
 
 ## 1. Como trabalhar com o Arthur
 
@@ -80,7 +89,7 @@ O que o motor de tabelas precisa ter que o do CRM **não** tem: relação, rollu
 4. Pedir o banco **Sinistros** do Notion (não foi lido).
 5. **Multas, Faturamentos e Devoluções** têm planilha/outra fonte, ou nascem do zero?
 
-## 6. DECISÃO EM ABERTO Nº 1: o caminho da nuvem (Python × Cloudflare Pages)
+## 6. Caminho da nuvem (DECIDIDO: A; o texto abaixo é o raciocínio que levou a isso)
 
 O Arthur quer, no fim, **publicar no Cloudflare Pages ligado ao Supabase, sem VPS** (continuando na VPS enquanto termina o sistema). Isso colide com "majoritariamente Python".
 
@@ -101,17 +110,16 @@ O Arthur quer, no fim, **publicar no Cloudflare Pages ligado ao Supabase, sem VP
 - **C. Manter Python em servidor** (VPS ou outro host de contêiner) com Supabase como banco, e a Cloudflare só na frente (Tunnel + Access). Não é "Pages", mas não reescreve nada.
 
 **Recomendação feita ao Arthur (a confirmar com ele):** A, porque (1) é o que ele descreveu (Pages + Supabase, sem VPS), (2) ele já tem o `familia-kuster` como modelo comprovado, com design system, grade tipo planilha, arrastar, importação CSV, backup automático e RLS testada, e (3) o motor de tabelas e o editor de blocos do CRM existem em React/TypeScript, então seriam **copiados em vez de reescritos**; foi isso, aliás, que mais custou nesta sessão (reimplementar o editor em JavaScript puro). Se ele mantiver "Python" como regra, fazer **B** (com o teste) ou **C**.
-**Se for A:** parar de acrescentar funcionalidade grande ao protótipo Python (seria trabalho jogado fora) e usá-lo como **referência de regras** (colagem do Excel, status, cálculos do Início, mapeamento do Word) e de dados (um script exporta o SQLite para o Supabase).
+**Como é A:** parar de acrescentar funcionalidade grande ao protótipo Python (seria trabalho jogado fora) e usá-lo como **referência de regras** (colagem do Excel, status, cálculos do Início, mapeamento do Word) e de dados (um script exporta o SQLite para o Supabase).
 
-## 7. Supabase (conta "Assessoria M1")
+## 7. Supabase (conta "Assessoria M1"): estado em 05/11/2026
 
-Projetos vistos em 05/11/2026 (somente leitura):
-- `M1-Growth-CRM-dev-pc` (`fpxgtidrkcypzbsmchev`, sa-east-1): **banco antigo do CRM**, com dados reais: ~140 leads, 142 contatos, 3 organizações, 36 páginas de marketing publicadas (+30 rascunhos), 55 itens de venda e 132 parcelas, 3.571 linhas de auditoria. O Arthur diz que o CRM foi para outra VPS e outro Supabase.
-- `Família Kuster` (`igbdikbrzpyxwrbxuzha`, us-east-1): banco do repositório `familia-kuster`. **Não mexer.** (Detalhe a olhar com ele: o painel marca esse projeto com canal de versão "withdrawn".)
-- Plano gratuito: **2 projetos ativos**. Hoje são exatamente 2, então criar o da Frota exige pausar ou apagar um.
-
-**Recomendação para a Frota (a confirmar):** **projeto novo**, nome `frota`, região **São Paulo (sa-east-1)**, em vez de limpar/renomear o `CRM-dev-pc`. Motivos: o antigo tem centenas de tabelas, usuários, políticas e segredos do CRM; **as chaves dele já foram coladas em chats** (o `CONTEXTO-M1.md` do CRM manda trocá-las), então não deve ser reaproveitado; renomear não resolve nada disso.
-Ordem segura: (1) confirmar com o Arthur que o CRM novo **não usa mais** esse banco e que as 36 páginas de marketing etc. foram migradas; (2) **backup** do antigo (`supabase db dump`, como no `familia-kuster/.github/workflows/backup.yml`); (3) **pausar** o antigo (reversível, libera a vaga); (4) criar o `frota` (cadastro aberto desligado, RLS em toda tabela, chave `service_role` nunca no navegador nem no repositório); (5) **apagar** o antigo só semanas depois, quando ele tiver certeza. Nenhum desses passos foi executado.
+- `frota` (`hqivwljmjnagjuxzdanj`, sa-east-1): **criado, vazio**; falta aplicar o núcleo (seção 0, item 4).
+- `M1-Growth-CRM-dev-pc` (`fpxgtidrkcypzbsmchev`): **pausado**, a ser excluído pelo Arthur. Tinha dados de teste do CRM antigo. As chaves dele foram coladas em chats no passado: **nunca reaproveitar**.
+- `Família Kuster` (`igbdikbrzpyxwrbxuzha`, us-east-1): banco do `familia-kuster`. **Não mexer.** (O painel marca esse projeto com canal de versão "withdrawn"; vale mostrar ao Arthur.)
+- Plano gratuito: 2 projetos ativos (hoje: `frota` e `Família Kuster`).
+- O MCP do Supabase **pede aprovação na tela** para `apply_migration` (expira em 60 s). Não contornar por `execute_sql`. Se o Arthur estiver no celular, dar o SQL para colar no *SQL Editor* ou pedir que ele esteja com a tela aberta na hora.
+- Modelo de dados do núcleo: `workspaces`, `workspace_members` (um usuário, um espaço), funções `fn_my_workspaces()` e `fn_default_workspace()`; toda tabela de módulo leva `workspace_id` e a política "sou membro deste espaço". Segue o `familia-kuster` (lá se chama household).
 
 ## 8. Repositórios e o que reaproveitar
 
@@ -131,17 +139,21 @@ Sempre ler a **`main` do CRM** (`git show origin/main:caminho`), **não a branch
 - **Editor visual das estratégias:** `components/marketing/EditorVisualDeBlocos.tsx` + `lib/marketing/{blocos,edicao-de-blocos}.ts` e `BlocosRender.tsx`.
 - Design system original: `docs/design-system*`; guia de doutrina em `CLAUDE.md` (multi-tenancy, migrations idempotentes, etc.).
 
-## 9. Plano proposto (a ajustar com o Arthur)
+## 9. Plano (atualizado: caminho A)
 
-0. **Decidir** o caminho da nuvem (seção 6) e as 5 perguntas (seção 5).
-1. **Supabase novo** `frota` (seção 7), com ele acompanhando; chaves e senhas só entre ele e o painel.
-2. **Esqueleto** do app novo a partir do `familia-kuster` (autenticação, design system, PWA, migrations, RLS, backup). Aproveitar o Azul Frota e as regras do `docs/design-system.md`.
-3. **Esquema no Supabase** (veículos, clientes, eventos, saídas, comodatos, painéis) com RLS e teste de isolamento.
-4. **Trazer o que já existe:** Início, Veículos, colagem do Excel, Word, anotações (usando o editor React do CRM em vez de reimplementar).
-5. **Motor de tabelas** (copiar do CRM) com relação, rollup, fórmula e status com grupos; Veículos e Eventos nele.
-6. **Contratos** ligados à Saída; D4Sign quando houver acesso (via função do Supabase, nunca com a chave no navegador).
-7. Devoluções, Faturamentos, Sinistros, Multas; por fim o Dashboard financeiro.
-8. **Deploy** no Cloudflare Pages (ou Workers com Static Assets) + domínio; script para migrar os dados do SQLite da VPS; desligar a VPS.
+Legenda: ✅ feito · 🔶 pronto, falta o Arthur · ⬜ a fazer
+
+0. ✅ Decidir o caminho da nuvem (A) e o destino do Supabase antigo.
+1. 🔶 **Núcleo do banco** com RLS no projeto `frota`: escrito, validado e testado localmente; **falta o Arthur aplicar** (`supabase/README.md`, passos 1 a 6) e a gente conferir com `list_migrations` e `get_advisors`.
+2. ⬜ **Esqueleto do app** na pasta nova (sugestão: `web/` no mesmo repositório, e o protótipo Python fica em `frota/` até arquivar), copiando do `familia-kuster`: `src/ds` (trocando o azul-marinho pelo **Azul Frota** `#3366A0` e as fontes pela **Montserrat**), Shell/Sidebar, auth, `supabase.ts`, PWA, backup. Menu lateral com as 9 telas e o "Em breve", como no protótipo.
+3. ⬜ **Esquema do domínio** no Supabase (veículos, clientes, eventos, saídas, comodatos, painéis) com RLS e teste de isolamento por migration. **Depende das 5 perguntas do Notion** (seção 5), principalmente Saída de um carro ou de vários.
+4. ⬜ **Trazer o que já existe**, usando o protótipo Python como especificação: Início (calendário, avisos, envios/retornos, tarefas), Veículos, colagem do Excel (`papaparse`), Word por modelo (biblioteca JS de modelo Word, a validar com os modelos reais do Arthur), anotações e infos contábeis (**editor React do CRM**, não reescrever).
+5. ⬜ **Motor de tabelas** copiado do CRM (`lib/motor`, `components/motor`) com relação, rollup, fórmula, status com grupos, título e moeda; Veículos e Eventos nele.
+6. ⬜ Contratos ligados à Saída; D4Sign quando houver acesso (por função do Supabase; a chave nunca no navegador).
+7. ⬜ Devoluções, Faturamentos, Sinistros e Manutenções, Multas; por último o Dashboard financeiro.
+8. ⬜ **Deploy** no Cloudflare Pages (conectar o GitHub; variáveis `VITE_SUPABASE_URL` e `VITE_SUPABASE_ANON_KEY`; Site URL no Supabase), seguindo o `docs/SETUP.md` do `familia-kuster`. Cloudflare recomenda **Workers com Static Assets** para projetos novos: conferir qual dos dois usar.
+9. ⬜ **Backup automático** (copiar o `backup.yml` do `familia-kuster`; ele também evita o Supabase pausar por inatividade) e **segunda dona/dono** da conta, verificação em duas etapas.
+10. ⬜ Importar os dados reais (se houver) e **desligar** o que sobrou do protótipo.
 
 ## 10. Armadilhas já pagas
 
