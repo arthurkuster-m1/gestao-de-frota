@@ -154,6 +154,13 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ O banco recusa retorno com **km menor que a saída** e avaria marcada sem dizer quais. Cada checklist entra no histórico do carro.
 - Ainda não: fotos (decisão: não terão), "Em retorno" automático (continua à mão), lista geral de checklists, avarias que abrem manutenção sozinhas.
 
+## 7-G. Estado em 12/11/2026: Contratos e aditivos
+
+- ✅ **Contratos de comodato** (migration 0011, `/contratos`): **um por evento**, com cliente, status (**Rascunho, Enviado, Aguardando assinaturas, Assinado, Encerrado**), vigência (início e fim) e os carros do contrato. Tabela, cards e visões salvas, editáveis no lugar. Criar já sugere a vigência (da primeira chegada à última retirada das reservas) e marca os carros reservados. Marcar Assinado sem data preenche com hoje. Não dá para apagar evento ou cliente que tem contrato.
+- ✅ **Aditivos**: **troca de carros** (quais saem, quais entram) e **extensão de prazo** (novo fim da vigência), cada um com motivo, status e data de assinatura. **Só valem depois de Assinados**: a vigência em vigor é o fim da última extensão assinada e os carros em vigor são os do contrato menos os que saíram e mais os que entraram nas trocas assinadas (calculado, não gravado).
+- ✅ **Conferência com o evento** (calculada): carro reservado que o contrato não cobre, carro do contrato sem reserva, e reserva que passa do fim (ou começa antes do início) da vigência em vigor. Aparece na janela do contrato e na coluna Divergência.
+- Ainda não: **gerar o Word do modelo** (depende do modelo do Arthur), D4Sign, e a troca planejada na tela de Devoluções virar aditivo sozinha.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
