@@ -5,6 +5,7 @@ import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, c
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
 import { useTransportes } from "../transportes/useTransportes";
+import { useChecklists } from "../checklists/useChecklists";
 import type { Evento, EventoLocal, EventoLocalNovo, EventoNovo, Reserva } from "../../lib/eventos/tipos";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -19,6 +20,7 @@ export function useDadosDeEventos() {
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
   const man = useManutencoes();
   const tr = useTransportes();
+  const ck = useChecklists((id, estado) => setReservas((l) => l.map((r) => (r.id === id ? { ...r, estado } : r))), (id) => reservas.find((r) => r.id === id)?.estado);
   const [erro, setErro] = useState<string | null>(null);
 
   useEffect(() => {
@@ -74,5 +76,5 @@ export function useDadosDeEventos() {
     return criado;
   };
 
-  return { tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }
