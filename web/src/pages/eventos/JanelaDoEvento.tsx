@@ -11,6 +11,8 @@ import type { Evento, EventoLocal, EventoLocalNovo, Reserva } from "../../lib/ev
 import { agendaTexto, conflitos, reservasPorVeiculo } from "../../lib/eventos/uso";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
+import { ChecklistsDaReserva } from "../checklists/ChecklistsDaReserva";
+import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
 import { AdicionarVeiculos } from "./AdicionarVeiculos";
 import { camposDaReserva, camposDoLocal, type ReservaLinha } from "./camposDoEvento";
 import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
@@ -21,14 +23,15 @@ type Aba = AbaDoEvento;
 const ABAS: { id: Aba; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "locais", rotulo: "Locais" }, { id: "comentarios", rotulo: "Comentários" }];
 
 type Props = {
-  evento: Evento | null; campos: readonly CampoDaTela<Evento>[]; abaInicial: Aba; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; manutencoes?: Manutencao[];
+  evento: Evento | null; campos: readonly CampoDaTela<Evento>[]; abaInicial: Aba; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; manutencoes?: Manutencao[]; checklists?: Checklist[];
+  onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
   onEditarEvento: OnEditar<Evento>; onEditarReserva: OnEditar<ReservaLinha>; onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
   onRemoverReserva: (r: Reserva) => Promise<void>; onExcluir: (e: Evento) => Promise<void>; onFechar: () => void;
 };
 
 /** A janela do evento: dados, os carros reservados (período e estado editáveis no lugar, com aviso de conflito) e comentários. */
-export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas, eventos, locais, manutencoes, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
+export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas, eventos, locais, manutencoes, checklists = [], onSalvarChecklist, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const toast = useToast();
   const [aba, setAba] = useState<Aba>(abaInicial);
@@ -107,6 +110,7 @@ export function JanelaDoEvento({ evento, campos, abaInicial, veiculos, reservas,
                     <div className="mt-reserva-ed__campos">
                       {camposDaLinha.map((c) => <div key={c.id}><span className="rot">{c.titulo}</span><CampoEditavel linha={r} campo={c} ed={edReserva} navegaveis={navegaveisReserva} /></div>)}
                     </div>
+                    {onSalvarChecklist && <ChecklistsDaReserva reservaId={r.id} carro={r.codigo} checklists={checklists} onSalvar={onSalvarChecklist} />}
                     {r.conflito && <p className="mt-escolha__aviso" role="note" data-testid="aviso-conflito"><Warning size={16} weight="fill" />Este carro também está em: {r.conflito}</p>}
                   </article>
                 ))}

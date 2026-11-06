@@ -58,3 +58,7 @@
 .mt-reserva-ed__campos { display: grid; gap: var(--space-2) var(--space-4); grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); }
 .mt-reserva-ed__campos > div { display: grid; gap: 2px; }
 .mt-reserva-ed__campos .rot { font-size: 12px; font-weight: 600; color: var(--color-text-muted); }
+
+/* Checklists de saída e retorno dentro do cartão da reserva */
+.mt-checklists { display: grid; gap: 8px; border-top: 1px solid var(--color-border); padding-top: 10px; }
+.mt-checklist { display: grid; gap: 4px; }

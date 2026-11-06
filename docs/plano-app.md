@@ -147,6 +147,13 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ Eventos ganhou a coluna **Transporte (R$)** (soma dos valores planejados dos transportes; escondida por padrão, ativa em Propriedades).
 - Ainda não: valor real por transporte (hoje só no pagamento), pagamento que muda o status do evento, calcular km por endereço, aprovação por papel, checklist.
 
+## 7-F. Estado em 11/11/2026: Checklists de saída e retorno
+
+- ✅ **Checklists** (migration 0010), dentro de cada carro reservado na janela do evento (aba Veículos): **Saída** e **Retorno**, um de cada por reserva. Campos: data e hora, **km**, **combustível ou carga** (vazio, 1/4, 1/2, 3/4, cheio), **limpeza** (limpo, regular, sujo), **quem recebeu**, **avarias (sim/não e, se sim, quais)** e **observações**. Sem fotos.
+- ✅ **Automação do estado**: salvar a **saída** passa a reserva de Reservado para **Em uso**; salvar o **retorno** passa para **Concluído** (só para a frente; reserva cancelada não revive). O Status de uso do carro acompanha sozinho. Editar ou apagar o checklist depois não devolve o estado da reserva.
+- ✅ O banco recusa retorno com **km menor que a saída** e avaria marcada sem dizer quais. Cada checklist entra no histórico do carro.
+- Ainda não: fotos (decisão: não terão), "Em retorno" automático (continua à mão), lista geral de checklists, avarias que abrem manutenção sozinhas.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.
