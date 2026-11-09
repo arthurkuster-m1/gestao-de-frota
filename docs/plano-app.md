@@ -161,6 +161,14 @@ Ainda sem tela: seleção de linhas e edição em massa, Status de Uso e agenda 
 - ✅ **Conferência com o evento** (calculada): carro reservado que o contrato não cobre, carro do contrato sem reserva, e reserva que passa do fim (ou começa antes do início) da vigência em vigor. Aparece na janela do contrato e na coluna Divergência.
 - Ainda não: **gerar o Word do modelo** (depende do modelo do Arthur), D4Sign, e a troca planejada na tela de Devoluções virar aditivo sozinha.
 
+## 7-H. Estado em 13/11/2026: linha de visualizações no estilo do Notion (todas as tabelas)
+
+Vale para toda tela que usa o motor de tabela (Veículos, Eventos, Manutenções, Transportes, Pagamentos, Contratos e as duas tabelas do Planejamento), porque a mudança está na `TelaDoMotor`.
+- ✅ **Uma linha só**: à esquerda as **visualizações** (cada aba com o ícone do seu layout) e o **+**; à direita os **ícones pequenos** de **Filtrar, Ordenar, Agrupar, Buscar (lupa)** e **Configurações da visualização**, e por último o botão de ação da tela (Novo…). Os ícones ficam **cinza** sem nada configurado e **azuis** quando há filtro, ordenação ou agrupamento. A lupa abre o campo de busca no lugar; clicar de novo limpa.
+- ✅ **O layout (Tabela, Cards, Linha do tempo) agora é da visualização**: some o seletor solto. Clicando na aba ativa (ou no ícone de configurações) abre o painel da visualização com **nome, layout, propriedades (mostrar/esconder, ordem, congelar colunas)**, **Duplicar** e **Excluir**. Trocar o layout de uma visualização salva pede para Salvar; salvar grava o layout novo.
+- ✅ O **+** oferece os **modelos** (Tabela, Cards, Linha do tempo) e cria a visualização já com o nome do modelo. A aba padrão **Todas** tem o mesmo painel e a opção "Salvar como nova visualização".
+- Obs.: o Planejamento (duas linhas do tempo fixas) esconde a escolha de layout.
+
 ## 8. Perguntas abertas (uma de cada vez)
 
 1. ~~Contrato por evento ou por carro?~~ Respondida: por evento, com aditivos.

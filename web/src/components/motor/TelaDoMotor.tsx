@@ -1,14 +1,13 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
-import { ChartBarHorizontal, MagnifyingGlass, Rows, SquaresFour } from "@phosphor-icons/react";
-import { Card, Input, Page, Segmented, Skeleton } from "../../ds";
+import { MagnifyingGlass } from "@phosphor-icons/react";
+import { Card, Page, Skeleton, cx } from "../../ds";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { prefsIguais } from "../../lib/motor/prefs";
 import { configSegura, type VisaoSalva } from "../../lib/motor/visoes";
-import { AbasDeVisualizacao } from "./AbasDeVisualizacao";
+import { BarraDeVisualizacoes, layoutDe, type Layout } from "./BarraDeVisualizacoes";
 import { BarraDeConsulta } from "./BarraDeConsulta";
 import { CartoesDoMotor } from "./CartoesDoMotor";
-import { Propriedades } from "./Propriedades";
 import { TabelaDoMotor } from "./TabelaDoMotor";
 import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
 import { useEixoDoTempo, type EixoDoTempo } from "./useEixoDoTempo";
@@ -52,6 +51,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   const [abaId, setAbaId] = useState("todas");
   const [todas, setTodas] = useState<PreferenciasDaTabela>(() => { try { return configSegura(JSON.parse(localStorage.getItem(chaveTodas) ?? "{}")); } catch { return {}; } });
   const [rascunho, setRascunho] = useState<PreferenciasDaTabela | null>(null);
+  const [buscando, setBuscando] = useState(false);
   const [ocupado, setOcupado] = useState(false);
   const [erroVisao, setErroVisao] = useState<string | null>(null);
 
@@ -65,6 +65,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   const irParaAba = (id: string) => { setAbaId(id); setRascunho(null); setErroVisao(null); };
   const modo: "tabela" | "cards" | "timeline" = modoFixo === "timeline" ? "timeline" : prefs.visualizacao === "galeria" ? "cards" : prefs.visualizacao === "timeline" && linhaDoTempo ? "timeline" : "tabela";
 
+  const layouts: readonly Layout[] = linhaDoTempo ? ["tabela", "galeria", "timeline"] : ["tabela", "galeria"];
   const buscadas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     if (!q || !linhas) return linhas ?? [];
@@ -76,35 +77,30 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   return (
     <Casca compacta={compacta} tela={tela}>
       <div className="ds-stack">
-        {compacta ? (acoes && <div className="ds-row" style={{ flexWrap: "wrap" }}>{acoes}</div>) : (
-          <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
-            <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>
-            {acoes && <div className="ds-row" style={{ flexWrap: "wrap" }}>{acoes}</div>}
-          </div>
-        )}
+        {!compacta && <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>}
         {avisos}
 
-        <AbasDeVisualizacao visoes={v.visoes} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
-          onCriar={async (nome, tipo) => { const nova = await comAviso(() => v.criar(nome, tipo, { ...prefs, visualizacao: tipo })); if (nova) { if (!ativa) setTodas({}); irParaAba(nova.id); } }}
-          onSalvar={async () => { if (ativa && rascunho) { await comAviso(() => v.atualizar(ativa.id, { config: rascunho })); setRascunho(null); } }}
+        <BarraDeVisualizacoes<T> visoes={v.visoes} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
+          layoutAtivo={modo === "cards" ? "galeria" : modo === "timeline" ? "timeline" : "tabela"} layoutsDisponiveis={layouts} layoutFixo={!!modoFixo}
+          campos={campos} prefs={prefs} onPrefs={onPrefs}
+          onNovoLayout={async (layout: Layout, nome: string) => { const nova = await comAviso(() => v.criar(nome, layout, { visualizacao: layout })); if (nova) irParaAba(nova.id); }}
+          onSalvarComo={async (nome) => { const nova = await comAviso(() => v.criar(nome, prefs.visualizacao ?? "tabela", prefs)); if (nova) { if (!ativa) setTodas({}); irParaAba(nova.id); } }}
+          onSalvar={async () => { if (ativa && rascunho) { await comAviso(() => v.atualizar(ativa.id, { config: rascunho, tipo: layoutDe({ tipo: ativa.tipo, config: rascunho }) })); setRascunho(null); } }}
           onDescartar={() => { if (ativa) setRascunho(null); else setTodas({}); }}
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
-          onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }} />
-
-        <div className="mt-linha-ferramentas">
-          <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} />
-          <Propriedades campos={campos} prefs={prefs} onChange={onPrefs} />
-          {!modoFixo && (
-            <Segmented options={[{ value: "tabela", label: <span className="mt-modo"><Rows size={16} />Tabela</span> }, { value: "cards", label: <span className="mt-modo"><SquaresFour size={16} />Cards</span> },
-              ...(linhaDoTempo ? [{ value: "timeline", label: <span className="mt-modo"><ChartBarHorizontal size={16} />Linha do tempo</span> }] : [])]} value={modo}
-              onChange={(m) => onPrefs({ ...prefs, visualizacao: m === "cards" ? "galeria" : m === "timeline" ? "timeline" : "tabela" })} />
-          )}
-          <div style={{ position: "relative", flex: "1 1 200px", maxWidth: 300, marginLeft: "auto" }}>
-            <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder={placeholderDaBusca} aria-label={`Buscar em ${titulo}`} />
-            <MagnifyingGlass size={18} style={{ position: "absolute", right: 14, top: 13, color: "var(--color-text-subtle)" }} aria-hidden />
-          </div>
-        </div>
+          onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
+          acoes={acoes}
+          ferramentas={<>
+            <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} />
+            <div className="mt-busca">
+              {buscando || busca ? (
+                <input value={busca} autoFocus={buscando} onChange={(e) => setBusca(e.target.value)} onBlur={(e) => { const campo = e.currentTarget; window.setTimeout(() => { if (!campo.value) setBuscando(false); }, 250); }} onKeyDown={(e) => { if (e.key === "Escape") { setBusca(""); setBuscando(false); } }}
+                  placeholder={placeholderDaBusca} aria-label={`Buscar em ${titulo}`} data-testid="campo-busca" />
+              ) : null}
+              <button type="button" className={cx("mt-btn", "mt-btn--icone", !!busca && "is-on")} aria-label="Abrir busca" title="Buscar" data-testid="abrir-busca" onClick={() => { if (busca) { setBusca(""); setBuscando(false); } else setBuscando(!buscando); }}><MagnifyingGlass size={18} /></button>
+            </div>
+          </>} />
 
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>

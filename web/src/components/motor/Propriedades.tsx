@@ -1,10 +1,9 @@
 import { DndContext, PointerSensor, KeyboardSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, sortableKeyboardCoordinates, useSortable, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { DotsSixVertical, Eye, EyeSlash, Columns } from "@phosphor-icons/react";
+import { DotsSixVertical, Eye, EyeSlash } from "@phosphor-icons/react";
 import { Select } from "../../ds";
 import { alternarVisibilidade, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
-import { Painel } from "./Painel";
 import type { CampoDaTela } from "./tipos";
 
 function Item({ id, titulo, visivel, travada, onAlternar }: { id: string; titulo: string; visivel: boolean; travada: boolean; onAlternar: () => void }) {
@@ -18,7 +17,7 @@ function Item({ id, titulo, visivel, travada, onAlternar }: { id: string; titulo
   );
 }
 
-/** Escolher, ordenar (arrastando) e congelar as propriedades da tabela. */
+/** Escolher, ordenar (arrastando) e congelar as propriedades da visualização. Vive dentro do painel de configuração da visualização. */
 export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; onChange: (p: PreferenciasDaTabela) => void }) {
   const cols = resolverColunas(campos, prefs);
   const movel = cols.filter((c) => !c.fixa);
@@ -32,9 +31,9 @@ export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly 
   const visiveis = cols.filter((c) => c.visivel).length;
   const congelar = prefs.congelar ?? 1;
   return (
-    <Painel rotulo="Propriedades" icone={<Columns size={18} />} contagem={visiveis} testid="painel-propriedades" largura={380}>
-      <div className="mt-painel__corpo">
-        <p className="t-body-sm t-muted">Escolha o que aparece, arraste para mudar a ordem e congele colunas à esquerda.</p>
+    <div className="mt-props-bloco" data-testid="propriedades-da-visao">
+      <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 700 }}>Propriedades</span><span className="t-body-sm t-muted">{visiveis} visíveis</span></div>
+      <p className="t-body-sm t-muted">Escolha o que aparece, arraste para mudar a ordem e congele colunas à esquerda.</p>
         {cols.filter((c) => c.fixa).map((c) => <ul key={c.id} className="mt-props"><Item id={c.id} titulo={tituloDe(c.id)} visivel travada onAlternar={() => undefined} /></ul>)}
         <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
           <SortableContext items={movel.map((c) => c.id)} strategy={verticalListSortingStrategy}>
@@ -49,7 +48,6 @@ export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly 
             {[2, 3, 4].map((n) => <option key={n} value={n}>Primeiras {n} colunas</option>)}
           </Select>
         </div>
-      </div>
-    </Painel>
+    </div>
   );
 }

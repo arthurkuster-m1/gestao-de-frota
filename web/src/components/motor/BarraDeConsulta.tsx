@@ -28,7 +28,7 @@ export function BarraDeConsulta<T>({ campos, linhas, consulta, onChange }: Props
 
   return (
     <div className="mt-barra" data-testid="barra-consulta">
-      <Painel rotulo="Filtrar" icone={<Funnel size={18} />} contagem={filtros.length} testid="painel-filtrar">
+      <Painel soIcone rotulo="Filtrar" icone={<Funnel size={18} />} contagem={filtros.length} testid="painel-filtrar">
         <div className="mt-painel__corpo">
           {filtros.length === 0 && <p className="t-body-sm t-muted">Nenhum filtro. Adicione um para ver só parte dos veículos.</p>}
           {filtros.map((f, i) => {
@@ -56,7 +56,7 @@ export function BarraDeConsulta<T>({ campos, linhas, consulta, onChange }: Props
         </div>
       </Painel>
 
-      <Painel rotulo="Ordenar" icone={<ArrowsDownUp size={18} />} contagem={ordenacao.length} testid="painel-ordenar" largura={440}>
+      <Painel soIcone rotulo="Ordenar" icone={<ArrowsDownUp size={18} />} contagem={ordenacao.length} testid="painel-ordenar" largura={440}>
         <div className="mt-painel__corpo">
           {ordenacao.length === 0 && <p className="t-body-sm t-muted">Sem ordenação: a ordem é a de cadastro. Clicar no título de uma coluna também ordena.</p>}
           {ordenacao.map((o, i) => (
@@ -70,7 +70,7 @@ export function BarraDeConsulta<T>({ campos, linhas, consulta, onChange }: Props
         </div>
       </Painel>
 
-      <Painel rotulo="Agrupar" icone={<Rows size={18} />} contagem={consulta.agrupar ? 1 : 0} testid="painel-agrupar" largura={400}>
+      <Painel soIcone rotulo="Agrupar" icone={<Rows size={18} />} contagem={consulta.agrupar ? 1 : 0} testid="painel-agrupar" largura={400}>
         <div className="mt-painel__corpo">
           <Select aria-label="Agrupar por" value={consulta.agrupar ?? ""} onChange={(e) => salvar({ agrupar: e.target.value || undefined })}>
             <option value="">Sem agrupamento</option>

@@ -169,3 +169,23 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-tl__alca--ini { left: 0; } .mt-tl__alca--fim { right: 0; }
 .mt-tl__alca:hover { background: rgba(51, 102, 160, 0.25); }
 @media (max-width: 720px) { .mt-tl { max-height: calc(100dvh - 420px); } }
+
+/* ── Linha de visualizações no estilo do Notion: abas + "+" à esquerda; ícones pequenos, configuração e ação à direita ── */
+.mt-vbar { display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; border-bottom: 1px solid var(--color-border); }
+.mt-vbar .mt-abas { flex: 1 1 220px; min-width: 0; border-bottom: 0; }
+.mt-vbar__dir { display: flex; align-items: center; gap: 2px; flex: none; margin-left: auto; padding-bottom: 4px; flex-wrap: wrap; justify-content: flex-end; }
+.mt-vbar__acoes { display: flex; align-items: center; gap: 6px; margin-left: 8px; flex-wrap: wrap; }
+.mt-ferramentas { display: contents; }
+.mt-btn--icone { min-height: 34px; min-width: 34px; padding: 0; justify-content: center; border: 0; background: transparent; color: var(--color-text-subtle); border-radius: var(--radius-md); }
+.mt-btn--icone:hover { background: var(--color-surface-elevated); color: var(--color-text); border: 0; }
+.mt-btn--icone.is-on { background: transparent; color: var(--color-accent); border: 0; }
+.mt-btn--icone.is-on:hover { background: var(--color-accent-soft); }
+.mt-aba { display: inline-flex; align-items: center; gap: 6px; }
+.mt-aba__icone { display: inline-flex; opacity: 0.8; }
+.mt-busca { display: inline-flex; align-items: center; }
+.mt-busca input { width: 200px; min-height: 34px; padding: 0 10px; border-radius: var(--radius-md); border: 1px solid var(--color-border-strong); background: var(--color-surface); font-size: 13px; }
+.mt-config__rodape { display: grid; gap: 2px; border-top: 1px solid var(--color-border); padding-top: 8px; }
+.mt-props-bloco { display: grid; gap: var(--space-2); border-top: 1px solid var(--color-border); padding-top: 10px; }
+@media (max-width: 640px) { .mt-busca input { width: 150px; } .mt-vbar__dir { flex: 1 1 100%; margin-left: 0; max-width: 100%; } .mt-vbar__acoes { margin-left: auto; padding-top: 4px; justify-content: flex-end; } }
+.mt-vbar__dir .mt-barra { display: contents; }
+.mt-modo { white-space: nowrap; }
