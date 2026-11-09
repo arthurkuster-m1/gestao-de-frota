@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CalendarBlank, CalendarCheck, Plus, Warning, Wrench, X } from "@phosphor-icons/react";
@@ -79,6 +80,7 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
     <dialog ref={ref} className="mt-janela" aria-label={`Veículo ${titulo}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {veiculo && (
         <div className="mt-janela__corpo" data-testid="janela-veiculo">
+          <AlcaDoPainel />
           <header className="mt-janela__topo">
             <div><h2 className="t-h2" data-testid="titulo-janela">{titulo}</h2><div className="mt-janela__sub">{formatar(campos.find((c) => c.id === "ciclo")!, veiculo)}</div></div>
             <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>

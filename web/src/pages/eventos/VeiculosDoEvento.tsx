@@ -1,13 +1,19 @@
-import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
-import { useMemo, useState, type ReactNode } from "react";
-import { CaretLeft, CaretRight, ClipboardText, Columns, ListChecks, Lock, Plus, Trash, Warning } from "@phosphor-icons/react";
-import { validarEndereco } from "../../lib/enderecos";
-import { Button, Switch, cx, useToast } from "../../ds";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
+import { Link } from "react-router-dom";
+import { CaretLeft, CaretRight, ClipboardText, Columns, CopySimple, ListChecks, Lock, Plus, Trash, Warning, X } from "@phosphor-icons/react";
+import { Button, Sheet, Switch, cx, useToast } from "../../ds";
+import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
 import { Painel } from "../../components/motor/Painel";
+import { prepararEdicao } from "../../components/motor/edicao";
+import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, type Ponto } from "../../components/motor/selecao";
+import { ThOrdenavel } from "../../components/motor/ThOrdenavel";
 import type { CampoDaTela } from "../../components/motor/tipos";
-import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
+import { useEdicao } from "../../components/motor/useEdicao";
+import { validarEndereco } from "../../lib/enderecos";
 import { formatarDiaBr, hojeLocal } from "../../lib/motor/datas";
 import { codigoDaLinha, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresEfetivos, type LinhaDoEvento } from "../../lib/eventos/linhasDoEvento";
 import type { Evento, EventoLocal, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
@@ -19,7 +25,6 @@ import type { Veiculo } from "../../lib/veiculos/tipos";
 import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
 import { ChecklistsDaReserva } from "../checklists/ChecklistsDaReserva";
 import type { useTransportes } from "../transportes/useTransportes";
-import { Sheet } from "../../ds";
 import { AdicionarVeiculos } from "./AdicionarVeiculos";
 import { OPCOES_STATUS_EVENTO } from "./camposDoEvento";
 import { TransporteDoCarroSheet } from "./TransporteDoCarroSheet";
@@ -30,9 +35,15 @@ const COLUNAS_OPCIONAIS: { id: ColunaOpcional; titulo: string }[] = [
   { id: "status", titulo: "Status do carro" }, { id: "transporteIda", titulo: "Transporte de ida" }, { id: "transporteVolta", titulo: "Transporte de volta" },
   { id: "origem", titulo: "Origem" }, { id: "chegada", titulo: "Data de chegada" }, { id: "enderecoChegada", titulo: "Endereço de chegada" }, { id: "retirada", titulo: "Data de retirada" },
 ];
-const CHAVE = "frota:evento-veiculos:v1";
+const INFO = [{ id: "placa", titulo: "Placa" }, { id: "vin", titulo: "VIN" }, { id: "modelo", titulo: "Modelo" }, { id: "cor", titulo: "Cor" }, { id: "my", titulo: "MY" }] as const;
+const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "origem", "chegada", "enderecoChegada", "retirada"];
+const CHAVE = "frota:evento-veiculos:v2";
+/** `colunas` = as colunas ligadas, NA ORDEM em que aparecem (arrastar o título muda a ordem). */
 type Prefs = { info: boolean; colunas: ColunaOpcional[] };
-function lerPrefs(): Prefs { try { const p = JSON.parse(localStorage.getItem(CHAVE) ?? "null") as Prefs | null; if (p && typeof p.info === "boolean" && Array.isArray(p.colunas)) return p; } catch { /* sem armazenamento */ } return { info: false, colunas: [] }; }
+function lerPrefs(): Prefs {
+  try { const p = JSON.parse(localStorage.getItem(CHAVE) ?? "null") as Prefs | null; if (p && typeof p.info === "boolean" && Array.isArray(p.colunas)) return { info: p.info, colunas: p.colunas.filter((c) => COLUNAS_OPCIONAIS.some((o) => o.id === c)) }; } catch { /* sem armazenamento */ }
+  return { info: false, colunas: [] };
+}
 function gravarPrefs(p: Prefs) { try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento */ } }
 
 type Props = {
@@ -44,9 +55,10 @@ type Props = {
 };
 
 /**
- * Os carros do evento numa tabela só. Padrão: "Definido" (marcado quando o carro já foi escolhido; clicar abre a escolha já filtrada pelo pedido da linha)
- * e "Código" (com a setinha que abre Placa/VIN/Modelo/Cor/MY e o botão que copia a tabelinha para o Outlook). Eventos grandes mostram
- * as colunas individuais (status, transportes, origem, chegada, endereço, retirada): herdam do evento até ligar "Edição individual".
+ * Os carros do evento numa tabela só. Padrão: "Definido" e "Código" (setinha: Placa/VIN/Modelo/Cor/MY; prancheta: copia para o Outlook).
+ * Eventos grandes: colunas individuais (status, transportes, origem, chegada, endereço, retirada) que herdam do evento. Dá para
+ * arrastar o título para mudar a ordem, selecionar células (arrastando), copiar, colar, duplicar para baixo e marcar vários carros
+ * para aplicar o MESMO transporte de uma vez.
  */
 export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro }: Props) {
   const toast = useToast();
@@ -54,8 +66,11 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
   const [individual, setIndividual] = useState(false);
   const [escolhendo, setEscolhendo] = useState<{ pedido: ModeloDesejado | null } | null>(null);
-  const [transporte, setTransporte] = useState<{ linha: LinhaDoEvento; sentido: Sentido } | null>(null);
+  const [transporte, setTransporte] = useState<{ reservaIds: string[]; sentido: Sentido; rotulo: string; atual: Transporte | null } | null>(null);
   const [checklist, setChecklist] = useState<LinhaDoEvento | null>(null);
+  const [marcados, setMarcados] = useState<Set<string>>(new Set());          // carros marcados (caixinha) para ações em massa
+  const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);      // bloco de células selecionado
+  const arrastandoSel = useRef(false);
 
   const pedidosDoEvento = useMemo(() => desejados.filter((p) => p.evento_id === evento.id), [desejados, evento.id]);
   const locaisDoEvento = useMemo(() => locais.filter((l) => l.evento_id === evento.id), [locais, evento.id]);
@@ -67,8 +82,14 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
     return id ? (tr.transportes.find((t) => t.id === id) ?? null) : null;
   };
   const custo = custoDoEvento(tr.transportes, evento.id);
-  const mostra = (c: ColunaOpcional) => prefs.colunas.includes(c);
+  const ordenadas = prefs.colunas;                                           // colunas opcionais ligadas, em ordem
+  const colunasInfo = prefs.info ? INFO.map((c) => c.id as string) : [];
+  /** Colunas selecionáveis (por células), na ordem em que aparecem. */
+  const colunasSel = useMemo(() => [...colunasInfo, ...ordenadas] as string[], [colunasInfo.join(","), ordenadas.join(",")]);  // eslint-disable-line react-hooks/exhaustive-deps
+  const tituloDe = (id: string) => INFO.find((c) => c.id === id)?.titulo ?? COLUNAS_OPCIONAIS.find((c) => c.id === id)?.titulo ?? id;
 
+  // edição individual: só com o interruptor ligado (clicar numa célula herdada liga e já abre o editor)
+  const [pendente, setPendente] = useState<{ l: LinhaDoEvento; id: string } | null>(null);
   const ed = useEdicao<LinhaDoEvento>((l) => l.key, individual ? async (l, campo, valor) => {
     if (!l.reserva) throw new Error("Defina o veículo desta linha primeiro.");
     await onSalvarReserva(l.reserva.id, { [campo.edicao!.coluna]: valor } as never);
@@ -88,9 +109,23 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [evento, locaisDoEvento]);
   const navegaveis = Object.keys(campos);
-  const celulaEditavel = (l: LinhaDoEvento, c: CampoDaTela<LinhaDoEvento>) => (l.reserva && individual ? <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} /> : <span className="mt-valor">{c.celula?.(l)}</span>);
+  useEffect(() => { if (individual && pendente) { ed.abrir(pendente.l, campos[pendente.id as keyof typeof campos]); setPendente(null); } }, [individual, pendente]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  async function copiar() {
+  const resumoTexto = (t: Transporte | null) => (t ? [t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada", t.referencia, t.transportadora, t.valor_planejado != null ? reais(t.valor_planejado) : null].filter(Boolean).join(" · ") : "");
+  /** O texto de uma célula como aparece (é o que vai para a área de transferência). */
+  const textoDaCelula = (colId: string, l: LinhaDoEvento): string => {
+    const v = l.veiculo; const ef = valoresEfetivos(l, evento, locaisDoEvento);
+    switch (colId) {
+      case "placa": return v?.placa ?? ""; case "vin": return v?.vin ?? ""; case "modelo": return v?.modelo ?? ""; case "cor": return v?.cor ?? ""; case "my": return v?.my ?? "";
+      case "status": return OPCOES_STATUS_EVENTO.find((o) => o.value === ef.status.valor)?.label ?? ef.status.valor ?? "";
+      case "origem": return ef.origem.valor ?? ""; case "enderecoChegada": return ef.enderecoChegada.valor ?? "";
+      case "chegada": return ef.chegada.valor ? formatarDiaBr(ef.chegada.valor) : ""; case "retirada": return ef.retirada.valor ? formatarDiaBr(ef.retirada.valor) : "";
+      case "transporteIda": return resumoTexto(transporteDe(l, "ida")); case "transporteVolta": return resumoTexto(transporteDe(l, "volta"));
+      default: return "";
+    }
+  };
+
+  async function copiarOutlook() {
     const t = tabelaParaOutlook(linhas);
     if (!linhas.some((l) => l.veiculo)) { toast("Nenhum carro definido para copiar"); return; }
     try {
@@ -100,16 +135,118 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
     } catch { onErro("Não consegui copiar. Libere a área de transferência no navegador."); }
   }
 
-  const resumoTransporte = (l: LinhaDoEvento, s: Sentido): ReactNode => {
+  // ---- seleção de células: copiar, colar e duplicar para baixo
+  const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
+  const ref = useRef({ faixa, linhas, colunasSel, texto: textoDaCelula });
+  ref.current = { faixa, linhas, colunasSel, texto: textoDaCelula };   // os ouvintes do documento leem sempre o estado de agora
+  const fazer = useRef<{ colar: (m: string[][]) => void; duplicar: () => void }>({ colar: () => undefined, duplicar: () => undefined });
+  fazer.current = {
+    colar: (m) => void (async () => {
+      const { faixa: f, linhas: ls, colunasSel: cs } = ref.current; if (!f) return;
+      if (!individual) setIndividual(true);
+      const encher = m.length === 1 && m[0]!.length === 1 && multiplas(f);
+      const nl = encher ? f.l1 - f.l0 + 1 : m.length; let ok = 0, pulados = 0, erro: string | null = null;
+      for (let dr = 0; dr < nl; dr++) {
+        const l = ls[f.l0 + dr]; if (!l) break; const linhaM = encher ? m[0]! : m[dr]!; const nc = encher ? f.c1 - f.c0 + 1 : linhaM.length;
+        for (let dc = 0; dc < nc; dc++) {
+          const colId = cs[f.c0 + dc]; const cp = colId && (CAMPOS_EDITAVEIS as string[]).includes(colId) ? campos[colId as keyof typeof campos] : null;
+          if (!cp || !l.reserva) { pulados++; continue; }
+          const bruto = converterColado(cp, encher ? m[0]![0]! : linhaM[dc]!);
+          if (bruto === undefined) { pulados++; continue; }
+          const prep = prepararEdicao(cp.tipo, cp.edicao!, bruto);
+          if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
+          try { await onSalvarReserva(l.reserva.id, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; }
+        }
+      }
+      if (erro) onErro(erro);
+      toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
+    })(),
+    duplicar: () => void (async () => {
+      const { faixa: f, linhas: ls, colunasSel: cs } = ref.current; if (!f || f.l0 === f.l1) { toast("Selecione mais de uma linha para duplicar para baixo"); return; }
+      const origem = ls[f.l0]!; const destinos = ls.slice(f.l0 + 1, f.l1 + 1).filter((l) => l.reserva); let n = 0;
+      if (!individual) setIndividual(true);
+      try {
+        for (let c = f.c0; c <= f.c1; c++) {
+          const colId = cs[c]; if (!colId) continue;
+          if (colId === "transporteIda" || colId === "transporteVolta") {
+            const s: Sentido = colId === "transporteIda" ? "ida" : "volta"; const t = transporteDe(origem, s);
+            if (destinos.length) { await tr.ligarCarros(destinos.map((l) => l.reserva!.id), s, t?.id ?? null); n += destinos.length; }
+          } else if ((CAMPOS_EDITAVEIS as string[]).includes(colId)) {
+            const cp = campos[colId as keyof typeof campos]; const valor = cp.valorDe(origem);
+            for (const l of destinos) { await onSalvarReserva(l.reserva!.id, { [cp.edicao!.coluna]: (valor ?? null) } as never); n++; }
+          }
+        }
+        toast(`${n} célula(s) preenchidas para baixo`);
+      } catch (x) { onErro((x as Error).message); }
+    })(),
+  };
+  useEffect(() => {
+    const solta = () => { arrastandoSel.current = false; };
+    const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-vde__tabela")) setSel(null); };
+    const copiar = (e: ClipboardEvent) => {
+      const { faixa: f, linhas: ls, colunasSel: cs, texto } = ref.current;
+      if (!f || (!multiplas(f) && window.getSelection()?.toString())) return;
+      const m: string[][] = [];
+      for (let r = f.l0; r <= f.l1; r++) { const l = ls[r]; if (l) m.push(cs.slice(f.c0, f.c1 + 1).map((c) => texto(c, l))); }
+      e.clipboardData?.setData("text/plain", paraTsv(m)); e.preventDefault();
+      toast(multiplas(f) ? `${m.length * (f.c1 - f.c0 + 1)} células copiadas` : "Célula copiada");
+    };
+    const colar = (e: ClipboardEvent) => {
+      if (!ref.current.faixa || (e.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable]")) return;
+      const texto = e.clipboardData?.getData("text/plain"); if (!texto) return;
+      e.preventDefault(); fazer.current.colar(deTsv(texto));
+    };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSel(null);
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d" && ref.current.faixa && !(e.target as HTMLElement | null)?.closest("input, textarea, select")) { e.preventDefault(); fazer.current.duplicar(); }
+    };
+    window.addEventListener("mouseup", solta); document.addEventListener("mousedown", fora); document.addEventListener("keydown", tecla);
+    document.addEventListener("copy", copiar); document.addEventListener("paste", colar);
+    return () => { window.removeEventListener("mouseup", solta); document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); document.removeEventListener("copy", copiar); document.removeEventListener("paste", colar); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** `td` de dados: seleciona arrastando; bordas do bloco; conteúdo editável (ou read-only até ligar a edição individual). */
+  const celula = (l: LinhaDoEvento, li: number, colId: string, conteudo: ReactNode) => {
+    const ci = colunasSel.indexOf(colId);
+    const dentro = !!faixa && multiplas(faixa) && li >= faixa.l0 && li <= faixa.l1 && ci >= faixa.c0 && ci <= faixa.c1;
+    const bordas = dentro && faixa ? cx("mt-sel", li === faixa.l0 && "mt-sel-t", li === faixa.l1 && "mt-sel-b", ci === faixa.c0 && "mt-sel-l", ci === faixa.c1 && "mt-sel-r") : "";
+    return (
+      <td key={colId} className={bordas} onMouseDown={(e) => { if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, a, select, textarea")) return; const p = { l: li, c: ci }; if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); } else setSel({ a: p, b: p }); arrastandoSel.current = true; }}
+        onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: li, c: ci } } : v)); }}>{conteudo}</td>
+    );
+  };
+  const editavel = (l: LinhaDoEvento, id: keyof typeof campos): ReactNode => {
+    const c = campos[id];
+    if (!l.reserva) return <span className="mt-valor">{c.celula?.(l)}</span>;
+    if (individual) return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;
+    return <button type="button" className="mt-valor mt-valor--edita" title="Clique para editar este carro (liga a Edição individual)" onClick={() => { setIndividual(true); setPendente({ l, id }); toast("Edição individual ligada"); }}>{c.celula?.(l)}</button>;
+  };
+  const botaoTransporte = (l: LinhaDoEvento, s: Sentido): ReactNode => {
     const t = transporteDe(l, s);
-    if (!t) return <span className="mt-vazio">{l.reserva ? "＋ Definir" : "—"}</span>;
-    const m = t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada";
-    return <span className="mt-transp"><b>{m}</b>{t.referencia ? ` ${t.referencia}` : ""}{t.transportadora ? ` · ${t.transportadora}` : ""}{t.valor_planejado != null ? ` · ${reais(t.valor_planejado)}` : ""}</span>;
+    const m = t ? (t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada") : null;
+    return (
+      <button type="button" className="mt-valor mt-valor--edita" disabled={!l.reserva} onClick={() => l.reserva && setTransporte({ reservaIds: [l.reserva.id], sentido: s, rotulo: codigoDaLinha(l), atual: t })}>
+        {t ? <span className="mt-transp"><b>{m}</b>{t.referencia ? ` ${t.referencia}` : ""}{t.transportadora ? ` · ${t.transportadora}` : ""}{t.valor_planejado != null ? ` · ${reais(t.valor_planejado)}` : ""}</span> : <span className="mt-vazio">{l.reserva ? "＋ Definir" : "—"}</span>}
+      </button>
+    );
   };
 
-  const definidos = linhas.filter((l) => l.reserva).length;
-  const colunasInfo = prefs.info ? ["Placa", "VIN", "Modelo", "Cor", "MY"] : [];
+  // ---- ordem das colunas (arrastando o título) e seleção em massa
+  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const aoSoltarColuna = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    const de = ordenadas.indexOf(e.active.id as ColunaOpcional), para = ordenadas.indexOf(e.over.id as ColunaOpcional);
+    if (de >= 0 && para >= 0) muda({ ...prefs, colunas: arrayMove(ordenadas, de, para) });
+  };
+  const definidas = linhas.filter((l) => l.reserva);
+  const todosMarcados = definidas.length > 0 && definidas.every((l) => marcados.has(l.key));
+  const alternar = (k: string) => setMarcados((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
+  const marcadas = definidas.filter((l) => marcados.has(l.key));
+  const emMassa = (s: Sentido) => { const ids = marcadas.map((l) => l.reserva!.id); const primeiro = transporteDe(marcadas[0]!, s); setTransporte({ reservaIds: ids, sentido: s, rotulo: `${ids.length} carros`, atual: marcadas.every((l) => transporteDe(l, s)?.id === primeiro?.id) ? primeiro : null }); };
+
+  const definidos = definidas.length;
   const pedidoAlvo = escolhendo?.pedido ?? null;
+  const nCols = 4 + colunasInfo.length + ordenadas.length;
 
   return (
     <div className="mt-vde" data-testid="veiculos-do-evento">
@@ -117,33 +254,54 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
         <div><h3 className="t-h3">Carros deste evento</h3><span className="t-body-sm t-muted">{definidos} definido{definidos === 1 ? "" : "s"} · {linhas.length - definidos} a definir</span></div>
         <div className="ds-row" style={{ flexWrap: "wrap", gap: 12 }}>
           <span title="Liga a edição de status, transporte, origem, datas e endereço de cada carro"><Switch checked={individual} onChange={setIndividual} label="Edição individual" /></span>
-          <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={prefs.colunas.length} largura={280} testid="colunas-do-evento">
+          <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={ordenadas.length} largura={280} testid="colunas-do-evento">
             <div className="mt-painel__corpo">
-              {COLUNAS_OPCIONAIS.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={mostra(c.id)} onChange={() => muda({ ...prefs, colunas: mostra(c.id) ? prefs.colunas.filter((x) => x !== c.id) : [...prefs.colunas, c.id] })} />{c.titulo}</label>)}
+              {COLUNAS_OPCIONAIS.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={ordenadas.includes(c.id)} onChange={() => muda({ ...prefs, colunas: ordenadas.includes(c.id) ? ordenadas.filter((x) => x !== c.id) : [...ordenadas, c.id] })} />{c.titulo}</label>)}
+              <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
             </div>
           </Painel>
           <Button icon={<Plus size={18} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
         </div>
       </div>
 
+      {(marcadas.length > 0 || (faixa && multiplas(faixa))) && (
+        <div className="mt-vde__massa" role="toolbar" aria-label="Ações em massa" data-testid="barra-em-massa">
+          {marcadas.length > 0 && <>
+            <b>{marcadas.length} carro{marcadas.length === 1 ? "" : "s"} marcado{marcadas.length === 1 ? "" : "s"}</b>
+            <Button size="sm" variant="secondary" onClick={() => emMassa("ida")} data-testid="massa-ida">Transporte de ida…</Button>
+            <Button size="sm" variant="secondary" onClick={() => emMassa("volta")} data-testid="massa-volta">Transporte de volta…</Button>
+            <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setMarcados(new Set())}>Limpar</Button>
+          </>}
+          {faixa && multiplas(faixa) && <Button size="sm" variant="secondary" icon={<CopySimple size={16} />} onClick={() => fazer.current.duplicar()} data-testid="duplicar-para-baixo" title="Ctrl + D">Duplicar para baixo</Button>}
+        </div>
+      )}
+
       <div className="mt-vde__rolar">
         <table className="mt-vde__tabela">
-          <thead><tr>
-            <th className="mt-vde__def">Definido</th>
-            <th><span className="mt-vde__cod">Código
-              <button type="button" className="mt-btn mt-btn--icone" aria-label={prefs.info ? "Esconder placa, VIN, modelo, cor e MY" : "Mostrar placa, VIN, modelo, cor e MY"} aria-expanded={prefs.info} onClick={() => muda({ ...prefs, info: !prefs.info })} data-testid="toggle-info">{prefs.info ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button>
-              <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiar()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span></th>
-            {colunasInfo.map((c) => <th key={c}>{c}</th>)}
-            {COLUNAS_OPCIONAIS.filter((c) => mostra(c.id)).map((c) => <th key={c.id}>{c.titulo}</th>)}
-            <th className="mt-vde__acoes" aria-label="Ações" />
-          </tr></thead>
+          <thead>
+            <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
+              <SortableContext items={ordenadas} strategy={horizontalListSortingStrategy}>
+                <tr>
+                  <th className="mt-vde__sel"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(definidas.map((l) => l.key)))} aria-label="Marcar todos os carros" disabled={definidas.length === 0} data-testid="marcar-todos" /></th>
+                  <th className="mt-vde__def">Definido</th>
+                  <th><span className="mt-vde__cod">Código
+                    <button type="button" className="mt-btn mt-btn--icone" aria-label={prefs.info ? "Esconder placa, VIN, modelo, cor e MY" : "Mostrar placa, VIN, modelo, cor e MY"} aria-expanded={prefs.info} onClick={() => muda({ ...prefs, info: !prefs.info })} data-testid="toggle-info">{prefs.info ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button>
+                    <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiarOutlook()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span></th>
+                  {colunasInfo.map((c) => <th key={c}>{tituloDe(c)}</th>)}
+                  {ordenadas.map((c) => <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}</ThOrdenavel>)}
+                  <th className="mt-vde__acoes" aria-label="Ações" />
+                </tr>
+              </SortableContext>
+            </DndContext>
+          </thead>
           <tbody>
-            {linhas.length === 0 && <tr><td colSpan={3 + colunasInfo.length + prefs.colunas.length} className="t-body t-muted" style={{ padding: 16 }}>Nenhum carro ainda. Peça modelos no cadastro do evento ou reserve carros.</td></tr>}
-            {linhas.map((l) => {
+            {linhas.length === 0 && <tr><td colSpan={nCols} className="t-body t-muted" style={{ padding: 16 }}>Nenhum carro ainda. Peça modelos no cadastro do evento ou reserve carros.</td></tr>}
+            {linhas.map((l, li) => {
               const v = l.veiculo; const r = l.reserva;
               const choques = r && v ? conflitos({ inicio: r.reserva_inicio, fim: r.reserva_fim }, porCarro.get(r.veiculo_id) ?? [], evento.id) : [];
               return (
-                <tr key={l.key} className={cx(!r && "is-aberta", l.pedido?.nao_atendido && "is-falta")} data-testid="linha-veiculo">
+                <tr key={l.key} className={cx(!r && "is-aberta", l.pedido?.nao_atendido && "is-falta", marcados.has(l.key) && "is-marcada")} data-testid="linha-veiculo">
+                  <td className="mt-vde__sel">{r && <input type="checkbox" checked={marcados.has(l.key)} onChange={() => alternar(l.key)} aria-label={`Marcar ${codigoDaLinha(l)}`} />}</td>
                   <td className="mt-vde__def">
                     <input type="checkbox" checked={!!r} readOnly disabled={!!r} aria-label={r ? "Veículo definido" : "Definir veículo"} title={r ? "Veículo definido" : "Escolher o veículo"} data-testid="check-definido"
                       onClick={() => { if (!r) setEscolhendo({ pedido: l.pedido }); }} onChange={() => undefined} style={{ cursor: r ? "default" : "pointer" }} />
@@ -156,14 +314,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
                       {choques.length > 0 && <span title={`Também está em: ${agendaTexto(choques, (x) => nomes.get(x) ?? "?", hojeLocal())}`} data-testid="aviso-conflito"><Warning size={16} weight="fill" /></span>}
                     </span>
                   </td>
-                  {prefs.info && [v?.placa, v?.vin, v?.modelo, v?.cor, v?.my].map((x, i) => <td key={i}>{x ?? <span className="mt-vazio">—</span>}</td>)}
-                  {mostra("status") && <td>{celulaEditavel(l, campos.status)}</td>}
-                  {mostra("transporteIda") && <td><button type="button" className="mt-valor mt-valor--edita" disabled={!r} onClick={() => setTransporte({ linha: l, sentido: "ida" })}>{resumoTransporte(l, "ida")}</button></td>}
-                  {mostra("transporteVolta") && <td><button type="button" className="mt-valor mt-valor--edita" disabled={!r} onClick={() => setTransporte({ linha: l, sentido: "volta" })}>{resumoTransporte(l, "volta")}</button></td>}
-                  {mostra("origem") && <td>{celulaEditavel(l, campos.origem)}</td>}
-                  {mostra("chegada") && <td>{celulaEditavel(l, campos.chegada)}</td>}
-                  {mostra("enderecoChegada") && <td>{celulaEditavel(l, campos.enderecoChegada)}</td>}
-                  {mostra("retirada") && <td>{celulaEditavel(l, campos.retirada)}</td>}
+                  {colunasInfo.map((c) => celula(l, li, c, textoDaCelula(c, l) || <span className="mt-vazio">—</span>))}
+                  {ordenadas.map((c) => celula(l, li, c, c === "transporteIda" ? botaoTransporte(l, "ida") : c === "transporteVolta" ? botaoTransporte(l, "volta") : editavel(l, c as keyof typeof campos)))}
                   <td className="mt-vde__acoes">
                     {r && onSalvarChecklist && <Button variant="ghost" size="icon" aria-label={`Checklists de ${codigoDaLinha(l)}`} title="Checklists" onClick={() => setChecklist(l)}><ListChecks size={20} /></Button>}
                     {r && <Button variant="ghost" size="icon" aria-label={`Remover ${codigoDaLinha(l)} do evento`} onClick={() => void onRemoverReserva(r).catch((e: Error) => onErro(e.message))}><Trash size={20} /></Button>}
@@ -176,13 +328,13 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
           </tbody>
         </table>
       </div>
-      <p className="t-body-sm mt-vde__total" data-testid="custo-do-evento">Transportes do evento: <b>{custo.quantidade}</b> · custo planejado <b>{reais(custo.total)}</b>{individual ? "" : " · ligue “Edição individual” para planejar carro a carro"}</p>
+      <p className="t-body-sm mt-vde__total" data-testid="custo-do-evento">Transportes do evento: <b>{custo.quantidade}</b> · custo planejado <b>{reais(custo.total)}</b> · arraste para selecionar células (Ctrl + C copia, Ctrl + V cola, Ctrl + D duplica para baixo)</p>
       {ed.erro && <p className="mt-erro" role="alert"><span>{ed.erro}</span></p>}
 
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
         pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)} />
-      <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => setTransporte(null)} tr={tr} eventoId={evento.id} reservaId={transporte?.linha.reserva?.id ?? null}
-        carro={transporte ? codigoDaLinha(transporte.linha) : ""} sentido={transporte?.sentido ?? "ida"} atual={transporte ? transporteDe(transporte.linha, transporte.sentido) : null} />
+      <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => { setTransporte(null); setMarcados(new Set()); }} tr={tr} eventoId={evento.id} reservaIds={transporte?.reservaIds ?? []}
+        carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null} />
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}
       </Sheet>

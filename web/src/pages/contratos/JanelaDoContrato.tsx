@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -43,6 +44,7 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
     <dialog ref={ref} className="mt-janela" aria-label={`Contrato ${contrato ? (ctx.eventos.get(contrato.evento_id)?.nome ?? "") : ""}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {contrato && (
         <div className="mt-janela__corpo" data-testid="janela-contrato">
+          <AlcaDoPainel />
           <header className="mt-janela__topo">
             <div><h2 className="t-h2" data-testid="titulo-janela">{ctx.eventos.get(contrato.evento_id)?.nome ?? "Contrato"}</h2><div className="mt-janela__sub">{formatar(campos.find((c) => c.id === "status")!, contrato)}</div></div>
             <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>

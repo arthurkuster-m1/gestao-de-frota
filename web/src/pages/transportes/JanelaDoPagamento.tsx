@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { useEffect, useRef, useState } from "react";
 import { Trash, X } from "@phosphor-icons/react";
 import { Button, Sheet } from "../../ds";
@@ -21,6 +22,7 @@ export function JanelaDoPagamento({ pagamento, campos, onEditar, onExcluir, onFe
     <dialog ref={ref} className="mt-janela" aria-label={`Pagamento ${pagamento?.numero ?? ""}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {pagamento && (
         <div className="mt-janela__corpo" data-testid="janela-pagamento">
+          <AlcaDoPainel />
           <header className="mt-janela__topo">
             <div><h2 className="t-h2" data-testid="titulo-janela">{pagamento.numero}</h2><div className="mt-janela__sub">{formatar(campos.find((c) => c.id === "status")!, pagamento)}</div></div>
             <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>

@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -91,6 +92,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
   return (
     <div className="mt-janela__corpo" data-testid="janela-evento">
+          <AlcaDoPainel />
       <header className="mt-janela__topo">
         <div><h2 className="t-h2" data-testid="titulo-janela">{evento.nome}</h2>{campoStatus && <div className="mt-janela__sub">{formatar(campoStatus, evento)}</div>}</div>
         <div className="ds-row" style={{ gap: 8 }}>

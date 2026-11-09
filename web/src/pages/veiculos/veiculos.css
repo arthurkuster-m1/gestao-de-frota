@@ -22,7 +22,7 @@
 .vei-motorista { display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
 
 /* janela do veículo */
-.mt-janela { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(780px, 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-left: 1px solid var(--color-border); border-radius: 20px 0 0 20px; background: var(--color-bg); color: var(--color-text); box-shadow: var(--shadow-lg); overflow: hidden; }
+.mt-janela { position: fixed; inset: 0 0 0 auto; margin: 0; padding: 0; width: min(var(--largura-painel, 780px), 100vw); max-width: 100vw; height: 100dvh; max-height: 100dvh; border: 0; border-left: 1px solid var(--color-border); border-radius: 20px 0 0 20px; background: var(--color-bg); color: var(--color-text); box-shadow: var(--shadow-lg); overflow: hidden; }
 .mt-janela::backdrop { background: var(--color-overlay); }
 .mt-janela[open] { animation: ds-pop var(--dur-base) var(--ease-out-slow) both; }
 .mt-janela__corpo { display: grid; grid-template-rows: auto auto 1fr; height: 100%; }
@@ -119,3 +119,22 @@
 .mt-campo-endereco span { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .mt-campo-endereco.is-vazio { color: var(--color-text-subtle); }
 .mt-campo-endereco:hover { border-color: var(--color-accent-ring); }
+
+/* Borda do painel lateral que se arrasta para mudar a largura */
+.mt-janela__alca { position: absolute; left: 0; top: 0; bottom: 0; width: 10px; z-index: 20; cursor: ew-resize; touch-action: none; }
+.mt-janela__alca:hover, .mt-janela__alca:active { background: linear-gradient(to right, var(--color-accent-ring), transparent); }
+.mt-janela--cheia .mt-janela__alca { display: none; }
+@media (max-width: 720px) { .mt-janela__alca { display: none; } }
+.mt-vde__sel { width: 40px; text-align: center !important; }
+.mt-vde__massa { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-surface); }
+.mt-vde__tabela tr.is-marcada td { background: var(--color-accent-soft); }
+.mt-vde__tabela td.mt-sel { background: var(--color-accent-soft, rgba(59, 130, 246, 0.14)); }
+.mt-vde__tabela td.mt-sel-t { box-shadow: inset 0 2px 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-b { box-shadow: inset 0 -2px 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-l { box-shadow: inset 2px 0 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-r { box-shadow: inset -2px 0 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-t.mt-sel-l { box-shadow: inset 2px 2px 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-t.mt-sel-r { box-shadow: inset -2px 2px 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-b.mt-sel-l { box-shadow: inset 2px -2px 0 var(--color-accent); }
+.mt-vde__tabela td.mt-sel-b.mt-sel-r { box-shadow: inset -2px -2px 0 var(--color-accent); }
+.mt-vde__tabela th.mt-th--arrasta { cursor: grab; touch-action: manipulation; }

@@ -7,6 +7,7 @@ import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { ThOrdenavel } from "./ThOrdenavel";
 import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCores } from "./EditorDeCores";
 import { opcoesDoCampo } from "./BarraDeConsulta";
@@ -29,13 +30,6 @@ type Props<T> = {
 
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
-
-/** Cabeçalho que se arrasta para mudar a coluna de lugar (clicar sem arrastar continua abrindo o menu da coluna). */
-function ThOrdenavel({ id, travada, estilo, className, ...resto }: { id: string; travada: boolean; estilo?: CSSProperties; className?: string } & React.ThHTMLAttributes<HTMLTableCellElement>) {
-  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: travada });
-  return <th ref={setNodeRef} {...attributes} role="columnheader" {...listeners} {...resto} className={cx(className, !travada && "mt-th--arrasta", isDragging && "is-arrastando")}
-    style={{ ...estilo, transform: CSS.Translate.toString(transform), transition, ...(isDragging ? { zIndex: 8, opacity: 0.85 } : {}) }} />;
-}
 
 export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);

@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -38,6 +39,7 @@ export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vin
     <dialog ref={ref} className="mt-janela" aria-label={`Transporte ${transporte?.referencia ?? ""}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {transporte && (
         <div className="mt-janela__corpo" data-testid="janela-transporte">
+          <AlcaDoPainel />
           <header className="mt-janela__topo">
             <div><h2 className="t-h2" data-testid="titulo-janela">{transporte.referencia ?? "Transporte sem referência"}</h2><div className="mt-janela__sub">{formatar(campos.find((c) => c.id === "modalidade")!, transporte)}</div></div>
             <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>

@@ -1,3 +1,4 @@
+import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
@@ -26,6 +27,7 @@ export function JanelaDaManutencao({ manutencao, campos, onEditar, onExcluir, on
     <dialog ref={ref} className="mt-janela" aria-label={`Manutenção ${manutencao?.nome ?? ""}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
       {manutencao && (
         <div className="mt-janela__corpo" data-testid="janela-manutencao">
+          <AlcaDoPainel />
           <header className="mt-janela__topo">
             <div><h2 className="t-h2" data-testid="titulo-janela">{manutencao.nome}</h2><div className="mt-janela__sub">{formatar(campos.find((c) => c.id === "status")!, manutencao)}</div></div>
             <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>
