@@ -4,7 +4,7 @@ import Papa from "papaparse";
 import { DataSheetGrid, keyColumn, textColumn } from "react-datasheet-grid";
 import "react-datasheet-grid/dist/style.css";
 import { ArrowsClockwise, CheckCircle, ClipboardText, Minus, Warning, XCircle } from "@phosphor-icons/react";
-import { Button, Card, DateField, Field, Input, Page, Select, Sheet, Textarea, cx, useToast } from "../../ds";
+import { Button, Card, DateField, Field, Input, Page, Select, Sheet, Textarea, useToast } from "../../ds";
 import { carregarDados } from "../../lib/lancamentos/dados";
 import { erroDeOpcao, linhaEstaVazia, linhasDeMatriz } from "../../lib/lancamentos/matriz";
 import { GRUPOS, LANCAMENTOS, lancamentoDe } from "../../lib/lancamentos/registro";
@@ -43,6 +43,8 @@ export function Lancamentos() {
   const toast = useToast();
   const [busca, setBusca] = useSearchParams();
   const lanc = lancamentoDe(busca.get("acao"));
+  const [categoriaEscolhida, setCategoriaEscolhida] = useState("");
+  const categoria = lanc?.grupo ?? categoriaEscolhida;   // com uma ação aberta, a categoria é a dela
   const [dados, setDados] = useState<Dados | null>(null);
   const [linhas, setLinhas] = useState<Linha[]>(() => vazias(8));
   const [params, setParams] = useState<Parametros>({});
@@ -108,18 +110,22 @@ export function Lancamentos() {
           <p className="t-body t-muted">Lance em massa qualquer coisa do app, num lugar só: escolha o que lançar, preencha ou cole a tabela e aplique.</p>
         </div>
 
-        <div className="ds-stack" data-testid="escolher-lancamento">
-          {GRUPOS.map((g) => (
-            <div key={g} className="mt-lanc__grupo">
-              <span className="t-body-sm t-muted mt-lanc__titulo">{g}</span>
-              <div className="mt-rap" style={{ flexWrap: "wrap", overflow: "visible" }} role="tablist" aria-label={g}>
-                {LANCAMENTOS.filter((l) => l.grupo === g).map((l) => <button key={l.id} type="button" role="tab" aria-selected={lanc?.id === l.id} className={cx("mt-rap__chip", lanc?.id === l.id && "is-on")} onClick={() => setBusca({ acao: l.id })} data-testid={`lancamento-${l.id}`}>{l.rotulo}</button>)}
-              </div>
-            </div>
-          ))}
+        <div className="mt-lanc__escolha" data-testid="escolher-lancamento">
+          <Field label="Categoria">
+            <Select value={categoria} onChange={(e) => { setCategoriaEscolhida(e.target.value); setBusca({}); }} placeholder="Escolher a categoria…" aria-label="Categoria do lançamento" data-testid="categoria-do-lancamento">
+              <option value="">Escolher a categoria…</option>{GRUPOS.map((g) => <option key={g} value={g}>{g}</option>)}
+            </Select>
+          </Field>
+          {categoria && (
+            <Field label="Ação">
+              <Select value={lanc?.id ?? ""} onChange={(e) => setBusca(e.target.value ? { acao: e.target.value } : {})} placeholder="Escolher a ação…" aria-label="Ação do lançamento" data-testid="acao-do-lancamento">
+                <option value="">Escolher a ação…</option>{LANCAMENTOS.filter((l) => l.grupo === categoria).map((l) => <option key={l.id} value={l.id}>{l.rotulo}</option>)}
+              </Select>
+            </Field>
+          )}
         </div>
 
-        {!lanc ? <Card><p className="t-body t-muted" data-testid="escolha-um">Escolha acima o que você quer lançar.</p></Card> : (
+        {!lanc ? <Card><p className="t-body t-muted" data-testid="escolha-um">{categoria ? "Agora escolha a ação." : "Escolha a categoria e depois a ação que você quer lançar."}</p></Card> : (
           <>
             <p className="t-body-sm t-muted" data-testid="descricao-do-lancamento">{lanc.descricao}</p>
             {dados && (lanc.parametros?.(dados) ?? []).length > 0 && (
