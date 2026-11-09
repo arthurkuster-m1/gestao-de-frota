@@ -20,7 +20,6 @@ import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposD
 import { NovoContrato } from "../contratos/NovoContrato";
 import { useContratos } from "../contratos/useContratos";
 import { camposDoTransporte, type ContextoDeTransportes } from "../transportes/camposDeTransportes";
-import { NovoTransporte } from "../transportes/NovoTransporte";
 import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
@@ -60,7 +59,6 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const [novoLocal, setNovoLocal] = useState<EventoLocalNovo[] | null>(null);
   const [novoPedido, setNovoPedido] = useState<PedidoDeCarro[] | null>(null);
   const [comentario, setComentario] = useState(evento.comentarios ?? "");
-  const [novoTransporte, setNovoTransporte] = useState(false);
   const [novoContrato, setNovoContrato] = useState(false);
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const k = useContratos();
@@ -83,7 +81,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
   // transportes e contratos DESTE evento
   const transportesDoEvento = useMemo(() => tr.transportes.filter((t) => t.evento_id === evento.id), [tr.transportes, evento.id]);
-  const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, pagamentos: tr.pagamentos, transportes: tr.transportes }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.pagamentos, tr.transportes]);
+  const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes]);
   const camposT = useMemo(() => camposDoTransporte(ctxT), [ctxT]);
   const contratosDoEvento = useMemo(() => k.contratos.filter((c) => c.evento_id === evento.id), [k.contratos, evento.id]);
   const ctxC = useMemo<ContextoDeContratos>(() => {
@@ -146,10 +144,9 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
         {aba === "transportes" && (
           <TelaDoMotor<Transporte> tela="evento-transportes" titulo="Transportes" subtitulo="" compacta
-            acoes={<Button icon={<Plus size={20} />} onClick={() => setNovoTransporte(true)} data-testid="novo-transporte">Novo transporte</Button>}
             linhas={tr.carregado ? transportesDoEvento : null} erro={tr.erro} campos={camposT} idDe={(t) => t.id} onEditar={tr.editarTransporte} onAbrir={(t) => navigate(`/transportes/${t.id}`)}
             rotuloDoTotal={(n) => `${n} transporte${n === 1 ? "" : "s"} deste evento`} placeholderDaBusca="Buscar transporte…"
-            vazio={<EmptyState icon={<Truck size={30} />} title="Nenhum transporte neste evento" action={<Button icon={<Plus size={20} />} onClick={() => setNovoTransporte(true)}>Criar o primeiro</Button>}>Na aba Veículos, ligue “Transporte de ida/volta” em Colunas e cadastre a PTA direto na linha do carro.</EmptyState>} />
+            vazio={<EmptyState icon={<Truck size={30} />} title="Nenhum transporte neste evento">Na aba Veículos, ligue “Transporte de ida/volta” em Colunas e cadastre a PTA direto na linha do carro.</EmptyState>} />
         )}
 
         {aba === "contratos" && (
@@ -160,7 +157,6 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
             vazio={<EmptyState icon={<FileText size={30} />} title="Este evento ainda não tem contrato" action={<Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)}>Criar contrato</Button>}>O contrato de comodato nasce deste evento: cliente, vigência e carros vêm das reservas.</EmptyState>} />
         )}
       </div>
-      <NovoTransporte aberto={novoTransporte} onFechar={() => setNovoTransporte(false)} eventos={[evento]} reservas={p.reservas} veiculos={p.veiculos} onCriar={tr.criarT} onCriado={() => setNovoTransporte(false)} />
       <NovoContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} eventos={[evento]} eventosComContrato={new Set(k.contratos.map((c) => c.evento_id))} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} onCriar={k.criar} onCriado={(c) => navigate(`/contratos/${c.id}`)} />
       <Sheet open={!!novoLocal} onClose={() => setNovoLocal(null)} title="Adicionar local">
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoLocal) return; void p.onAdicionarLocais(evento.id, novoLocal).then(() => setNovoLocal(null)).catch((x: Error) => setFalha(x.message)); }}>

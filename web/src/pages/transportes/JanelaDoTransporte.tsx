@@ -2,22 +2,22 @@ import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { Trash, X } from "@phosphor-icons/react";
+import { MapPin, Trash, X } from "@phosphor-icons/react";
 import { Button, Sheet } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
 import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
 import type { Reserva } from "../../lib/eventos/tipos";
-import { colunaDoSentido, pagamentosQueCombinam } from "../../lib/transportes/regras";
-import type { Pagamento, Sentido, Transporte, VinculoDaReserva } from "../../lib/transportes/tipos";
+import { colunaDoSentido } from "../../lib/transportes/regras";
+import type { Sentido, Transporte, VinculoDaReserva } from "../../lib/transportes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import "../veiculos/veiculos.css";
 
 /** A janela do transporte: dados editáveis no lugar e, embaixo, quais carros do evento vão nele. */
-export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vinculos, pagamentos, onEditar, onLigar, onExcluir, onFechar }: {
-  transporte: Transporte | null; campos: readonly CampoDaTela<Transporte>[]; reservas: Reserva[]; veiculos: Veiculo[]; vinculos: VinculoDaReserva[]; pagamentos: Pagamento[];
-  onEditar: OnEditar<Transporte>; onLigar: (reservaIds: string[], sentido: Sentido, transporteId: string | null) => Promise<void>; onExcluir: (t: Transporte) => Promise<void>; onFechar: () => void;
+export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vinculos, onEditar, onLigar, onAtualizarRota, onExcluir, onFechar }: {
+  transporte: Transporte | null; campos: readonly CampoDaTela<Transporte>[]; reservas: Reserva[]; veiculos: Veiculo[]; vinculos: VinculoDaReserva[];
+  onAtualizarRota: (t: Transporte) => Promise<string>; onEditar: OnEditar<Transporte>; onLigar: (reservaIds: string[], sentido: Sentido, transporteId: string | null) => Promise<void>; onExcluir: (t: Transporte) => Promise<void>; onFechar: () => void;
 }) {
   const ref = useRef<HTMLDialogElement>(null);
   const ed = useEdicao<Transporte>((t) => t.id, onEditar);
@@ -26,7 +26,9 @@ export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vin
   const id = transporte?.id;
   useEffect(() => { const d = ref.current; if (!d) return; if (id && !d.open) d.showModal(); if (!id && d.open) d.close(); }, [id]);
   const editaveis = campos.filter((c) => c.edicao).map((c) => c.id);
-  const combinam = transporte ? pagamentosQueCombinam(transporte.modalidade, pagamentos) : [];
+  const [calculando, setCalculando] = useState(false);
+  const [aviso, setAviso] = useState<string | null>(null);
+  async function atualizarRota() { if (!transporte) return; setCalculando(true); setAviso(null); setFalha(null); try { setAviso(await onAtualizarRota(transporte)); } catch (e) { setFalha((e as Error).message); } finally { setCalculando(false); } }
   const carros = transporte ? reservas.filter((r) => r.evento_id === transporte.evento_id && r.estado !== "cancelado").map((r) => ({ r, v: veiculos.find((x) => x.id === r.veiculo_id), vin: vinculos.find((x) => x.id === r.id) })) : [];
   const ligadoA = (vin: VinculoDaReserva | undefined) => (transporte && vin ? vin[colunaDoSentido(transporte.sentido)] : null);
 
@@ -51,7 +53,10 @@ export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vin
                 <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <LinkNoLugar to={`/eventos/${transporte.evento_id}`} className="mt-reserva__evento">{formatar(c, transporte)}</LinkNoLugar> : <CampoEditavel linha={transporte} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
               ))}
             </dl>
-            {transporte.modalidade === "retirada" ? null : combinam.length === 0 && <p className="t-body-sm t-muted">Ainda não há pagamento de {transporte.modalidade === "pta" ? "PTA" : "NF da TSO"}. Crie em Pagamentos para ligar aqui.</p>}
+            <div className="ds-stack">
+              <div><Button variant="secondary" icon={<MapPin size={18} />} loading={calculando} onClick={() => void atualizarRota()} data-testid="atualizar-rota">Atualizar rota e distância do evento</Button></div>
+              <p className="t-body-sm t-muted">{aviso ?? "Puxa de novo a origem e o endereço do evento e recalcula os km. Os dias de viagem saem de km ÷ 500 (para cima)."}</p>
+            </div>
             <h3 className="t-h3">Carros neste transporte ({transporte.sentido})</h3>
             {carros.length === 0 && <p className="t-body t-muted">O evento ainda não tem carros reservados.</p>}
             <ul className="mt-escolha" role="list" data-testid="carros-ligados">

@@ -19,6 +19,7 @@ import { codigoDaLinha, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresE
 import type { Evento, EventoLocal, ModeloDesejado, Reserva, ReservaDoEvento } from "../../lib/eventos/tipos";
 import { conflitos, reservasPorVeiculo, agendaTexto } from "../../lib/eventos/uso";
 import { reais } from "../../lib/transportes/regras";
+import { rotaDoTransporte } from "../../lib/transportes/rota";
 import type { Sentido, Transporte } from "../../lib/transportes/tipos";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -359,7 +360,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
         pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)}
         onReservarSemData={onReservarSemData ? (ids) => onReservarSemData(evento.id, ids, pedidoAlvo?.id) : undefined} />
       <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => { setTransporte(null); setMarcados(new Set()); }} tr={tr} eventoId={evento.id} reservaIds={transporte?.reservaIds ?? []}
-        carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null} />
+        carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null}
+        rota={transporte ? rotaDoTransporte(transporte.sentido, [...reservas, ...reservasSemData].find((r) => r.id === transporte.reservaIds[0]) as Reserva | undefined, evento, locaisDoEvento) : { origem: null, destino: null }} />
       {onChecklistEmMassa && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento="saida" carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={onChecklistEmMassa} />}
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}

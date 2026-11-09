@@ -31,7 +31,7 @@ describe("linhas do evento", () => {
     expect(t.html).toContain("A&lt;B");
   });
   it("transporte: mesma PTA no mesmo evento é reaproveitada; custo conta cada transporte uma vez", () => {
-    const t = (id: string, o: Partial<Transporte>): Transporte => ({ id, evento_id: "e", sentido: "ida", modalidade: "pta", distancia_km: null, dias_viagem: 0, referencia: "PTA1", transportadora: null, valor_planejado: 100, pagamento_id: null, comentarios: null, created_at: "", ...o });
+    const t = (id: string, o: Partial<Transporte>): Transporte => ({ id, evento_id: "e", sentido: "ida", modalidade: "pta", distancia_km: null, dias_viagem: 0, referencia: "PTA1", transportadora: null, valor_planejado: 100, comentarios: null, created_at: "", origem: null, destino: null, status_pagamento: null, valor_real: null, data_pagamento: null, departamento: null, ...o });
     const ts = [t("a", {}), t("b", { referencia: "PTA2", valor_planejado: 50 }), t("c", { evento_id: "outro" })];
     expect(acharTransporte(ts, "e", "ida", "pta", " pta1 ")?.id).toBe("a");
     expect(acharTransporte(ts, "e", "volta", "pta", "PTA1")).toBeNull();

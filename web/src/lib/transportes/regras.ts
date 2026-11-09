@@ -1,4 +1,4 @@
-import type { Pagamento, Sentido, Transporte, VinculoDaReserva } from "./tipos";
+import type { Sentido, Transporte, VinculoDaReserva } from "./tipos";
 
 /** Dias de viagem = km ÷ 500 para cima; retirada não tem viagem. (O banco calcula igual; aqui serve para mostrar antes de salvar.) */
 export const diasDeViagem = (km: number | null | undefined, modalidade: string) => (modalidade === "retirada" || !km || km <= 0 ? 0 : Math.ceil(km / 500));
@@ -12,12 +12,6 @@ export function paraNumero(texto: string): number | null {
   return Number.isFinite(n) ? n : null;
 }
 export const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-
-/** Qual pagamento combina com cada modalidade (retirada não tem pagamento). */
-export const tipoDePagamentoDaModalidade = (m: string) => (m === "pta" ? "pta" : m === "tso" ? "nf_tso" : null);
-
-/** Os pagamentos que podem ser ligados a um transporte daquela modalidade. */
-export const pagamentosQueCombinam = (modalidade: string, pagamentos: readonly Pagamento[]) => { const t = tipoDePagamentoDaModalidade(modalidade); return t ? pagamentos.filter((p) => p.tipo === t) : []; };
 
 /** O valor planejado de cada evento = soma dos transportes dele. */
 export function valorPorEvento(transportes: readonly Transporte[]): Map<string, number> {

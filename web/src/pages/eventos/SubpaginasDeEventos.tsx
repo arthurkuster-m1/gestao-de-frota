@@ -6,7 +6,6 @@ export const SUBPAGINAS_DE_EVENTOS = [
   { id: "clientes", rotulo: "Clientes", to: "/clientes" },
   { id: "contratos", rotulo: "Contratos", to: "/contratos" },
   { id: "transportes", rotulo: "Transportes", to: "/transportes" },
-  { id: "pagamentos", rotulo: "Pagamentos", to: "/transportes?aba=pagamentos" },
 ] as const;
 export type SubpaginaDeEventos = (typeof SUBPAGINAS_DE_EVENTOS)[number]["id"];
 

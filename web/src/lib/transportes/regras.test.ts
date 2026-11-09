@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
-import { diasDeViagem, paraNumero, pagamentosQueCombinam, reservasDoTransporte, valorPorEvento } from "./regras";
-import { STATUS_DO_TIPO, type Pagamento, type Transporte } from "./tipos";
+import { diasDeViagem, paraNumero, reservasDoTransporte, valorPorEvento } from "./regras";
+import { STATUS_DA_MODALIDADE, type Transporte } from "./tipos";
 
 describe("dias de viagem", () => {
   it("km ÷ 500 para cima; retirada e sem km = 0", () => {
@@ -22,20 +22,14 @@ describe("número digitado", () => {
     expect(paraNumero("  ")).toBeNull();
   });
 });
-describe("status de pagamento", () => {
-  it("PTA: Solicitado, Aprovado, Pago; NF da TSO: Orçamento recebido, Aprovar NF, Aprovado", () => {
-    expect(STATUS_DO_TIPO.pta.map((s) => s.label)).toEqual(["Solicitado", "Aprovado", "Pago"]);
-    expect(STATUS_DO_TIPO.nf_tso.map((s) => s.label)).toEqual(["Orçamento recebido", "Aprovar NF", "Aprovado"]);
+describe("status de pagamento (dentro do transporte)", () => {
+  it("PTA: Solicitado, Aprovado, Pago; TSO: Orçamento recebido, Aprovar NF, Aprovado; retirada: nenhum", () => {
+    expect(STATUS_DA_MODALIDADE.pta.map((s) => s.label)).toEqual(["Solicitado", "Aprovado", "Pago"]);
+    expect(STATUS_DA_MODALIDADE.tso.map((s) => s.label)).toEqual(["Orçamento recebido", "Aprovar NF", "Aprovado"]);
+    expect(STATUS_DA_MODALIDADE.retirada).toEqual([]);
   });
 });
 describe("ligações", () => {
-  const p = (tipo: "pta" | "nf_tso", id: string) => ({ id, tipo }) as Pagamento;
-  it("PTA liga com PTA, TSO com NF, retirada com nada", () => {
-    const l = [p("pta", "a"), p("nf_tso", "b")];
-    expect(pagamentosQueCombinam("pta", l).map((x) => x.id)).toEqual(["a"]);
-    expect(pagamentosQueCombinam("tso", l).map((x) => x.id)).toEqual(["b"]);
-    expect(pagamentosQueCombinam("retirada", l)).toEqual([]);
-  });
   it("valor do evento = soma dos transportes; carros do transporte pelo sentido", () => {
     const t = (id: string, ev: string, v: number | null) => ({ id, evento_id: ev, valor_planejado: v, sentido: "ida" }) as Transporte;
     expect(valorPorEvento([t("1", "e1", 100.5), t("2", "e1", 50), t("3", "e2", null)]).get("e1")).toBe(150.5);
