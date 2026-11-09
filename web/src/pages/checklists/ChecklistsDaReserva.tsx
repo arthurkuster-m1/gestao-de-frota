@@ -5,7 +5,7 @@ import { kmTexto, quandoFoi } from "../../lib/checklists/regras";
 import { MOMENTOS, rotuloCombustivel, rotuloLimpeza, type Checklist, type ChecklistNovo, type Momento } from "../../lib/checklists/tipos";
 import { FormularioDeChecklist } from "./FormularioDeChecklist";
 
-/** Os dois checklists de uma reserva (saída e retorno): resumo de cada um, com botão para fazer ou editar. */
+/** Os dois checklists de uma reserva (envio e retorno): resumo de cada um, com botão para fazer ou editar. */
 export function ChecklistsDaReserva({ reservaId, carro, checklists, onSalvar }: {
   reservaId: string; carro: string; checklists: Checklist[];
   onSalvar: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;

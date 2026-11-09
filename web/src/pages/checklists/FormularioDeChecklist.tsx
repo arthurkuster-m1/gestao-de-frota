@@ -14,7 +14,7 @@ const inicial = (c: Checklist | null): Estado => c
   ? { dia: diaDe(c.data_hora), hora: horaDe(c.data_hora), km: c.km === null ? "" : String(c.km), combustivel: c.combustivel ?? "", limpeza: c.limpeza ?? "", recebido: c.recebido_por ?? "", avarias: c.teve_avarias, quais: c.avarias ?? "", obs: c.observacoes ?? "" }
   : { dia: hojeLocal(), hora: horaAgora(), km: "", combustivel: "", limpeza: "", recebido: "", avarias: false, quais: "", obs: "" };
 
-/** Checklist de saída ou de retorno de uma reserva: km, combustível, limpeza, quem recebeu, avarias e observações. Sem fotos. */
+/** Checklist de envio ou de retorno de uma reserva: km, combustível, limpeza, quem recebeu, avarias e observações. Sem fotos. */
 export function FormularioDeChecklist({ aberto, onFechar, momento, carro, existente, onSalvar }: {
   aberto: boolean; onFechar: () => void; momento: Momento; carro: string; existente: Checklist | null; onSalvar: (c: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
 }) {

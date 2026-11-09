@@ -36,12 +36,12 @@ function atualizacaoDeVeiculo(def: DefinicaoDaAcao, grupo = GRUPO): Lancamento {
 }
 
 const extrasDoChecklist = (momento: "saida" | "retorno"): Parametro[] => [
-  { id: "data", rotulo: momento === "saida" ? "Dia da saída (padrão)" : "Dia do retorno (padrão)", tipo: "data" }, { id: "hora", rotulo: "Hora (padrão)", tipo: "hora" },
+  { id: "data", rotulo: momento === "saida" ? "Dia do envio (padrão)" : "Dia do retorno (padrão)", tipo: "data" }, { id: "hora", rotulo: "Hora (padrão)", tipo: "hora" },
   { id: "combustivel", rotulo: "Combustível / carga (opcional)", tipo: "opcao", opcoes: COMBUSTIVEIS }, { id: "limpeza", rotulo: "Limpeza (opcional)", tipo: "opcao", opcoes: LIMPEZAS },
   { id: "recebido", rotulo: momento === "saida" ? "Quem recebeu os carros (opcional)" : "Quem recebeu de volta (opcional)", tipo: "texto" }, { id: "obs", rotulo: "Observações (opcional)", tipo: "texto" },
 ];
 
-/** Saiu para evento / retornou de evento: registra o checklist de cada carro (a reserva vai para Em uso / Concluído). */
+/** Enviado para evento / retornou de evento: registra o checklist de cada carro (a reserva vai para Em uso / Concluído). */
 function checklistEmMassa(def: DefinicaoDaAcao, momento: "saida" | "retorno"): Lancamento {
   return {
     id: def.id, grupo: "Eventos", rotulo: def.rotulo, descricao: def.descricao, botao: (n) => `Registrar o checklist de ${n} carro${n === 1 ? "" : "s"}`,

@@ -53,7 +53,7 @@ export function useDadosDeEventos() {
   }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
-  /** Evento colocado em uso à mão: se há carros sem checklist de saída, o app oferece fazer o de todos. */
+  /** Evento colocado em uso à mão: se há carros sem checklist de envio, o app oferece fazer o de todos. */
   const [pendenciaDeChecklist, setPendenciaDeChecklist] = useState<string | null>(null);
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
     // as datas do evento SÃO as das reservas dos carros: com carros reservados, mudam arrastando na linha do tempo ou na aba Veículos

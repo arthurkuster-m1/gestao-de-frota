@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { diaDe, estadoAposChecklist, horaDe, kmTexto, paraInstante, quandoFoi } from "./regras";
 
 describe("estado da reserva depois do checklist", () => {
-  it("saída: Reservado → Em uso; o resto fica", () => {
+  it("envio: Reservado → Em uso; o resto fica", () => {
     expect(estadoAposChecklist("reservado", "saida")).toBe("em_uso");
     expect(estadoAposChecklist("em_uso", "saida")).toBe("em_uso");
     expect(estadoAposChecklist("cancelado", "saida")).toBe("cancelado");

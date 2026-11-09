@@ -30,7 +30,7 @@ export function useChecklists(aoMudarReserva: (reservaId: string, estado: Reserv
     const novos = await criarChecklistsEmMassa(reservaIds, momento, dados);
     setChecklists((l) => [...novos, ...l]);
     for (const c of novos) { const antes = estadoDe(c.reserva_id); if (antes) { const depois = estadoAposChecklist(antes, momento); if (depois !== antes) aoMudarReserva(c.reserva_id, depois); } }
-    toast(`Checklist de ${momento === "saida" ? "saída" : "retorno"} registrado para ${novos.length} carro${novos.length === 1 ? "" : "s"}`);
+    toast(`Checklist de ${momento === "saida" ? "envio" : "retorno"} registrado para ${novos.length} carro${novos.length === 1 ? "" : "s"}`);
   };
   return { checklists, salvar, salvarEmMassa };
 }

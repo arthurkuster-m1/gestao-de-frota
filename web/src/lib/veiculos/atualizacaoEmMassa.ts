@@ -10,10 +10,10 @@ export type AcaoEmMassa = "liberacao" | "chegada" | "faturamento" | "emplacament
 /** `data` (dd/mm/aaaa), `hora` (hh:mm) e `evento` (id) são opcionais por linha; vazios, valem os padrões da ação. */
 export type LinhaDaLista = { ref?: string; placa?: string; data?: string; hora?: string; evento?: string };
 export type Tom = "ok" | "erro" | "dup" | "ign";
-export type Resultado = { tom: Tom; texto: string; veiculo?: Veiculo; plano?: Plano; /** saída/retorno: a reserva que ganha o checklist */ reservaId?: string; /** data (aaaa-mm-dd) e hora que valem para a linha */ dataIso?: string; hora?: string; /** reserva: o evento da linha */ eventoId?: string };
+export type Resultado = { tom: Tom; texto: string; veiculo?: Veiculo; plano?: Plano; /** envio/retorno: a reserva que ganha o checklist */ reservaId?: string; /** data (aaaa-mm-dd) e hora que valem para a linha */ dataIso?: string; hora?: string; /** reserva: o evento da linha */ eventoId?: string };
 export type CampoDeBusca = "vin" | "codigo" | "placa" | "pedido";
 
-export type DefinicaoDaAcao = { id: AcaoEmMassa; rotulo: string; descricao: string; referencia: string; campos: CampoDeBusca[]; comPlaca?: boolean; comData: boolean; /** saída e retorno: checklist com hora e dados opcionais */ comChecklist?: boolean };
+export type DefinicaoDaAcao = { id: AcaoEmMassa; rotulo: string; descricao: string; referencia: string; campos: CampoDeBusca[]; comPlaca?: boolean; comData: boolean; /** envio e retorno: checklist com hora e dados opcionais */ comChecklist?: boolean };
 export const ACOES: DefinicaoDaAcao[] = [
   { id: "liberacao", rotulo: "Liberados da produção", descricao: "Registra a liberação (data) e leva o ciclo de vida para Liberado.", referencia: "Referência (Pedido, Código ou VIN)", campos: ["pedido", "codigo", "vin"], comData: true },
   { id: "chegada", rotulo: "Chegada na planta", descricao: "Registra que o carro chegou na planta: o ciclo vira Disponível sem faturamento.", referencia: "Referência (VIN, Código ou Pedido)", campos: ["vin", "codigo", "pedido"], comData: false },
@@ -21,7 +21,7 @@ export const ACOES: DefinicaoDaAcao[] = [
   { id: "emplacamento", rotulo: "Emplacados", descricao: "Cadastra a placa, registra o emplacamento e atualiza o ciclo de vida.", referencia: "Referência (VIN ou Código)", campos: ["vin", "codigo"], comPlaca: true, comData: true },
   { id: "devolucaoCvo", rotulo: "Devolução para a CVO", descricao: "Marca os carros como Em devolução (a caminho da devolução para a CVO). A devolução concluída é a ação Devolvidos.", referencia: "Referência (Código, Placa ou VIN)", campos: ["codigo", "placa", "vin"], comData: false },
   { id: "devolucao", rotulo: "Devolvidos", descricao: "Registra a devolução (data) e leva o ciclo de vida para Devolvido.", referencia: "Referência (Código, Placa ou VIN)", campos: ["codigo", "placa", "vin"], comData: true },
-  { id: "saida", rotulo: "Saiu para evento", descricao: "Registra o checklist de SAÍDA de cada carro no evento (dia e hora editáveis): a reserva passa para Em uso.", referencia: "Referência (VIN, Código ou Placa)", campos: ["vin", "codigo", "placa"], comData: true, comChecklist: true },
+  { id: "saida", rotulo: "Enviado para evento", descricao: "Registra o checklist de ENVIO de cada carro no evento (dia e hora editáveis): a reserva passa para Em uso.", referencia: "Referência (VIN, Código ou Placa)", campos: ["vin", "codigo", "placa"], comData: true, comChecklist: true },
   { id: "retorno", rotulo: "Retornou de evento", descricao: "Registra o checklist de RETORNO de cada carro (dia e hora editáveis): a reserva passa para Concluído.", referencia: "Referência (VIN, Código ou Placa)", campos: ["vin", "codigo", "placa"], comData: true, comChecklist: true },
   { id: "reserva", rotulo: "Reservar em evento", descricao: "Põe todos os carros da lista num evento (existente ou novo).", referencia: "Referência (VIN, Código ou Placa)", campos: ["vin", "codigo", "placa"], comData: false },
 ];
@@ -49,7 +49,7 @@ export function acharVeiculo(veiculos: readonly Veiculo[], ref: string, campos: 
 export type ReservaResumida = { id: string; veiculo_id: string; evento_id: string; estado: string };
 export type ContextoDaAcao = {
   veiculos: readonly Veiculo[]; data: string; /** carros que já estão no evento escolhido (reserva) */ jaNoEvento?: ReadonlySet<string>; /** reserva: se o carro já está no evento (por linha) */ noEvento?: (eventoId: string, veiculoId: string) => boolean;
-  /** saída/retorno: as reservas, os checklists já feitos ("reservaId:saida") e o evento escolhido ("" = achar pelo carro) */
+  /** envio/retorno: as reservas, os checklists já feitos ("reservaId:saida") e o evento escolhido ("" = achar pelo carro) */
   reservas?: readonly ReservaResumida[]; checklistsFeitos?: ReadonlySet<string>; eventoId?: string; nomeDoEvento?: (id: string) => string;
 };
 
@@ -73,10 +73,10 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
         && (acao === "saida" ? x.estado === "reservado" || x.estado === "em_uso" : ["reservado", "em_uso", "em_retorno"].includes(x.estado)));
       if (abertas.length === 0) return { tom: "erro", texto: `${nome} não tem reserva aberta${l.evento || ctx.eventoId ? " neste evento" : ""}` };
       const pendentes = abertas.filter((x) => !ctx.checklistsFeitos?.has(`${x.id}:${momento}`));
-      if (pendentes.length === 0) return { tom: "dup", texto: `${nome} já tem o checklist de ${momento === "saida" ? "saída" : "retorno"}: será ignorado`, veiculo: v };
+      if (pendentes.length === 0) return { tom: "dup", texto: `${nome} já tem o checklist de ${momento === "saida" ? "envio" : "retorno"}: será ignorado`, veiculo: v };
       if (pendentes.length > 1) return { tom: "erro", texto: `${nome} está em ${pendentes.length} eventos: escolha o evento acima` };
       const r = pendentes[0]!; const ev = ctx.nomeDoEvento?.(r.evento_id);
-      return { tom: "ok", texto: `${nome}: checklist de ${momento === "saida" ? "saída" : "retorno"}${ev ? ` em ${ev}` : ""} → ${momento === "saida" ? "Em uso" : "Concluído"}`, veiculo: v, reservaId: r.id, dataIso: dataDaLinha, hora: horaDaLinha };
+      return { tom: "ok", texto: `${nome}: checklist de ${momento === "saida" ? "envio" : "retorno"}${ev ? ` em ${ev}` : ""} → ${momento === "saida" ? "Em uso" : "Concluído"}`, veiculo: v, reservaId: r.id, dataIso: dataDaLinha, hora: horaDaLinha };
     }
     if (acao !== "reserva" && v.status_ciclo === "devolvido") return { tom: acao === "devolucao" ? "dup" : "erro", texto: acao === "devolucao" ? `${nome} já foi devolvido: será ignorado` : `${nome} já foi devolvido` };
     if (acao === "reserva") {

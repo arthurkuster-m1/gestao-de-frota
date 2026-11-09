@@ -54,7 +54,7 @@ type Props = {
   onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
   onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
-  /** Checklist (saída) do mesmo jeito para vários carros: ids das reservas e os dados comuns. */
+  /** Checklist (envio) do mesmo jeito para vários carros: ids das reservas e os dados comuns. */
   onChecklistEmMassa?: (reservaIds: string[], dados: DadosEmMassa) => Promise<void>;
 };
 
@@ -273,7 +273,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
             </div>
           </Painel>
-          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button variant="secondary" icon={<ListChecks size={18} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos">Checklist de saída de todos ({linhasSemSaida.length})</Button>}
+          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button variant="secondary" icon={<ListChecks size={18} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos">Checklist de envio de todos ({linhasSemSaida.length})</Button>}
           <Button icon={<Plus size={18} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
         </div>
       </div>
@@ -292,7 +292,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
             <b>{marcadas.length} carro{marcadas.length === 1 ? "" : "s"} marcado{marcadas.length === 1 ? "" : "s"}</b>
             <Button size="sm" variant="secondary" onClick={() => emMassa("ida")} data-testid="massa-ida">Transporte de ida…</Button>
             <Button size="sm" variant="secondary" onClick={() => emMassa("volta")} data-testid="massa-volta">Transporte de volta…</Button>
-            {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => setLoteDeChecklist(marcadas.filter((l) => semSaida.has(l.reserva!.id)))} data-testid="massa-checklist">Checklist de saída…</Button>}
+            {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => setLoteDeChecklist(marcadas.filter((l) => semSaida.has(l.reserva!.id)))} data-testid="massa-checklist">Checklist de envio…</Button>}
             <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setMarcados(new Set())}>Limpar</Button>
           </>}
           {faixa && multiplas(faixa) && <Button size="sm" variant="secondary" icon={<CopySimple size={16} />} onClick={() => fazer.current.duplicar()} data-testid="duplicar-para-baixo" title="Ctrl + D">Duplicar para baixo</Button>}

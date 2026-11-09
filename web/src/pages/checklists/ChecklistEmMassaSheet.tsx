@@ -11,7 +11,7 @@ const horaOk = (t: string) => /^([01]\d|2[0-3]):[0-5]\d$/.test(t);
 const horaAgora = () => new Intl.DateTimeFormat("sv-SE", { timeZone: "America/Sao_Paulo", hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date());
 
 /**
- * O MESMO checklist para vários carros de uma vez ("saiu agora, neste dia, para este evento"). O que importa é o registro da saída com a data
+ * O MESMO checklist para vários carros de uma vez ("enviado agora, neste dia, para este evento"). O que importa é o registro do envio com a data
  * (que dá para trocar); combustível, limpeza, quem recebeu e observações são opcionais, e o km de cada carro se completa depois na ficha dele.
  */
 export function ChecklistEmMassaSheet({ aberto, onFechar, momento = "saida", titulo, carros, onConfirmar }: {
@@ -38,7 +38,7 @@ export function ChecklistEmMassaSheet({ aberto, onFechar, momento = "saida", tit
         <p className="t-body-sm t-muted">{carros.length} carro{carros.length === 1 ? "" : "s"} sem checklist de {rotuloMomento(momento).toLowerCase()}. Ao confirmar, {momento === "saida" ? "cada reserva passa para Em uso" : "cada reserva passa para Concluído"} e o histórico do carro registra o checklist.</p>
         <div className="mt-chk-carros" data-testid="carros-do-checklist">{carros.map((c) => <span key={c.reservaId} className="mt-rap__chip">{c.codigo}</span>)}</div>
         <div className="vei-form__linha">
-          <Field label={momento === "saida" ? "Dia da saída" : "Dia do retorno"}><DateField value={f.dia} onChange={(e) => set("dia", e.target.value)} /></Field>
+          <Field label={momento === "saida" ? "Dia do envio" : "Dia do retorno"}><DateField value={f.dia} onChange={(e) => set("dia", e.target.value)} /></Field>
           <Field label="Hora" error={f.hora && f.hora.length === 5 && !horaOk(f.hora) ? "Hora inválida." : null}><Input inputMode="numeric" value={f.hora} onChange={(e) => set("hora", mascaraDeHora(e.target.value))} placeholder="14:30" maxLength={5} aria-label="Hora" /></Field>
         </div>
         <p className="t-body-sm t-muted">Opcional: pode deixar em branco.</p>

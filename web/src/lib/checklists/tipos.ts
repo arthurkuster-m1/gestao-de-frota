@@ -1,5 +1,5 @@
-/** Checklists de saída e retorno. Os valores fechados são os mesmos do CHECK do banco (migration 0010). */
-export const MOMENTOS = [{ value: "saida", label: "Saída" }, { value: "retorno", label: "Retorno" }] as const;
+/** Checklists de envio e retorno. Os valores fechados são os mesmos do CHECK do banco (migration 0010). */
+export const MOMENTOS = [{ value: "saida", label: "Envio" }, { value: "retorno", label: "Retorno" }] as const;
 export type Momento = (typeof MOMENTOS)[number]["value"];
 export const rotuloMomento = (m: Momento) => MOMENTOS.find((x) => x.value === m)!.label;
 
