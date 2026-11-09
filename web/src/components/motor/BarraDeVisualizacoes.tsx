@@ -98,7 +98,7 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
                   {layoutsDisponiveis.map((l) => <button key={l} type="button" role="radio" aria-checked={layoutAtivo === l} className={cx("mt-layout", layoutAtivo === l && "is-on")} data-testid={`layout-${l}`} onClick={() => onPrefs({ ...prefs, visualizacao: l })}>{ICONE_GRANDE[l]}<span>{ROTULO_DO_TIPO[l]}</span></button>)}
                 </div></Field>
               )}
-              <Propriedades campos={campos} prefs={prefs} onChange={onPrefs} />
+              <Propriedades campos={campos} prefs={prefs} onChange={onPrefs} linhaDoTempo={layoutAtivo === "timeline"} />
               {falha && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{falha}</p>}
               <div className="mt-config__rodape">
                 {ativa ? (<>

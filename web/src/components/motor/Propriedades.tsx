@@ -18,7 +18,7 @@ function Item({ id, titulo, visivel, travada, onAlternar }: { id: string; titulo
 }
 
 /** Escolher, ordenar (arrastando) e congelar as propriedades da visualização. Vive dentro do painel de configuração da visualização. */
-export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; onChange: (p: PreferenciasDaTabela) => void }) {
+export function Propriedades<T>({ campos, prefs, onChange, linhaDoTempo }: { campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; onChange: (p: PreferenciasDaTabela) => void; /** A visualização aberta é a Linha do tempo: mostra a escolha da parte fixa. */ linhaDoTempo?: boolean }) {
   const cols = resolverColunas(campos, prefs);
   const movel = cols.filter((c) => !c.fixa);
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 5 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
@@ -30,6 +30,13 @@ export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly 
   };
   const visiveis = cols.filter((c) => c.visivel).length;
   const congelar = prefs.congelar ?? 1;
+  // Linha do tempo: o que fica na parte fixa à esquerda. Sem escolha, são as primeiras colunas congeladas.
+  const fixasTl = prefs.esquerdaLinhaDoTempo ?? cols.filter((c) => c.visivel).slice(0, Math.max(1, congelar)).map((c) => c.id);
+  const alternarFixa = (id: string) => {
+    const novo = fixasTl.includes(id) ? fixasTl.filter((x) => x !== id) : [...fixasTl, id];
+    if (novo.length === 0 || novo.length > 6) return;
+    onChange({ ...prefs, esquerdaLinhaDoTempo: cols.filter((c) => novo.includes(c.id)).map((c) => c.id) });
+  };
   return (
     <div className="mt-props-bloco" data-testid="propriedades-da-visao">
       <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 700 }}>Propriedades</span><span className="t-body-sm t-muted">{visiveis} visíveis</span></div>
@@ -42,6 +49,15 @@ export function Propriedades<T>({ campos, prefs, onChange }: { campos: readonly 
             </ul>
           </SortableContext>
         </DndContext>
+        {linhaDoTempo && (
+          <div className="mt-fixas-tl" data-testid="fixas-da-linha-do-tempo">
+            <span className="t-body" style={{ fontWeight: 600 }}>Parte fixa da linha do tempo</span>
+            <p className="t-body-sm t-muted">Escolha as propriedades que ficam à esquerda, ao lado das barras (até 6).</p>
+            <div className="mt-rap" style={{ flexWrap: "wrap", overflow: "visible" }} role="group" aria-label="Propriedades da parte fixa">
+              {cols.map((c) => <button key={c.id} type="button" className={`mt-rap__chip${fixasTl.includes(c.id) ? " is-on" : ""}`} aria-pressed={fixasTl.includes(c.id)} onClick={() => alternarFixa(c.id)}>{tituloDe(c.id)}</button>)}
+            </div>
+          </div>
+        )}
         <div className="mt-congelar"><span className="t-body" style={{ fontWeight: 600 }}>Congelar colunas</span>
           <Select aria-label="Congelar colunas" value={String(congelar)} onChange={(e) => onChange({ ...prefs, congelar: Number(e.target.value) })}>
             <option value="0">Nenhuma</option><option value="1">Primeira coluna</option>

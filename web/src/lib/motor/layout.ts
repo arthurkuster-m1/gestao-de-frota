@@ -50,6 +50,8 @@ export const preferenciasDaTabelaSchema = z
       .optional(),
     /** Ordem escolhida (arrastando) das chips rápidas de uma visualização fixa, como "mae" ou "mae/versão". */
     ordemDosChips: z.array(z.string().min(1).max(160)).max(400).optional(),
+    /** Linha do tempo: propriedades da parte fixa à esquerda (ids). Sem isto, valem as primeiras colunas congeladas. */
+    esquerdaLinhaDoTempo: z.array(z.string().min(1).max(80)).max(6).optional(),
     /** Colunas congeladas (ficam fixas à esquerda ao rolar): quantas, contando a primeira. 0 = nenhuma. */
     congelar: z.number().int().min(0).max(6).optional(),
     /** Filtros, ordenação e agrupamento (ver `consulta.ts`). */

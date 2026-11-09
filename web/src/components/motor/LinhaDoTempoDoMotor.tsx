@@ -47,16 +47,22 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barr
 
   // colunas do lado esquerdo: as primeiras N visíveis (N = quantas estão "congeladas"), limitadas a ~50% da tela
   const quantas = Math.max(1, prefs.congelar ?? 1);
+  /** A pessoa escolheu as propriedades da parte fixa (em qualquer coluna, até as escondidas da tabela); senão, as primeiras colunas congeladas. */
+  const escolhidas = useMemo(() => {
+    const ids = new Set(prefs.esquerdaLinhaDoTempo ?? []);
+    const cols = resolverColunas(campos, prefs).filter((c) => ids.has(c.id));
+    return cols.length > 0 ? cols : visiveis.slice(0, quantas);
+  }, [campos, prefs, visiveis, quantas]);
   const colunasEsq = useMemo(() => {
     const out: { id: string; largura: number }[] = []; let soma = 0;
-    for (const c of visiveis.slice(0, quantas)) { const w = Math.min(c.largura, largura > 0 ? Math.round(largura * 0.5) : c.largura); if (out.length > 0 && largura > 0 && soma + w > largura * 0.5) break; out.push({ id: c.id, largura: w }); soma += w; }
+    for (const c of escolhidas) { const w = Math.min(c.largura, largura > 0 ? Math.round(largura * 0.5) : c.largura); if (out.length > 0 && largura > 0 && soma + w > largura * 0.5) break; out.push({ id: c.id, largura: w }); soma += w; }
     if (larguraEsquerda && out.length > 0) {   // largura combinada: a primeira coluna absorve a diferença
       const alvo = largura > 0 ? Math.min(larguraEsquerda, Math.round(largura * 0.5)) : larguraEsquerda;
       const resto = out.slice(1).reduce((s, c) => s + c.largura, 0);
       out[0] = { ...out[0]!, largura: Math.max(110, alvo - resto) };
     }
     return out;
-  }, [visiveis, quantas, largura, larguraEsquerda]);
+  }, [escolhidas, largura, larguraEsquerda]);
   const larguraEsq = colunasEsq.reduce((s, c) => s + c.largura, 0);
   const navegaveis = colunasEsq.filter((c) => porId.get(c.id)?.edicao).map((c) => c.id);
 
