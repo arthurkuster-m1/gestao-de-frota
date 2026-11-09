@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -29,13 +30,14 @@ export function useDadosDeEventos() {
   const ck = useChecklists((id, estado) => setReservas((l) => l.map((r) => (r.id === id ? { ...r, estado } : r))), (id) => reservas.find((r) => r.id === id)?.estado);
   const [erro, setErro] = useState<string | null>(null);
 
+  const versao = useVersaoDosDados();
   useEffect(() => {
     Promise.all([listarEventos(), listarReservas(), listarVeiculos()]).then(([e, r, v]) => { setEventos(e); setReservas(r); setVeiculos(v); }, (e: Error) => setErro(e.message));
     listarClientes().then(setClientes, () => setClientes([]));
     listarDesejados().then(setDesejados, () => setDesejados([]));
     listarAnotacoes().then(setAnotacoes, () => setAnotacoes([]));
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
-  }, []);
+  }, [versao]);
 
   const ctx = useMemo<ContextoDeEventos>(() => {
     const m = new Map<string, Reserva[]>();

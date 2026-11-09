@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -14,9 +15,10 @@ export function useContratos() {
   const [itens, setItens] = useState<AditivoVeiculo[]>([]);
   const [carregado, setCarregado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  const versao = useVersaoDosDados();
   useEffect(() => {
     Promise.all([listarContratos(), listarCarrosDosContratos(), listarAditivos(), listarCarrosDosAditivos()]).then(([c, v, a, i]) => { setContratos(c); setCarros(v); setAditivos(a); setItens(i); setCarregado(true); }, (e: Error) => { setErro(e.message); setCarregado(true); });
-  }, []);
+  }, [versao]);
 
   /** Por contrato: a vigência e os carros EM VIGOR (calculados, nunca gravados). */
   const emVigor = useMemo(() => {

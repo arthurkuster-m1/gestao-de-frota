@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -15,7 +16,8 @@ export function VeiculoNoLugar({ id, onFechar }: { id: string; onFechar: () => v
   const toast = useToast();
   const d = useDadosDeEventos();
   const [lista, setLista] = useState<Veiculo[] | null>(null);
-  useEffect(() => { listarVeiculos().then(setLista, () => setLista([])); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarVeiculos().then(setLista, () => setLista([])); }, [versao]);
   const nomes = useMemo(() => new Map((d.eventos ?? []).map((e) => [e.id, e.nome])), [d.eventos]);
   const ctx = useMemo<ContextoDeUso>(() => ({ reservas: reservasPorVeiculo(d.reservas), nomeDoEvento: (x) => nomes.get(x) ?? "?", carregado: d.eventos !== null, hoje: hojeLocal(), manutencoes: d.manutencoesDoCarro }), [d.reservas, d.eventos, nomes, d.manutencoesDoCarro]);
   const campos = useMemo(() => camposDoVeiculo(ctx), [ctx]);

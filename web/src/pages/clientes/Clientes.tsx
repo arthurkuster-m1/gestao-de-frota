@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MagnifyingGlass, Plus, Users } from "@phosphor-icons/react";
@@ -11,7 +12,8 @@ export function Clientes() {
   const [lista, setLista] = useState<ClienteResumo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [busca, setBusca] = useState("");
-  useEffect(() => { listarClientes().then(setLista, (e: Error) => setErro(e.message)); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarClientes().then(setLista, (e: Error) => setErro(e.message)); }, [versao]);
   const linhas = useMemo(() => { const q = busca.trim().toLowerCase(); return (lista ?? []).filter((c) => !q || `${c.nome} ${c.cidade ?? ""} ${c.estado ?? ""}`.toLowerCase().includes(q)); }, [lista, busca]);
 
   return (

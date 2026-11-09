@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useState } from "react";
 import { useToast } from "../../ds";
 import { atualizarChecklist, criarChecklist, listarChecklists } from "../../lib/checklists/dados";
@@ -9,7 +10,8 @@ import type { Reserva } from "../../lib/eventos/tipos";
 export function useChecklists(aoMudarReserva: (reservaId: string, estado: Reserva["estado"]) => void, estadoDe: (reservaId: string) => Reserva["estado"] | undefined) {
   const toast = useToast();
   const [checklists, setChecklists] = useState<Checklist[]>([]);
-  useEffect(() => { listarChecklists().then(setChecklists, () => setChecklists([])); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarChecklists().then(setChecklists, () => setChecklists([])); }, [versao]);
 
   const salvar = async (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => {
     if (existente) {

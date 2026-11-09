@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -14,9 +15,10 @@ export function useTransportes() {
   const [carregado, setCarregado] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const versao = useVersaoDosDados();
   useEffect(() => {
     Promise.all([listarTransportes(), listarPagamentos(), listarVinculos()]).then(([t, p, v]) => { setTransportes(t); setPagamentos(p); setVinculos(v); setCarregado(true); }, (e: Error) => { setErro(e.message); setCarregado(true); });
-  }, []);
+  }, [versao]);
 
   const valorDoEvento = useMemo(() => valorPorEvento(transportes), [transportes]);
   const trocar = <T extends { id: string }>(l: T[], novo: T) => l.map((x) => (x.id === novo.id ? novo : x));

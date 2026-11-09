@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -12,7 +13,8 @@ export function useManutencoes() {
   const toast = useToast();
   const [manutencoes, setManutencoes] = useState<Manutencao[]>([]);
   const [erro, setErro] = useState<string | null>(null);
-  useEffect(() => { listarManutencoes().then(setManutencoes, (e: Error) => { setManutencoes([]); setErro(e.message); }); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarManutencoes().then(setManutencoes, (e: Error) => { setManutencoes([]); setErro(e.message); }); }, [versao]);
 
   const doCarro = useMemo(() => manutencoesPorVeiculo(manutencoes), [manutencoes]);
   const editar: OnEditar<Manutencao> = async (linha, campo, valor) => {

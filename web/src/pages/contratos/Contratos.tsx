@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FileText, Plus } from "@phosphor-icons/react";
@@ -22,7 +23,8 @@ export function Contratos() {
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [erroClientes, setErroClientes] = useState<string | null>(null);
   const [criando, setCriando] = useState(false);
-  useEffect(() => { listarClientes().then(setClientes, (e: Error) => setErroClientes(e.message)); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarClientes().then(setClientes, (e: Error) => setErroClientes(e.message)); }, [versao]);
 
   const ctx = useMemo<ContextoDeContratos>(() => {
     const rs = new Map<string, typeof d.reservas>();

@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
@@ -60,7 +61,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const [novoContrato, setNovoContrato] = useState(false);
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const k = useContratos();
-  useEffect(() => { listarClientes().then(setClientes, () => setClientes([])); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarClientes().then(setClientes, () => setClientes([])); }, [versao]);
   useEffect(() => { setComentario(evento.comentarios ?? ""); }, [evento.id, evento.comentarios]);
 
   const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);

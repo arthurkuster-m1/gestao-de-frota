@@ -1,3 +1,4 @@
+import { useVersaoDosDados } from "../../lib/sincronia";
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
@@ -85,7 +86,8 @@ export function Veiculos() {
   const man = { doCarro: d.manutencoesDoCarro, mover: d.moverManutencao, criar: d.criarDeManutencao, erro: null as string | null };
   const notasPorCarro = useMemo(() => anotacoesPorVeiculo(d.anotacoes), [d.anotacoes]);
 
-  useEffect(() => { listarVeiculos().then(setLista, (e: Error) => setErro(e.message)); }, []);
+  const versao = useVersaoDosDados();
+  useEffect(() => { listarVeiculos().then(setLista, (e: Error) => setErro(e.message)); }, [versao]);
 
   const ctx = useMemo<ContextoDeUso>(() => {
     if (!d.eventos) return SEM_USO;
