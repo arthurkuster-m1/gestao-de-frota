@@ -15,7 +15,8 @@ import type { Evento, Reserva } from "../../lib/eventos/tipos";
 import { barrasDeManutencao, ehBarraDeManutencao } from "../../lib/manutencoes/barras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import { useManutencoes } from "../manutencoes/useManutencoes";
-import { STATUS_DE_USO, agendaTexto, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
+import { Tag } from "../../components/motor/Tag";
+import { STATUS_DE_USO, agendaItens, agendaTexto, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
@@ -41,7 +42,8 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "codigo", titulo: "Código", tipo: "texto", valorDe: (v) => v.codigo ?? v.modelo.toUpperCase(), largura: 180, fixa: true },
   { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110, edicao: { coluna: "placa", maxLength: 8, placeholder: "ABC1D23", normalizar: normalizarPlaca, validar: (t) => (placaValida(t) ? null : "A placa tem 7 caracteres.") } },
   { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? [], ctx.manutencoes?.get(v.id) ?? [], ctx.hoje) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
-  { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) || null : null), largura: 420 },
+  { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) || null : null), multilinha: true, largura: 420,
+    celula: (v) => { const itens = ctx.carregado ? agendaItens(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) : []; return itens.length === 0 ? <span className="mt-vazio">—</span> : <span className="mt-agenda-tags">{itens.map((it, k) => <Tag key={k} campoId="statusUso" opcao={{ value: it.uso, label: it.texto, tom: OPCOES_USO.find((o) => o.value === it.uso)?.tom }} />)}</span>; } },
   { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190, edicao: { coluna: "vin", maxLength: 20, placeholder: "17 caracteres", normalizar: normalizarVin, validar: (t) => (vinValido(t) ? null : "O VIN tem 17 letras e números.") } },
   { id: "modelo", titulo: "Modelo", tipo: "texto", valorDe: (v) => v.modelo, largura: 160, padrao: false, edicao: { coluna: "modelo", obrigatorio: true } },
   { id: "cor", titulo: "Cor", tipo: "texto", valorDe: (v) => v.cor, largura: 130, edicao: { coluna: "cor" } },

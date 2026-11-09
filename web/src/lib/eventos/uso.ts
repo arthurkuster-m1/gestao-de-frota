@@ -5,8 +5,8 @@ import type { EstadoReserva, Reserva } from "./tipos";
 /** O Status de Uso do carro (o que ele está fazendo na operação). */
 export const STATUS_DE_USO = [
   { value: "disponivel", label: "Disponível", tom: "success" },
-  { value: "reservado", label: "Reservado", tom: "info" },
-  { value: "em_uso", label: "Em uso", tom: "accent" },
+  { value: "reservado", label: "Reservado", tom: "accent" },
+  { value: "em_uso", label: "Em uso", tom: "info" },
   { value: "em_retorno", label: "Em retorno", tom: "warning" },
   { value: "manutencao", label: "Manutenção", tom: "error" },
 ] as const;
@@ -50,6 +50,20 @@ export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoI
     .map((r) => `${ROTULO_DA_AGENDA[r.estado]} - EVENTO ${nomeDoEvento(r.evento_id).toUpperCase()} ${dm(r.reserva_inicio, ano)} ATÉ ${dm(r.reserva_fim, ano)}`)
   ;
   return [...oficina, ...eventos].join(" + ");
+}
+
+export type ItemDaAgenda = { uso: StatusDeUso; texto: string };
+const ROTULO_ITEM: Record<string, string> = { reservado: "Reservado", em_uso: "Em uso", em_retorno: "Em retorno" };
+
+/** A agenda do carro item a item (um por reserva/manutenção abertas), na mesma ordem de `agendaTexto`: "Em uso - Evento XYZ 05/11 até 07/11". `uso` dá a cor da tag. */
+export function agendaItens(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string, manutencoes: readonly Manutencao[] = []): ItemDaAgenda[] {
+  const ano = hoje.slice(0, 4);
+  const oficina = manutencoes.filter(estaEmAberto).sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
+    .map((m): ItemDaAgenda => ({ uso: "manutencao", texto: `Em manutenção - ${m.nome} ${m.data_fim ? `${dm(m.data_inicio, ano)} até ${dm(m.data_fim, ano)}` : `desde ${dm(m.data_inicio, ano)}`}` }));
+  const eventos = reservas.filter(estaAberta)
+    .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
+    .map((r): ItemDaAgenda => ({ uso: r.estado as StatusDeUso, texto: `${ROTULO_ITEM[r.estado]} - Evento ${nomeDoEvento(r.evento_id)} ${dm(r.reserva_inicio, ano)} até ${dm(r.reserva_fim, ano)}` }));
+  return [...oficina, ...eventos];
 }
 
 /** As reservas abertas do carro que se sobrepõem ao período (datas inclusivas). `ignorarEvento`: o próprio evento, ao editá-lo. */

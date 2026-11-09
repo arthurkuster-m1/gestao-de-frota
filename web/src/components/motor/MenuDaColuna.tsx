@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import { ArrowDown, ArrowUp, EyeSlash, Palette, Funnel, PushPin, Rows, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, ArrowsInLineVertical, ArrowsOutLineVertical, EyeSlash, Palette, Funnel, PushPin, Rows, X } from "@phosphor-icons/react";
 import { usePopover } from "../../ds/popover";
 import { OPERADORES_DO_TIPO } from "../../lib/motor/consulta";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
@@ -23,6 +23,7 @@ export function MenuDaColuna<T>({ ancora, campo, indice, prefs, onPrefs, aoFiltr
   const agrupada = prefs.agrupar === campo.id;
   const filtros = prefs.filtros ?? [];
   const podeOcultar = !campo.fixa && !campo.semOcultar;
+  const quebra = (prefs.quebrarLinhas ?? []).includes(campo.id);
   const congelada = (prefs.congelar ?? 1) === indice + 1;
   return (
     <div ref={ref} popover="auto" className="ds-pop mt-painel mt-menucol" role="menu" aria-label={`Coluna ${campo.titulo}`} data-testid="menu-coluna">
@@ -32,6 +33,7 @@ export function MenuDaColuna<T>({ ancora, campo, indice, prefs, onPrefs, aoFiltr
       <button type="button" role="menuitem" className="mt-item" aria-current={ordem === "desc"} data-testid="coluna-desc" onClick={() => faz({ ordenacao: ordem === "desc" ? undefined : [{ campo: campo.id, direcao: "desc" }] })}><ArrowDown size={18} />Ordenar decrescente{ordem === "desc" && " ✓"}</button>
       <button type="button" role="menuitem" className="mt-item" data-testid="coluna-agrupar" onClick={() => faz({ agrupar: agrupada ? undefined : campo.id })}>{agrupada ? <X size={18} /> : <Rows size={18} />}{agrupada ? "Remover agrupamento" : "Agrupar por esta coluna"}</button>
       <button type="button" role="menuitem" className="mt-item" data-testid="coluna-congelar" onClick={() => faz({ congelar: congelada ? 0 : indice + 1 })}><PushPin size={18} />{congelada ? "Descongelar colunas" : "Congelar até aqui"}</button>
+      {campo.multilinha && <button type="button" role="menuitem" className="mt-item" data-testid="coluna-quebrar" onClick={() => faz({ quebrarLinhas: quebra ? (prefs.quebrarLinhas ?? []).filter((x) => x !== campo.id) : [...(prefs.quebrarLinhas ?? []), campo.id] })}>{quebra ? <ArrowsInLineVertical size={18} /> : <ArrowsOutLineVertical size={18} />}{quebra ? "Tudo em uma linha" : "Quebrar linhas (um por linha)"}</button>}
       {campo.tipo === "opcao" && aoEditarCores && <button type="button" role="menuitem" className="mt-item" data-testid="coluna-cores" onClick={() => { fecha(); aoEditarCores(campo); }}><Palette size={18} />Editar cores</button>}
       {podeOcultar && <button type="button" role="menuitem" className="mt-item" data-testid="coluna-ocultar" onClick={() => faz({ visiveis: { ...prefs.visiveis, [campo.id]: false } })}><EyeSlash size={18} />Ocultar coluna</button>}
     </div>

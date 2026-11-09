@@ -25,4 +25,6 @@ export type CampoDaTela<T> = CampoConsultavel<T> & DefinicaoDeColuna & {
   opcoes?: readonly OpcaoDoCampo[];
   /** Célula própria; sem isto a tabela formata pelo tipo. */
   celula?: (linha: T) => ReactNode;
+  /** A célula tem vários itens: a coluna ganha a opção de quebrar linha (um item por linha). */
+  multilinha?: boolean;
 };

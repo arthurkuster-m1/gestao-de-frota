@@ -150,7 +150,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       arrastandoSel.current = true;
     };
     return (
-      <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
+      <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, (prefs.quebrarLinhas ?? []).includes(c.id) && "mt-quebra", editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
         {i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l)}
       </td>
     );
