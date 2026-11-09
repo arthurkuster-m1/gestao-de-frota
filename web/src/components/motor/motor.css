@@ -305,3 +305,5 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-tl__semana { font-weight: 600; white-space: nowrap; overflow: hidden; }
 .mt-tl__semana.is-hoje { background: var(--color-accent-soft); color: var(--color-accent); }
 .mt-cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.mt-tabela th.mt-th--arrasta { cursor: grab; touch-action: manipulation; }
+.mt-tabela th.is-arrastando { cursor: grabbing; box-shadow: var(--shadow-md); }

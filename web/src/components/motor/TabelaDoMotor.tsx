@@ -1,4 +1,7 @@
-import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNode } from "react";
+import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
+import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import { ArrowSquareOut, CaretDown, CaretRight, CaretUp, X } from "@phosphor-icons/react";
 import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
@@ -26,6 +29,13 @@ type Props<T> = {
 
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
+
+/** Cabeçalho que se arrasta para mudar a coluna de lugar (clicar sem arrastar continua abrindo o menu da coluna). */
+function ThOrdenavel({ id, travada, estilo, className, ...resto }: { id: string; travada: boolean; estilo?: CSSProperties; className?: string } & React.ThHTMLAttributes<HTMLTableCellElement>) {
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } = useSortable({ id, disabled: travada });
+  return <th ref={setNodeRef} {...attributes} role="columnheader" {...listeners} {...resto} className={cx(className, !travada && "mt-th--arrasta", isDragging && "is-arrastando")}
+    style={{ ...estilo, transform: CSS.Translate.toString(transform), transition, ...(isDragging ? { zIndex: 8, opacity: 0.85 } : {}) }} />;
+}
 
 export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
@@ -114,6 +124,18 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const total = colunas.reduce((s, c) => s + larguraDe(c), 0);
   const ordemAtual = prefs.ordenacao?.[0];
 
+  // arrastar o título de uma coluna muda a ordem (grava em `ordem`, a mesma das Propriedades); colunas congeladas ficam no lugar
+  const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
+  const aoSoltarColuna = (e: DragEndEvent) => {
+    if (!e.over || e.active.id === e.over.id) return;
+    const todas = resolverColunas(campos, prefs).filter((c) => !c.fixa).map((c) => c.id);
+    const vis = colunas.filter((c) => !c.fixa).map((c) => c.id);
+    const de = vis.indexOf(String(e.active.id)), para = vis.indexOf(String(e.over.id));
+    if (de < 0 || para < 0) return;
+    const nova = arrayMove(vis, de, para); let k = 0;
+    onPrefs({ ...prefs, ordem: todas.map((id) => (vis.includes(id) ? nova[k++]! : id)) });
+  };
+
   const redimensionar = (e: React.PointerEvent, id: string, largura: number) => {
     e.preventDefault(); e.stopPropagation();
     const alvo = e.currentTarget as HTMLElement; alvo.setPointerCapture(e.pointerId);
@@ -172,16 +194,20 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
           <table style={{ width: total, tableLayout: "fixed" }}>
             <colgroup>{colunas.map((c) => <col key={c.id} style={{ width: larguraDe(c) }} />)}</colgroup>
             <thead>
-              <tr>{colunas.map((c, i) => {
-                const ativa = ordemAtual?.campo === c.id;
-                return (
-                  <th key={c.id} style={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
-                    onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
-                    <span className="mt-th">{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
-                    <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />
-                  </th>
-                );
-              })}</tr>
+              <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
+                <SortableContext items={colunas.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
+                  <tr>{colunas.map((c, i) => {
+                    const ativa = ordemAtual?.campo === c.id;
+                    return (
+                      <ThOrdenavel key={c.id} id={c.id} travada={i < congeladas || !!c.fixa} estilo={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
+                        onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
+                        <span className="mt-th">{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
+                        <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
+                      </ThOrdenavel>
+                    );
+                  })}</tr>
+                </SortableContext>
+              </DndContext>
             </thead>
             <tbody>
               {resultado.grupos ? resultado.grupos.map((g) => {
