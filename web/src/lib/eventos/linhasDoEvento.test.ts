@@ -18,10 +18,10 @@ describe("linhas do evento", () => {
   it("herda do evento até individualizar", () => {
     const ev = { status: "planejado" as const, chegada_prevista: "2026-11-05", retirada_prevista: "2026-11-08" };
     const l = { key: "r:r1", reserva: r("r1", "v1", { chegada: "2026-11-06", origem: "Curitiba" }), pedido: null, veiculo: v("v1") };
-    const e = valoresEfetivos(l, ev, [{ id: "l", evento_id: "e", rotulo: null, endereco: "Rua A, 1", cidade: "SP", estado: "SP", posicao: 0 }]);
+    const e = valoresEfetivos(l, ev, [{ id: "l", evento_id: "e", rotulo: null, endereco: "Rua A, 1 - SP/SP - CEP 01000-000", cidade: "SP", estado: "SP", posicao: 0 }]);
     expect(e.chegada).toEqual({ valor: "2026-11-06", herdado: false });
     expect(e.retirada).toEqual({ valor: "2026-11-08", herdado: true });
-    expect(e.enderecoChegada.valor).toBe("Rua A, 1, SP/SP");
+    expect(e.enderecoChegada.valor).toBe("Rua A, 1 - SP/SP - CEP 01000-000");
     expect(e.origem).toEqual({ valor: "Curitiba", herdado: false });
     expect(e.status).toEqual({ valor: "planejado", herdado: true });
   });
