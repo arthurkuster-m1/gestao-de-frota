@@ -11,7 +11,7 @@ import { formatar } from "../../components/motor/formatar";
 import { listarAtividades, type Atividade } from "../../lib/veiculos/dados";
 import { quando, textoAtividade } from "../../lib/veiculos/atividade";
 import type { Veiculo } from "../../lib/veiculos/tipos";
-import { ESTADOS_RESERVA, type Evento, type EventoLocal, type Reserva } from "../../lib/eventos/tipos";
+import { ESTADOS_RESERVA, type Evento, type EventoLocal, type Reserva, type ReservaDoEvento } from "../../lib/eventos/tipos";
 import { STATUS_DE_USO, agendaItens, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
 import { barrasDoVeiculo } from "../../lib/eventos/barras";
 import { barrasDeManutencao } from "../../lib/manutencoes/barras";
@@ -43,7 +43,7 @@ function EmBreve({ icone, titulo, children }: { icone: ReactNode; titulo: string
 }
 
 /** A janela do veículo: tudo sobre um carro, em abas. Dados e Comentários se editam no lugar, como na tabela e nos cards. */
-function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome: (id: string) => string; vazio: string }) {
+function ListaDeReservas({ reservas, nome, vazio }: { reservas: ReservaDoEvento[]; nome: (id: string) => string; vazio: string }) {
   if (reservas.length === 0) return <p className="t-body t-muted">{vazio}</p>;
   return (
     <ul className="mt-reservas" data-testid="lista-reservas">
@@ -60,7 +60,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome:
   );
 }
 
-export function JanelaDoVeiculo({ clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
+export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { /** carros deste veículo em eventos ainda sem data */ reservasSemData?: ReservaDoEvento[]; /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
@@ -84,8 +84,8 @@ export function JanelaDoVeiculo({ clientes = new Map<string, string>(), locais =
   const statusAtual = statusDeUso(reservas, manutencoes, hoje);
   const itensTexto = agendaItens(reservas, nomeDoEvento, hoje, manutencoes);
   /** Compromissos COM data (calendário e linha do tempo) e eventos do carro sem data (ficam só numa lista). */
-  const comData = reservas.filter((r) => r.estado !== "cancelado" && r.reserva_inicio && r.reserva_fim);
-  const semData = reservas.filter((r) => r.estado !== "cancelado" && !(r.reserva_inicio && r.reserva_fim));
+  const comData = reservas.filter((r) => r.estado !== "cancelado");
+  const semData = reservasSemData.filter((r) => r.estado !== "cancelado");
   const itensDaAgenda: ItemDaAgenda[] = [
     ...barrasDoVeiculo(comData, nomeDoEvento).map((b) => ({ ...b, href: `/eventos/${(b.dados as { eventoId: string }).eventoId}` })),
     ...barrasDeManutencao(manutencoes, hoje).map((b) => ({ ...b, href: `/manutencoes/${b.id}` })),
@@ -147,7 +147,7 @@ export function JanelaDoVeiculo({ clientes = new Map<string, string>(), locais =
                 )}
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
-            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo reservas={reservas} eventos={eventos} clientes={clientes} locais={locais} />
+            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo reservas={[...reservas, ...reservasSemData]} eventos={eventos} clientes={clientes} locais={locais} />
               : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "manutencoes" && (manutencoesErro ? <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">{manutencoesErro}</EmBreve> : (
               <div className="mt-reservas-ed" data-testid="aba-manutencoes">

@@ -7,7 +7,7 @@ export function JanelaDoEventoLigada({ d, id, aba, onAba, onFechar, onExcluido }
 }) {
   const evento = id && d.eventos ? (d.eventos.find((x) => x.id === id) ?? null) : null;
   return (
-    <JanelaDoEvento evento={evento} aba={aba} onAba={onAba} campos={d.campos} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} locais={d.locais} desejados={d.desejados} manutencoes={d.manutencoes} tr={d.tr}
+    <JanelaDoEvento evento={evento} aba={aba} onAba={onAba} campos={d.campos} veiculos={d.veiculos} reservas={d.reservas} reservasSemData={d.reservasSemData} onReservarSemData={d.reservarSemDatas} eventos={d.eventos ?? []} locais={d.locais} desejados={d.desejados} manutencoes={d.manutencoes} tr={d.tr}
       checklists={d.ck.checklists} onSalvarChecklist={d.ck.salvar} onEditarLocal={d.editarLocal} onAdicionarLocais={d.adicionarLocais} onRemoverLocal={d.tirarLocal} onEditarEvento={d.editarEvento}
       onSalvarReserva={d.salvarReserva} onReservar={d.reservar} onRemoverReserva={d.remover} onNaoAtendido={d.marcarNaoAtendido} onAdicionarDesejados={d.adicionarDesejados}
       onExcluir={async (e) => { await d.excluir(e); onExcluido(); }} onFechar={onFechar} />

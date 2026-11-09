@@ -4,18 +4,18 @@ import { Button, DateField, Input, Select, cx } from "../../ds";
 import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
 import { formatarDiaBr } from "../../lib/motor/datas";
-import { ESTADOS_RESERVA, STATUS_EVENTO, type Evento, type EventoLocal, type Reserva } from "../../lib/eventos/tipos";
+import { ESTADOS_RESERVA, STATUS_EVENTO, type Evento, type EventoLocal, type ReservaDoEvento } from "../../lib/eventos/tipos";
 
 /** Eventos mais "vivos" primeiro: o que está acontecendo, depois o que vem, e por fim os concluídos. */
 const ORDEM_DOS_GRUPOS = ["em_uso", "retorno_solicitado", "solicitar_retorno", "envio_solicitado", "solicitar_transporte", "planejado", "concluido"];
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
-type Linha = { r: Reserva; e: Evento; cliente: string; local: string; texto: string };
+type Linha = { r: ReservaDoEvento; e: Evento; cliente: string; local: string; texto: string };
 
 /**
  * Os eventos do carro, agrupados pelo status do evento. Pesquisa em tudo que se sabe do evento (nome, responsável, contato, cliente, local, datas…),
  * filtra por status e por período, e dá para selecionar vários e "filtrar seleção".
  */
-export function EventosDoVeiculo({ reservas, eventos, clientes, locais }: { reservas: Reserva[]; eventos: Evento[]; clientes: ReadonlyMap<string, string>; locais: readonly EventoLocal[] }) {
+export function EventosDoVeiculo({ reservas, eventos, clientes, locais }: { reservas: ReservaDoEvento[]; eventos: Evento[]; clientes: ReadonlyMap<string, string>; locais: readonly EventoLocal[] }) {
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState("");
   const [de, setDe] = useState("");

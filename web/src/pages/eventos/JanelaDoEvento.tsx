@@ -11,7 +11,7 @@ import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
 import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import type { Contrato } from "../../lib/contratos/tipos";
-import type { Evento, EventoLocal, EventoLocalNovo, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
+import type { Evento, EventoLocal, EventoLocalNovo, ModeloDesejado, Reserva, ReservaDoEvento } from "../../lib/eventos/tipos";
 import type { Transporte } from "../../lib/transportes/tipos";
 import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
@@ -37,9 +37,10 @@ type Props = {
   tr: ReturnType<typeof useTransportes>; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
-  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual">>) => Promise<void>;
+  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
+  reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
-  onRemoverReserva: (r: Reserva) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onAdicionarDesejados: (eventoId: string, pedidos: PedidoDeCarro[]) => Promise<void>;
+  onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onAdicionarDesejados: (eventoId: string, pedidos: PedidoDeCarro[]) => Promise<void>;
   onExcluir: (e: Evento) => Promise<void>;
 };
 
@@ -137,7 +138,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {aba === "veiculos" && (
           <div className="mt-reservas-ed" data-testid="aba-veiculos">
             <div><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
-            <VeiculosDoEvento evento={evento} veiculos={p.veiculos} reservas={p.reservas} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
+            <VeiculosDoEvento evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
               checklists={p.checklists} onSalvarChecklist={p.onSalvarChecklist} onSalvarReserva={p.onSalvarReserva} onReservar={p.onReservar} onRemoverReserva={p.onRemoverReserva} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />
           </div>
         )}

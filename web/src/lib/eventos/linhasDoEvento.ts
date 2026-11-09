@@ -1,9 +1,9 @@
 import type { Transporte, Sentido, Modalidade } from "../transportes/tipos";
 import type { Veiculo } from "../veiculos/tipos";
-import type { Evento, EventoLocal, ModeloDesejado, Reserva } from "./tipos";
+import type { Evento, EventoLocal, ModeloDesejado, ReservaDoEvento } from "./tipos";
 
 /** Uma linha da tabela de veículos do evento: um carro já definido (reserva) ou um carro PEDIDO ainda sem definição (modelo desejado). */
-export type LinhaDoEvento = { key: string; reserva: Reserva | null; pedido: ModeloDesejado | null; veiculo: Veiculo | null };
+export type LinhaDoEvento = { key: string; reserva: ReservaDoEvento | null; pedido: ModeloDesejado | null; veiculo: Veiculo | null };
 
 export const codigoDoVeiculo = (v: Pick<Veiculo, "codigo" | "modelo">) => v.codigo ?? v.modelo.toUpperCase();
 /** Sem carro definido, o "código" é o pedido: MODELO + COR + MY. */
@@ -11,7 +11,7 @@ export const codigoDoPedido = (p: Pick<ModeloDesejado, "modelo" | "cor" | "my">)
 export const codigoDaLinha = (l: LinhaDoEvento) => (l.veiculo ? codigoDoVeiculo(l.veiculo) : l.pedido ? codigoDoPedido(l.pedido) : "?");
 
 /** Carros definidos (por código) e, depois, os pedidos que ainda não têm carro (na ordem do pedido). Reserva cancelada não aparece. */
-export function montarLinhas(eventoId: string, reservas: readonly Reserva[], pedidos: readonly ModeloDesejado[], veiculos: readonly Veiculo[]): LinhaDoEvento[] {
+export function montarLinhas(eventoId: string, reservas: readonly ReservaDoEvento[], pedidos: readonly ModeloDesejado[], veiculos: readonly Veiculo[]): LinhaDoEvento[] {
   const porId = new Map(veiculos.map((v) => [v.id, v]));
   const doEvento = reservas.filter((r) => r.evento_id === eventoId && r.estado !== "cancelado");
   const pedidoDaReserva = new Map(pedidos.filter((p) => p.reserva_id).map((p) => [p.reserva_id!, p]));

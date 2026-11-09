@@ -16,7 +16,7 @@ import { useEdicao } from "../../components/motor/useEdicao";
 import { validarEndereco } from "../../lib/enderecos";
 import { formatarDiaBr, hojeLocal } from "../../lib/motor/datas";
 import { codigoDaLinha, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresEfetivos, type LinhaDoEvento } from "../../lib/eventos/linhasDoEvento";
-import type { Evento, EventoLocal, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
+import type { Evento, EventoLocal, ModeloDesejado, Reserva, ReservaDoEvento } from "../../lib/eventos/tipos";
 import { conflitos, reservasPorVeiculo, agendaTexto } from "../../lib/eventos/uso";
 import { reais } from "../../lib/transportes/regras";
 import type { Sentido, Transporte } from "../../lib/transportes/tipos";
@@ -47,11 +47,11 @@ function lerPrefs(): Prefs {
 function gravarPrefs(p: Prefs) { try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento */ } }
 
 type Props = {
-  evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[]; tr: Tr;
+  evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; /** carros no evento ainda sem data */ reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[]; tr: Tr;
   checklists?: Checklist[]; onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
-  onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual">>) => Promise<void>;
+  onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
-  onRemoverReserva: (r: Reserva) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
+  onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
 };
 
 /**
@@ -60,7 +60,7 @@ type Props = {
  * arrastar o título para mudar a ordem, selecionar células (arrastando), copiar, colar, duplicar para baixo e marcar vários carros
  * para aplicar o MESMO transporte de uma vez.
  */
-export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro }: Props) {
+export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro }: Props) {
   const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs>(lerPrefs);
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
@@ -74,7 +74,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
 
   const pedidosDoEvento = useMemo(() => desejados.filter((p) => p.evento_id === evento.id), [desejados, evento.id]);
   const locaisDoEvento = useMemo(() => locais.filter((l) => l.evento_id === evento.id), [locais, evento.id]);
-  const linhas = useMemo(() => montarLinhas(evento.id, reservas, pedidosDoEvento, veiculos), [evento.id, reservas, pedidosDoEvento, veiculos]);
+  const linhas = useMemo(() => montarLinhas(evento.id, [...reservas, ...reservasSemData], pedidosDoEvento, veiculos), [evento.id, reservas, reservasSemData, pedidosDoEvento, veiculos]);
   const porCarro = useMemo(() => reservasPorVeiculo(reservas), [reservas]);
   const nomes = useMemo(() => new Map(eventos.map((e) => [e.id, e.nome])), [eventos]);
   const transporteDe = (l: LinhaDoEvento, s: Sentido): Transporte | null => {
@@ -238,6 +238,12 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
     const de = ordenadas.indexOf(e.active.id as ColunaOpcional), para = ordenadas.indexOf(e.over.id as ColunaOpcional);
     if (de >= 0 && para >= 0) muda({ ...prefs, colunas: arrayMove(ordenadas, de, para) });
   };
+  const semData = linhas.filter((l) => l.reserva && !l.reserva.reserva_inicio);
+  async function aplicarDatasDoEvento() {
+    const c = evento.chegada_prevista, t = evento.retirada_prevista; if (!c || !t) return;
+    try { for (const l of semData) await onSalvarReserva(l.reserva!.id, { reserva_inicio: c, reserva_fim: t, chegada: l.reserva!.chegada ?? c, retirada: l.reserva!.retirada ?? t }); toast(`${semData.length} carro${semData.length === 1 ? "" : "s"} com as datas do evento`); }
+    catch (e) { onErro((e as Error).message); }
+  }
   const definidas = linhas.filter((l) => l.reserva);
   const todosMarcados = definidas.length > 0 && definidas.every((l) => marcados.has(l.key));
   const alternar = (k: string) => setMarcados((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
@@ -264,6 +270,14 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
         </div>
       </div>
 
+      {semData.length > 0 && (
+        <div className="mt-vde__massa" role="status" data-testid="aviso-sem-data">
+          <b>{semData.length} carro{semData.length === 1 ? "" : "s"} sem data</b>
+          {evento.chegada_prevista && evento.retirada_prevista
+            ? <Button size="sm" onClick={() => void aplicarDatasDoEvento()} data-testid="aplicar-datas-do-evento">Aplicar as datas do evento ({formatarDiaBr(evento.chegada_prevista)} a {formatarDiaBr(evento.retirada_prevista)})</Button>
+            : <span className="t-body-sm t-muted">Defina a data de chegada e de retirada do evento (aba Dados) ou ligue a Edição individual e preencha as datas de cada carro.</span>}
+        </div>
+      )}
       {(marcadas.length > 0 || (faixa && multiplas(faixa))) && (
         <div className="mt-vde__massa" role="toolbar" aria-label="Ações em massa" data-testid="barra-em-massa">
           {marcadas.length > 0 && <>
@@ -298,7 +312,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
             {linhas.length === 0 && <tr><td colSpan={nCols} className="t-body t-muted" style={{ padding: 16 }}>Nenhum carro ainda. Peça modelos no cadastro do evento ou reserve carros.</td></tr>}
             {linhas.map((l, li) => {
               const v = l.veiculo; const r = l.reserva;
-              const choques = r && v ? conflitos({ inicio: r.reserva_inicio, fim: r.reserva_fim }, porCarro.get(r.veiculo_id) ?? [], evento.id) : [];
+              const choques = r && v && r.reserva_inicio && r.reserva_fim ? conflitos({ inicio: r.reserva_inicio, fim: r.reserva_fim }, porCarro.get(r.veiculo_id) ?? [], evento.id) : [];
               return (
                 <tr key={l.key} className={cx(!r && "is-aberta", l.pedido?.nao_atendido && "is-falta", marcados.has(l.key) && "is-marcada")} data-testid="linha-veiculo">
                   <td className="mt-vde__sel">{r && <input type="checkbox" checked={marcados.has(l.key)} onChange={() => alternar(l.key)} aria-label={`Marcar ${codigoDaLinha(l)}`} />}</td>
@@ -310,6 +324,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
                     <span className="mt-vde__codigo">
                       {!r && <Lock size={14} weight="fill" aria-label="Pedido do evento" />}
                       {v ? <LinkNoLugar to={`/veiculos/${v.id}`} className="mt-reserva__evento">{codigoDaLinha(l)}</LinkNoLugar> : <span className="mt-vde__pedido">{codigoDaLinha(l)}</span>}
+                      {r && !r.reserva_inicio && <span className="mt-sem-data" title="Este carro está no evento, mas sem data: defina a chegada e a retirada" data-testid="sem-data">sem data</span>}
                       {l.pedido?.nao_atendido && <span className="t-body-sm" style={{ color: "var(--color-error-fg)" }}>Veículo não estava disponível</span>}
                       {choques.length > 0 && <span title={`Também está em: ${agendaTexto(choques, (x) => nomes.get(x) ?? "?", hojeLocal())}`} data-testid="aviso-conflito"><Warning size={16} weight="fill" /></span>}
                     </span>
@@ -332,7 +347,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
       {ed.erro && <p className="mt-erro" role="alert"><span>{ed.erro}</span></p>}
 
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
-        pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)} />
+        pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)}
+        onReservarSemData={onReservarSemData ? (ids) => onReservarSemData(evento.id, ids, pedidoAlvo?.id) : undefined} />
       <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => { setTransporte(null); setMarcados(new Set()); }} tr={tr} eventoId={evento.id} reservaIds={transporte?.reservaIds ?? []}
         carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null} />
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>

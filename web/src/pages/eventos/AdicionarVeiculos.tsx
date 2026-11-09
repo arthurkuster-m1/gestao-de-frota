@@ -13,10 +13,11 @@ import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
 /** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
-export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], pedidos = [], onNaoAtendido, veiculosIniciais, dataInicial, onReservar }: {
+export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], pedidos = [], onNaoAtendido, veiculosIniciais, dataInicial, onReservar, onReservarSemData }: {
   aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; manutencoes?: Manutencao[];
   /** O que o evento pediu (modelos desejados): filtra os carros e mostra o cadeado. */ pedidos?: ModeloDesejado[]; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>;
   /** Carros já marcados ao abrir (ex.: o carro em que a pessoa deu duplo clique) e a data de chegada sugerida. */ veiculosIniciais?: string[]; dataInicial?: string | null;
+  /** Põe os carros marcados no evento SEM data (as datas entram depois). */ onReservarSemData?: (veiculoIds: string[]) => Promise<void>;
   onReservar: (veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
 }) {
   const [chegada, setChegada] = useState(evento.chegada_prevista ?? somarDias(hojeLocal(), 2));
@@ -65,6 +66,11 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const alterna = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0)).length;
 
+  async function reservarSemData() {
+    if (!onReservarSemData) return;
+    setErro(null); setEnviando(true);
+    try { await onReservarSemData([...marcados]); setMarcados(new Set()); onFechar(); } catch (e) { setErro((e as Error).message); } finally { setEnviando(false); }
+  }
   async function reservar() {
     setErro(null); setEnviando(true);
     try { await onReservar([...marcados], inicio, fim, { chegada, retirada }); setMarcados(new Set()); onFechar(); } catch (e) { setErro((e as Error).message); } finally { setEnviando(false); }
@@ -113,6 +119,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         </ul>
         {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva ou manutenção nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
         {erro && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
+        {onReservarSemData && <Button size="lg" block variant="secondary" disabled={marcados.size === 0} loading={enviando} onClick={() => void reservarSemData()} data-testid="reservar-sem-data">Adicionar {marcados.size || ""} carro{marcados.size === 1 ? "" : "s"} sem data (definir depois)</Button>}
         <Button size="lg" block disabled={marcados.size === 0 || !periodoOk} loading={enviando} onClick={() => void reservar()} data-testid="confirmar-reserva">
           Reservar {marcados.size} carro{marcados.size === 1 ? "" : "s"}{periodoOk ? ` · ${formatarDiaBr(inicio).slice(0, 5)} a ${formatarDiaBr(fim).slice(0, 5)}` : ""}
         </Button>

@@ -1,6 +1,6 @@
 import { supabase } from "../supabase";
 import { cidadeEUf } from "../enderecos";
-import type { AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "./tipos";
+import type { ReservaDoEvento, AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "./tipos";
 
 export class ErroEvento extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroEvento {
@@ -22,15 +22,28 @@ export async function listarEventos(): Promise<Evento[]> {
   return (data ?? []) as Evento[];
 }
 export async function listarReservas(): Promise<Reserva[]> {
-  const { data, error } = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA).order("reserva_inicio", { ascending: true }).limit(10000);
+  const { data, error } = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
   if (!error) return (data ?? []) as Reserva[];
   // migration 0007 (chegada/retirada) ainda não aplicada: lê sem essas colunas, para Status de uso e Agenda seguirem funcionando
   if (/chegada|retirada/.test(error.message)) {
-    const antigo = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA_ANTIGAS).order("reserva_inicio", { ascending: true }).limit(10000);
+    const antigo = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA_ANTIGAS).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
     if (antigo.error) throw traduzir(antigo.error);
     return ((antigo.data ?? []) as Omit<Reserva, "chegada" | "retirada">[]).map((r) => ({ ...r, chegada: null, retirada: null }));
   }
   throw traduzir(error);
+}
+/** Os carros que estão em eventos mas ainda sem data (a agenda e a linha do tempo não os enxergam). */
+export async function listarReservasSemData(): Promise<ReservaDoEvento[]> {
+  const { data, error } = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA).is("reserva_inicio", null).limit(10000);
+  if (error) throw traduzir(error);
+  return (data ?? []) as ReservaDoEvento[];
+}
+/** Põe carros no evento SEM data (as datas entram depois, no evento ou carro a carro). */
+export async function reservarSemData(eventoId: string, veiculoIds: string[]): Promise<ReservaDoEvento[]> {
+  if (veiculoIds.length === 0) return [];
+  const { data, error } = await supabase.from("evento_veiculos").insert(veiculoIds.map((veiculo_id) => ({ evento_id: eventoId, veiculo_id, estado: "reservado" }))).select(COLUNAS_RESERVA);
+  if (error) throw traduzir(error);
+  return (data ?? []) as ReservaDoEvento[];
 }
 export async function criarEvento(e: EventoNovo): Promise<Evento> {
   const { data, error } = await supabase.from("eventos").insert({ ...e, nome: e.nome.trim() }).select(COLUNAS_EVENTO).single();

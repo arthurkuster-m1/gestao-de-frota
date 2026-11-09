@@ -1,6 +1,6 @@
 import { validarEndereco } from "../../lib/enderecos";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
-import { ESTADOS_RESERVA, STATUS_EVENTO, TIPOS_EVENTO, UFS, type Evento, type EventoLocal, type Reserva } from "../../lib/eventos/tipos";
+import { ESTADOS_RESERVA, STATUS_EVENTO, TIPOS_EVENTO, UFS, type Evento, type EventoLocal, type Reserva, type ReservaDoEvento } from "../../lib/eventos/tipos";
 import { estaAberta } from "../../lib/eventos/uso";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
@@ -9,6 +9,7 @@ export const OPCOES_ESTADO_RESERVA: OpcaoDoCampo[] = ESTADOS_RESERVA.map((s) => 
 const OPCOES_TIPO: OpcaoDoCampo[] = TIPOS_EVENTO.map((t) => ({ value: t, label: t, tom: "neutral" }));
 
 export type ContextoDeEventos = {
+  /** Carros do evento ainda sem data (contam em "Carros", mas não têm barra nem datas). */ semDataDoEvento?: Map<string, ReservaDoEvento[]>;
   /** Clientes (id → nome) para o campo Cliente do evento. */ clientes?: Map<string, string>; reservasDoEvento: Map<string, Reserva[]>; locaisDoEvento: Map<string, EventoLocal[]>; veiculos: Map<string, Veiculo>; carregado: boolean; valorDoEvento?: Map<string, number> };
 
 /** "Av. Paulista, 1000 — São Paulo/SP" (e o rótulo, se houver). */
@@ -24,7 +25,7 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
       rotuloDoValor: (x) => ctx.clientes?.get(x) ?? x, largura: 240, edicao: { coluna: "cliente_id" } },
     { id: "tipo", titulo: "Tipo", tipo: "opcao", valorDe: (e) => e.tipo, opcoes: OPCOES_TIPO, rotuloDoValor: (x) => x, largura: 230, edicao: { coluna: "tipo" } },
     { id: "status", titulo: "Status", tipo: "opcao", valorDe: (e) => e.status, opcoes: OPCOES_STATUS_EVENTO, rotuloDoValor: (x) => OPCOES_STATUS_EVENTO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_EVENTO.findIndex((s) => s.value === x), largura: 200, edicao: { coluna: "status", obrigatorio: true } },
-    { id: "carros", titulo: "Carros", tipo: "texto", valorDe: (e) => { if (!ctx.carregado) return null; const l = abertas(e); return l.length ? `${l.length} · ${l.map((r) => codigo(ctx.veiculos.get(r.veiculo_id))).join(", ")}` : null; }, largura: 360 },
+    { id: "carros", titulo: "Carros", tipo: "texto", valorDe: (e) => { if (!ctx.carregado) return null; const l = [...abertas(e), ...(ctx.semDataDoEvento?.get(e.id) ?? []).filter((r) => r.estado !== "cancelado")]; return l.length ? `${l.length} · ${l.map((r) => codigo(ctx.veiculos.get(r.veiculo_id))).join(", ")}` : null; }, largura: 360 },
     { id: "locais", titulo: "Locais", tipo: "texto", valorDe: (e) => { const l = ctx.locaisDoEvento.get(e.id) ?? []; return l.length ? `${textoDoLocal(l[0]!)}${l.length > 1 ? ` (+${l.length - 1})` : ""}` : null; }, largura: 380 },
     { id: "transporte", titulo: "Transporte (R$)", tipo: "numero", valorDe: (e) => ctx.valorDoEvento?.get(e.id) ?? null, celula: (e) => { const v = ctx.valorDoEvento?.get(e.id); return v ? v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" }) : <span className="mt-vazio">—</span>; }, largura: 170, padrao: false },
     { id: "inicio", titulo: "Data de chegada", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_inicio).sort()[0]! : e.chegada_prevista; }, largura: 150, edicao: { coluna: "chegada_prevista" } },
