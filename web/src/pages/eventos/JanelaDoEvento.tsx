@@ -66,7 +66,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);
   const edLocal = useEdicao<EventoLocal>((l) => l.id, p.onEditarLocal);
   const locaisDoEvento = useMemo(() => p.locais.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.locais, evento.id]);
-  const camposDeDados = campos.filter((c) => !["comentarios", "locais", "carros", "inicio", "fim", "transporte"].includes(c.id));
+  const camposDeDados = campos.filter((c) => !["comentarios", "locais", "carros", "transporte"].includes(c.id));
   const editaveis = camposDeDados.filter((c) => c.edicao).map((c) => c.id);
   const campoComentarios = campos.find((c) => c.id === "comentarios");
   const campoStatus = campos.find((c) => c.id === "status");

@@ -47,6 +47,8 @@ export function useDadosDeEventos() {
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
+    // as datas do evento SÃO as das reservas dos carros: com carros reservados, mudam arrastando na linha do tempo ou na aba Veículos
+    if ((campo.id === "inicio" || campo.id === "fim") && reservas.some((r) => r.evento_id === linha.id && r.estado !== "cancelado")) throw new Error("As datas seguem as reservas dos carros: ajuste na aba Veículos ou arraste a barra na linha do tempo.");
     const atualizado = await atualizarEvento(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Evento>);
     setEventos((l) => (l ?? []).map((x) => (x.id === linha.id ? atualizado : x)));
   };
