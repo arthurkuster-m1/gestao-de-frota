@@ -12,8 +12,22 @@
   <form class="linha-form" method="get" style="margin-bottom:12px"><input class="cresce" name="q" value="{{ q }}" placeholder="Buscar placa ou modelo">
     <select name="status"><option value="">Todos os status</option>{% for s, rot in statuses %}<option value="{{ s }}" {{ 'selected' if s == status_atual }}>{{ rot }}</option>{% endfor %}</select>
     <button class="sec">{{ icone("magnifying-glass") }}Filtrar</button></form>
-  <div class="rolar"><table><thead><tr><th>Placa</th><th>Veículo</th><th class="esconde-cel">Cor</th><th class="esconde-cel">Ano</th><th>Status</th></tr></thead><tbody>
-  {% for v in veiculos %}<tr><td><a class="placa" href="/veiculos/{{ v.id }}">{{ v.placa }}</a></td><td>{{ v.marca or '' }} {{ v.modelo or '' }}</td><td class="esconde-cel">{{ v.cor or '' }}</td><td class="num esconde-cel">{{ v.ano_fabricacao or '' }}/{{ v.ano_modelo or '' }}</td><td>{{ status(v.status) }}</td></tr>
-  {% else %}<tr><td colspan="5">{{ vazio("car", "Nenhum veículo", "Cadastre o primeiro acima ou ajuste o filtro.") }}</td></tr>{% endfor %}</tbody></table></div>
+  <form method="post" action="/veiculos/acao" id="sel-form">
+  <div class="barra-sel" id="barra-sel" hidden><b><span id="sel-n">0</span> selecionado(s)</b>
+    <button class="sec" name="acao" value="evento">Adicionar em evento</button>
+    <button class="sec" name="acao" value="planejamento">Visualizar no Planejamento</button>
+    <button class="sec" name="acao" value="devolucao">Marcar para Devolução</button>
+    <button class="sec" name="acao" value="faturado">Marcar como Faturado(s)</button>
+    <button type="button" class="sec" id="sel-limpar">Limpar seleção</button></div>
+  <div class="rolar"><table><thead><tr><th style="width:36px"><input type="checkbox" id="sel-todos" aria-label="Selecionar todos"></th><th>Placa</th><th>Veículo</th><th class="esconde-cel">Cor</th><th class="esconde-cel">Ano</th><th>Status</th></tr></thead><tbody>
+  {% for v in veiculos %}<tr><td><input type="checkbox" class="sel-v" name="ids" value="{{ v.id }}" aria-label="Selecionar {{ v.placa }}"></td><td><a class="placa" href="/veiculos/{{ v.id }}">{{ v.placa }}</a></td><td>{{ v.marca or '' }} {{ v.modelo or '' }}</td><td class="esconde-cel">{{ v.cor or '' }}</td><td class="num esconde-cel">{{ v.ano_fabricacao or '' }}/{{ v.ano_modelo or '' }}</td><td>{{ status(v.status) }}{% if v.dados.get('para_devolucao') %} <span class="etiqueta">p/ devolução</span>{% endif %}{% if v.dados.get('faturado') %} <span class="etiqueta e-sucesso">faturado</span>{% endif %}</td></tr>
+  {% else %}<tr><td colspan="6">{{ vazio("car", "Nenhum veículo", "Cadastre o primeiro acima ou ajuste o filtro.") }}</td></tr>{% endfor %}</tbody></table></div></form>
 </section>
+<script>
+(function(){var c=[].slice.call(document.querySelectorAll(".sel-v")),t=document.getElementById("sel-todos"),b=document.getElementById("barra-sel"),n=document.getElementById("sel-n");
+function at(){var k=c.filter(function(x){return x.checked}).length;n.textContent=k;b.hidden=!k;t.checked=k&&k===c.length;t.indeterminate=k>0&&k<c.length}
+c.forEach(function(x){x.addEventListener("change",at)});
+t.addEventListener("change",function(){c.forEach(function(x){x.checked=t.checked});at()});
+document.getElementById("sel-limpar").addEventListener("click",function(){c.forEach(function(x){x.checked=false});at()});})();
+</script>
 {% endblock %}

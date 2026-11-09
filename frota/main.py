@@ -1,5 +1,5 @@
 from contextlib import asynccontextmanager
-from datetime import date
+from datetime import date, datetime, timezone
 from pathlib import Path
 from urllib.parse import quote
 
@@ -16,7 +16,7 @@ from . import auth
 from . import db as dbmod
 from .config import get_settings
 from .db import get_session
-from .models import Cliente, Comodato, ModeloDocumento, StatusVeiculo, Veiculo
+from .models import Cliente, Comodato, EventoVeiculo, ModeloDocumento, StatusVeiculo, Veiculo
 from .services import colagem, comodatos, documentos, inicio as svc_inicio, paineis
 from .web import menu as menu_mod
 from .services.comodatos import ErroDeNegocio
@@ -237,6 +237,34 @@ def veiculo_novo(placa: str = Form(...), marca: str = Form(""), modelo: str = Fo
                    ano_modelo=ano_modelo))
     db.commit()
     return voltar("/veiculos", f"Veículo {placa} cadastrado")
+
+
+ACOES_LOTE = {
+    "devolucao": ("para_devolucao", "marcado_devolucao", "marcado(s) para devolução"),
+    "faturado": ("faturado", "marcado_faturado", "marcado(s) como faturado(s)"),
+}
+
+
+@app.post("/veiculos/acao")
+def veiculos_acao(acao: str = Form(...), ids: list[str] = Form(default=[]),
+                  db: Session = Depends(get_session)):
+    if not ids:
+        return voltar("/veiculos", "Selecione ao menos um veículo")
+    lista = ",".join(ids)
+    if acao == "evento":
+        return RedirectResponse(f"/eventos?adicionar={quote(lista)}", status_code=303)
+    if acao == "planejamento":
+        return RedirectResponse(f"/eventos?veiculos={quote(lista)}", status_code=303)
+    if acao not in ACOES_LOTE:
+        return voltar("/veiculos", "Ação inválida")
+    chave, tipo, texto = ACOES_LOTE[acao]
+    veiculos_sel = db.scalars(select(Veiculo).where(Veiculo.id.in_(ids))).all()
+    agora = datetime.now(timezone.utc).isoformat()
+    for v in veiculos_sel:
+        v.dados = {**(v.dados or {}), chave: agora}  # nova dict: o JSON não detecta mutação
+        db.add(EventoVeiculo(veiculo_id=v.id, tipo=tipo))
+    db.commit()
+    return voltar("/veiculos", f"{len(veiculos_sel)} veículo(s) {texto}")
 
 
 @app.get("/veiculos/{vid}")

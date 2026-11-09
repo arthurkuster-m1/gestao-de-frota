@@ -37,10 +37,10 @@
 .mt-alterada { display: flex; flex-wrap: wrap; gap: var(--space-3); align-items: center; justify-content: space-between; padding: 8px 14px; border-radius: var(--radius-lg); background: var(--color-warning-bg); color: var(--color-warning-fg); }
 /* tabela */
 .mt-tabela-wrap { display: grid; gap: var(--space-2); }
-.mt-tabela { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 330px); min-height: 160px; }
+.mt-tabela { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 260px); min-height: 160px; }
 .mt-tabela table { border-collapse: separate; border-spacing: 0; font-variant-numeric: tabular-nums; }
-.mt-tabela th, .mt-tabela td { padding: 0 14px; height: 44px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--color-border); font-size: 13px; background: var(--color-surface); }
-.mt-tabela th { position: sticky; top: 0; z-index: 3; background: var(--color-surface-elevated); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; user-select: none; }
+.mt-tabela th, .mt-tabela td { padding: 0 16px; height: 52px; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; border-bottom: 1px solid var(--color-border); font-size: 14.5px; background: var(--color-surface); }
+.mt-tabela th { position: sticky; top: 0; z-index: 3; background: var(--color-surface-elevated); font-size: 13px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; user-select: none; }
 .mt-tabela th.mt-cong, .mt-tabela td.mt-cong { z-index: 2; }
 .mt-tabela th.mt-cong { z-index: 4; }
 .mt-cong--ultima { border-right: 1px solid var(--color-border-strong); box-shadow: 6px 0 8px -6px rgba(16, 30, 60, 0.18); }
@@ -82,7 +82,7 @@
 .mt-erro button { display: grid; place-items: center; border: 0; background: transparent; color: inherit; }
 
 /* valor editável fora da tabela (cards, janela) */
-.mt-valor { display: inline-flex; align-items: center; max-width: 100%; min-height: 32px; padding: 2px 8px; margin: 0 -8px; border: 0; border-radius: var(--radius-md); background: transparent; color: inherit; font: inherit; font-size: 13px; text-align: left; overflow: hidden; text-overflow: ellipsis; }
+.mt-valor { display: inline-flex; align-items: center; max-width: 100%; min-height: 32px; padding: 2px 8px; margin: 0 -8px; border: 0; border-radius: var(--radius-md); background: transparent; color: inherit; font: inherit; font-size: 14.5px; text-align: left; overflow: hidden; text-overflow: ellipsis; }
 .mt-valor--edita { cursor: text; }
 .mt-valor--edita:hover { background: var(--color-surface-elevated); }
 .mt-valor.is-salvando { opacity: 0.55; }
