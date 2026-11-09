@@ -72,3 +72,5 @@
 .mt-pedido-chip.is-falta { background: var(--color-error-bg); }
 .mt-pedido-chip__rotulo { font-weight: 600; font-size: 13px; flex: 1 1 160px; min-width: 0; }
 .mt-pedido-chip svg { flex: none; }
+
+.plan-objetivo { display: grid; gap: 2px; min-width: 170px; }

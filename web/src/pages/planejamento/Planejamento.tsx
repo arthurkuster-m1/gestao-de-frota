@@ -1,11 +1,19 @@
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Plus, Wrench, X } from "@phosphor-icons/react";
-import { Button, Card, Segmented, useToast } from "../../ds";
+import { CalendarPlus, NotePencil, Wrench, X } from "@phosphor-icons/react";
+import { Button, Card, Segmented, Select, Sheet, useToast } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { useEixoDoTempo } from "../../components/motor/useEixoDoTempo";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarReserva } from "../../lib/eventos/dados";
+import { cabeNosPedidos } from "../../lib/eventos/desejados";
+import { anotacoesPorVeiculo, barrasDeAnotacao, ehBarraDeAnotacao } from "../../lib/veiculos/anotacoes";
+import { aplicarArrasto } from "../../lib/linhaDoTempo/arrasto";
+import { conflitos } from "../../lib/eventos/uso";
+import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
+import { PedidosDoEvento } from "../eventos/PedidosDoEvento";
+import { AnotacaoDoCarroSheet } from "./AnotacaoDoCarroSheet";
+import type { AnotacaoDoCarro } from "../../lib/eventos/tipos";
 import { barraDoEvento, barrasDoVeiculo } from "../../lib/eventos/barras";
 import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
@@ -37,7 +45,15 @@ export function Planejamento() {
   const [selecionadoId, setSelecionadoId] = useState<string | null>(null);
   const [reservando, setReservando] = useState(false);
   const [criando, setCriando] = useState(false);
-  const [criandoManutencao, setCriandoManutencao] = useState(false);
+  /** Objetivo do planejamento: visão geral, ou planejar UM evento (a tela se volta só para ele). */
+  const [objetivo, setObjetivo] = useState<"geral" | "evento">("geral");
+  /** Duplo clique num dia do carro: o que criar ali. */
+  const [noDia, setNoDia] = useState<{ veiculoId: string; data: string } | null>(null);
+  const [criandoManutencao, setCriandoManutencao] = useState<{ veiculoId: string; data: string } | null>(null);
+  const [criandoNota, setCriandoNota] = useState<{ veiculoId: string; data: string } | null>(null);
+  const [editandoNota, setEditandoNota] = useState<AnotacaoDoCarro | null>(null);
+  const [aoCriarEvento, setAoCriarEvento] = useState<{ veiculoId: string; data: string } | null>(null);
+  const [veiculosIniciais, setVeiculosIniciais] = useState<string[]>([]);
 
   const nomes = useMemo(() => new Map((d.eventos ?? []).map((e) => [e.id, e.nome])), [d.eventos]);
   const nomeDoEvento = (id: string) => nomes.get(id) ?? "?";
@@ -46,9 +62,33 @@ export function Planejamento() {
   const selecionado = d.eventos?.find((e) => e.id === selecionadoId) ?? null;
   const carrosDoSelecionado = selecionado ? d.reservas.filter((r) => r.evento_id === selecionado.id && r.estado !== "cancelado").length : 0;
 
+  const notasPorCarro = useMemo(() => anotacoesPorVeiculo(d.anotacoes), [d.anotacoes]);
+  const pedidosDoSel = useMemo(() => d.desejados.filter((p) => p.evento_id === selecionadoId), [d.desejados, selecionadoId]);
+  const modoEvento = objetivo === "evento" && !!selecionado;
+
+  /** Período do evento: o previsto no formulário ou, sem ele, o das reservas que já tem. */
+  const periodoDoSel = useMemo(() => {
+    if (!selecionado) return null;
+    if (selecionado.chegada_prevista && selecionado.retirada_prevista) return { inicio: selecionado.chegada_prevista, fim: selecionado.retirada_prevista };
+    const rs = d.reservas.filter((r) => r.evento_id === selecionado.id && r.estado !== "cancelado");
+    return rs.length ? { inicio: rs.map((r) => r.reserva_inicio).sort()[0]!, fim: rs.map((r) => r.reserva_fim).sort().at(-1)! } : null;
+  }, [selecionado, d.reservas]);
+
+  /** No modo "Planejar evento": os carros do evento + só os livres no período e que cabem no pedido. */
+  const veiculosVisiveis = useMemo(() => {
+    if (!modoEvento || !selecionado) return d.veiculos;
+    const oficina = manutencoesPorVeiculo(d.manutencoes);
+    const doEvento = new Set(d.reservas.filter((r) => r.evento_id === selecionado.id && r.estado !== "cancelado").map((r) => r.veiculo_id));
+    return d.veiculos.filter((v) => doEvento.has(v.id) || (v.status_ciclo !== "devolvido" && cabeNosPedidos(v, pedidosDoSel)
+      && (!periodoDoSel || (conflitos(periodoDoSel, ctxUso.reservas.get(v.id) ?? [], selecionado.id).length === 0 && manutencoesQueBloqueiam(periodoDoSel, oficina.get(v.id) ?? []).length === 0))));
+  }, [modoEvento, selecionado, d.veiculos, d.reservas, d.manutencoes, pedidosDoSel, periodoDoSel, ctxUso]);
+  const eventosVisiveis = modoEvento && selecionado ? [selecionado] : d.eventos;
+  const nomeDoCarro = (id: string | null | undefined) => { const v = d.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; };
+
   const editarVeiculo: OnEditar<Veiculo> = async (linha, campo, valor) => { await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>); toast("Salvo"); };
   const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
     if (ehBarraDeManutencao(barra)) { await d.moverManutencao(barra.id, modo, delta); return; }
+    if (ehBarraDeAnotacao(barra)) { const n = aplicarArrasto({ inicio: barra.inicio, fim: barra.fim }, modo, delta); await d.moverNota(barra.id, n.inicio, n.fim); return; }
     const r = d.reservas.find((x) => x.id === barra.id); if (!r) return;
     const dif = diferencas(r, reajustarReserva(r, modo, delta));
     if (Object.keys(dif).length === 0) return;
@@ -64,18 +104,28 @@ export function Planejamento() {
           <div className="ds-row" style={{ flexWrap: "wrap" }}>
             <button type="button" className="mt-btn" onClick={() => eixo.irParaHoje()} data-testid="tl-hoje">Hoje</button>
             <Segmented options={[{ value: "dia", label: "Dia" }, { value: "semana", label: "Semana" }]} value={eixo.escala} onChange={(e) => eixo.mudarEscala(e)} />
-            <Button variant="secondary" icon={<Wrench size={20} />} onClick={() => setCriandoManutencao(true)} data-testid="nova-manutencao">Nova manutenção</Button>
-            <Button icon={<Plus size={20} />} onClick={() => setCriando(true)} data-testid="novo-evento">Novo evento</Button>
+            <label className="plan-objetivo"><span className="t-body-sm t-muted">Objetivo</span>
+              <Select aria-label="Objetivo do planejamento" value={objetivo} onChange={(e) => { const o = e.target.value as "geral" | "evento"; setObjetivo(o); if (o === "geral") setSelecionadoId(null); else if (!selecionadoId && d.eventos?.[0]) setSelecionadoId(d.eventos[0].id); }}>
+                <option value="geral">Visão geral</option><option value="evento">Planejar evento</option>
+              </Select></label>
+            {objetivo === "evento" && (
+              <label className="plan-objetivo"><span className="t-body-sm t-muted">Evento</span>
+                <Select aria-label="Evento a planejar" value={selecionadoId ?? ""} placeholder="Escolher evento…" onChange={(e) => { if (e.target.value === "__novo__") { setAoCriarEvento(null); setVeiculosIniciais([]); setCriando(true); } else setSelecionadoId(e.target.value || null); }}>
+                  {(d.eventos ?? []).map((ev) => <option key={ev.id} value={ev.id}>{ev.nome}</option>)}
+                  <option value="__novo__">＋ Criar novo evento…</option>
+                </Select></label>
+            )}
           </div>
         </div>
 
         <section aria-label="Veículos" className="ds-stack" data-testid="pane-veiculos">
           <h2 className="t-h3">Veículos</h2>
           <TelaDoMotor<Veiculo> tela="planejamento-veiculos" titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
-            linhas={d.eventos ? d.veiculos : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => navigate(`/veiculos/${v.id}`)}
-            linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje)], onAlterarBarra: alterarReserva, onAbrirBarra: (_v, b) => (ehBarraDeManutencao(b) ? navigate(`/manutencoes/${b.id}`) : setSelecionadoId((b.dados as { eventoId: string }).eventoId)) }}
+            linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => navigate(`/veiculos/${v.id}`)}
+            linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => setNoDia({ veiculoId: v.id, data }),
+              onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) setEditandoNota(d.anotacoes.find((n) => n.id === b.id) ?? null); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
             rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar carro…" alturaDaLinhaDoTempo="38dvh" larguraEsquerda={LARGURA_ESQUERDA}
-            vazio={<p className="t-body t-muted">Nenhum veículo cadastrado ainda.</p>} />
+            vazio={modoEvento ? <p className="t-body t-muted">Nenhum carro livre nessas datas que caiba no pedido do evento.</p> : <p className="t-body t-muted">Nenhum veículo cadastrado ainda.</p>} />
         </section>
 
         <section aria-label="Eventos" className="ds-stack" data-testid="pane-eventos">
@@ -90,17 +140,32 @@ export function Planejamento() {
               </span>
             </div></Card>
           )}
+          {modoEvento && <PedidosDoEvento pedidos={pedidosDoSel} codigoDoCarro={(rid) => { const r = d.reservas.find((x) => x.id === rid); return r ? nomeDoCarro(r.veiculo_id) : null; }} onNaoAtendido={d.marcarNaoAtendido} />}
           <TelaDoMotor<Evento> tela="planejamento-eventos" titulo="Eventos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
-            linhas={d.eventos} erro={d.erro} campos={d.campos} idDe={(e) => e.id} onEditar={d.editarEvento} onAbrir={(e) => navigate(`/eventos/${e.id}`)} selecionadoId={selecionadoId} aoSelecionar={(e) => setSelecionadoId((atual) => (atual === e.id ? null : e.id))}
+            linhas={d.eventos ? eventosVisiveis : null} erro={d.erro} campos={d.campos} idDe={(e) => e.id} onEditar={d.editarEvento} onAbrir={(e) => navigate(`/eventos/${e.id}`)} selecionadoId={selecionadoId} aoSelecionar={(e) => setSelecionadoId((atual) => (atual === e.id ? null : e.id))}
             linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => setSelecionadoId(e.id) }}
             rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento…" alturaDaLinhaDoTempo="30dvh" larguraEsquerda={LARGURA_ESQUERDA}
             vazio={<p className="t-body t-muted">Nenhum evento ainda. Crie o primeiro em “Novo evento”.</p>} />
         </section>
       </div>
 
-      {selecionado && <AdicionarVeiculos aberto={reservando} onFechar={() => setReservando(false)} evento={selecionado} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} manutencoes={d.manutencoes} onReservar={(ids, ini, fim, janela) => d.reservar(selecionado.id, ids, ini, fim, janela)} />}
-      <NovaManutencao aberto={criandoManutencao} onFechar={() => setCriandoManutencao(false)} veiculos={d.veiculos} onCriar={d.criarDeManutencao} />
-      <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => { setSelecionadoId(e.id); setReservando(true); }} />
+      {selecionado && <AdicionarVeiculos aberto={reservando} onFechar={() => setReservando(false)} evento={selecionado} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} manutencoes={d.manutencoes} pedidos={d.desejados} onNaoAtendido={d.marcarNaoAtendido}
+        veiculosIniciais={veiculosIniciais} dataInicial={aoCriarEvento?.data ?? null} onReservar={(ids, ini, fim, janela) => d.reservar(selecionado.id, ids, ini, fim, janela)} />}
+      <NovaManutencao aberto={!!criandoManutencao} onFechar={() => setCriandoManutencao(null)} veiculos={d.veiculos} veiculoInicial={criandoManutencao?.veiculoId} dataInicial={criandoManutencao?.data} onCriar={d.criarDeManutencao} />
+      <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar}
+        onCriado={(e) => { setObjetivo("evento"); setSelecionadoId(e.id); setVeiculosIniciais(aoCriarEvento ? [aoCriarEvento.veiculoId] : []); setReservando(true); }} />
+      <AnotacaoDoCarroSheet aberto={!!criandoNota || !!editandoNota} onFechar={() => { setCriandoNota(null); setEditandoNota(null); }} carro={nomeDoCarro(editandoNota?.veiculo_id ?? criandoNota?.veiculoId)}
+        veiculoId={criandoNota?.veiculoId ?? null} dataInicial={criandoNota?.data ?? null} anotacao={editandoNota} onCriar={d.criarNota} onExcluir={d.excluirNota} onEditar={d.editarNota} />
+      <Sheet open={!!noDia} onClose={() => setNoDia(null)} title="Criar neste dia">
+        {noDia && (
+          <div className="ds-stack" data-testid="criar-no-dia">
+            <p className="t-body-sm t-muted"><b>{nomeDoCarro(noDia.veiculoId)}</b> · {noDia.data.split("-").reverse().join("/")}</p>
+            <Button size="lg" block icon={<CalendarPlus size={20} />} data-testid="criar-evento-no-dia" onClick={() => { setAoCriarEvento(noDia); setNoDia(null); setCriando(true); }}>Novo evento com este carro</Button>
+            <Button size="lg" block variant="secondary" icon={<Wrench size={20} />} data-testid="criar-manutencao-no-dia" onClick={() => { setCriandoManutencao(noDia); setNoDia(null); }}>Nova manutenção</Button>
+            <Button size="lg" block variant="secondary" icon={<NotePencil size={20} />} data-testid="criar-anotacao-no-dia" onClick={() => { setCriandoNota(noDia); setNoDia(null); }}>Nova anotação do carro</Button>
+          </div>
+        )}
+      </Sheet>
     </div>
   );
 }

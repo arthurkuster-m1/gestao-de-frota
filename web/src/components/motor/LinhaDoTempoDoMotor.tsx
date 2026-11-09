@@ -6,7 +6,7 @@ import { gerarDias, larguraDoPeriodo, mesesDoEixo, nomeDoMes, posicaoDoDia } fro
 import { empilhar, totalDeFaixas } from "../../lib/linhaDoTempo/faixas";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
 import { aplicarConsulta } from "../../lib/motor/consulta";
-import { hojeLocal } from "../../lib/motor/datas";
+import { hojeLocal, somarDias } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { CampoEditavel } from "./CampoEditavel";
 import { formatar } from "./formatar";
@@ -22,6 +22,8 @@ type Props<T> = {
   onAlterarBarra?: (linha: T, barra: Barra, modo: ModoDeArrasto, delta: number) => Promise<void>;
   /** Com isto, as colunas da parte fixa se redimensionam arrastando a borda do título (grava em `larguras`, como na tabela). */
   onPrefs?: (p: PreferenciasDaTabela) => void;
+  /** Duplo clique num dia vazio da linha: `data` (aaaa-mm-dd) na linha `l`. */
+  onCriarNaData?: (l: T, data: string) => void;
   onAbrir?: (l: T) => void; onAbrirBarra?: (l: T, b: Barra) => void; onEditar?: OnEditar<T>;
   vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
   /** Linha escolhida (Planejamento: o evento selecionado). */ selecionadoId?: string | null; aoSelecionar?: (l: T) => void;
@@ -31,7 +33,7 @@ type Props<T> = {
 
 const ALTURA_FAIXA = 28, ALTURA_MIN = 48;
 
-export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
+export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriarNaData, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const rolagem = useRef<HTMLDivElement>(null);
   const ignorar = useRef(false);
@@ -164,7 +166,8 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, e
             );
           })}
         </div>
-        <div className="mt-tl__corpo" style={{ width: larguraEixo, ...grade }}>
+        <div className="mt-tl__corpo" style={{ width: larguraEixo, ...grade }} title={onCriarNaData ? "Duplo clique num dia para criar" : undefined}
+          onDoubleClick={onCriarNaData ? (e) => { if ((e.target as HTMLElement).closest(".mt-tl__barra")) return; const x = e.clientX - e.currentTarget.getBoundingClientRect().left; if (x < 0 || x >= larguraEixo) return; onCriarNaData(d.l, somarDias(origem, Math.floor(x / larguraDia))); } : undefined}>
           <span className="mt-tl__hoje" style={{ left: posHoje + larguraDia / 2 }} aria-hidden />
           {d.emp.map(({ barra: b, faixa }) => barra(d.l, b, faixa))}
         </div>

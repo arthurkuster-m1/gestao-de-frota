@@ -97,8 +97,9 @@ export function useDadosDeEventos() {
     const salvo = await atualizarDesejado(id, { nao_atendido: naoAtendido }); setDesejados((l) => l.map((x) => (x.id === id ? salvo : x)));
   };
   const criarNota = async (a: AnotacaoNova) => { const n = await criarAnotacao(a); setAnotacoes((l) => [...l, n]); toast("Anotação criada"); return n; };
-  const moverNota = async (id: string, inicio: string, fim: string) => { const n = await atualizarAnotacao(id, { inicio, fim }); setAnotacoes((l) => l.map((x) => (x.id === id ? n : x))); };
+  const editarNota = async (id: string, patch: Partial<Pick<AnotacaoDoCarro, "titulo" | "inicio" | "fim" | "comentarios">>) => { const n = await atualizarAnotacao(id, patch); setAnotacoes((l) => l.map((x) => (x.id === id ? n : x))); };
+  const moverNota = (id: string, inicio: string, fim: string) => editarNota(id, { inicio, fim });
   const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

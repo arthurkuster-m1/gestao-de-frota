@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Warning } from "@phosphor-icons/react";
 import { Button, DateField, Field, Input, Sheet } from "../../ds";
 import { Tag } from "../../components/motor/Tag";
@@ -13,9 +13,10 @@ import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
 /** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
-export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], pedidos = [], onNaoAtendido, onReservar }: {
+export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], pedidos = [], onNaoAtendido, veiculosIniciais, dataInicial, onReservar }: {
   aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; manutencoes?: Manutencao[];
   /** O que o evento pediu (modelos desejados): filtra os carros e mostra o cadeado. */ pedidos?: ModeloDesejado[]; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>;
+  /** Carros já marcados ao abrir (ex.: o carro em que a pessoa deu duplo clique) e a data de chegada sugerida. */ veiculosIniciais?: string[]; dataInicial?: string | null;
   onReservar: (veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
 }) {
   const [chegada, setChegada] = useState(evento.chegada_prevista ?? somarDias(hojeLocal(), 2));
@@ -28,6 +29,12 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const [soLivres, setSoLivres] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+
+  useEffect(() => {
+    if (!aberto) return;
+    setMarcados(new Set(veiculosIniciais ?? []));
+    const c = evento.chegada_prevista ?? dataInicial; if (c) { setChegada(c); setRetirada(evento.retirada_prevista ?? somarDias(c, 2)); }
+  }, [aberto, veiculosIniciais, dataInicial, evento.chegada_prevista, evento.retirada_prevista]);
 
   const porCarro = useMemo(() => reservasPorVeiculo(reservas), [reservas]);
   const oficina = useMemo(() => manutencoesPorVeiculo(manutencoes), [manutencoes]);
@@ -43,7 +50,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
     const q = busca.trim().toLowerCase();
     return veiculos
       .filter((v) => v.status_ciclo !== "devolvido" && !jaNoEvento.has(v.id))
-      .filter((v) => !soPedido || cabeNosPedidos(v, pedidosDoEvento))
+      .filter((v) => !soPedido || marcados.has(v.id) || cabeNosPedidos(v, pedidosDoEvento))
       .filter((v) => !q || `${v.codigo ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""}`.toLowerCase().includes(q))
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
@@ -51,9 +58,9 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         const noConserto = periodoOk ? manutencoesQueBloqueiam({ inicio, fim }, oficina.get(v.id) ?? []) : [];
         return { v, uso: statusDeUso(r, oficina.get(v.id) ?? [], hojeLocal()), choques, noConserto };
       })
-      .filter((l) => !soLivres || (l.choques.length === 0 && l.noConserto.length === 0))
+      .filter((l) => !soLivres || marcados.has(l.v.id) || (l.choques.length === 0 && l.noConserto.length === 0))
       .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0) - Number(b.choques.length + b.noConserto.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
-  }, [veiculos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id, soPedido, soLivres, pedidosDoEvento]);
+  }, [veiculos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id, soPedido, soLivres, pedidosDoEvento, marcados]);
 
   const alterna = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0)).length;
