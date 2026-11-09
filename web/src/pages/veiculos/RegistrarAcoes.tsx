@@ -6,7 +6,7 @@ import { atualizarCampos } from "../../lib/veiculos/dados";
 import { ROTULO_DO_REGISTRO, planoDoRegistro, proximosPassos, type TipoDeRegistro } from "../../lib/veiculos/registros";
 import { normalizarPlaca, placaValida, type Veiculo } from "../../lib/veiculos/tipos";
 
-const ICONE: Record<TipoDeRegistro, React.ReactNode> = { liberacao: <CheckCircle size={20} />, chegada: <Factory size={20} />, faturamento: <Receipt size={20} />, emplacamento: <IdentificationCard size={20} />, devolucao: <ArrowUUpLeft size={20} /> };
+const ICONE: Record<TipoDeRegistro, React.ReactNode> = { liberacao: <CheckCircle size={20} />, chegada: <Factory size={20} />, faturamento: <Receipt size={20} />, emplacamento: <IdentificationCard size={20} />, devolucao: <ArrowUUpLeft size={20} />, devolucaoCvo: <ArrowUUpLeft size={20} /> };
 const JA: Partial<Record<TipoDeRegistro, keyof Veiculo>> = { liberacao: "data_liberacao", faturamento: "data_faturamento", emplacamento: "data_emplacamento", devolucao: "data_devolucao" };
 
 /**

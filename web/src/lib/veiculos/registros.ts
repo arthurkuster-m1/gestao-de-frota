@@ -1,6 +1,6 @@
 import { CICLO, rotuloCiclo, type Ciclo, type Veiculo, type VeiculoNovo } from "./tipos";
 
-export type TipoDeRegistro = "liberacao" | "chegada" | "faturamento" | "emplacamento" | "devolucao";
+export type TipoDeRegistro = "liberacao" | "chegada" | "faturamento" | "emplacamento" | "devolucao" | "devolucaoCvo";
 export type Plano = { patch: Partial<VeiculoNovo>; resumo: string[] };
 
 const pos = (c: Ciclo) => CICLO.findIndex((x) => x.value === c);
@@ -23,11 +23,12 @@ export function planoDoRegistro(tipo: TipoDeRegistro, v: Pick<Veiculo, "status_c
       patch.data_emplacamento = dados.data; resumo.push(`Emplacado em ${br(dados.data)}`);
       if (dados.placa) { patch.placa = dados.placa; resumo.push(`Placa ${dados.placa}`); }
       ciclo(v.blindado ? "em_blindagem" : "disponivel"); break;
+    case "devolucaoCvo": ciclo("em_devolucao", true); if (resumo.length === 0) resumo.push("Já está em devolução"); break;
     case "devolucao": patch.data_devolucao = dados.data; resumo.push(`Devolvido em ${br(dados.data)}`); ciclo("devolvido", true); break;
   }
   return { patch, resumo };
 }
-export const ROTULO_DO_REGISTRO: Record<TipoDeRegistro, string> = { liberacao: "Registrar liberação da produção", chegada: "Registrar chegada na planta", faturamento: "Registrar faturamento", emplacamento: "Registrar emplacamento", devolucao: "Registrar devolução" };
+export const ROTULO_DO_REGISTRO: Record<TipoDeRegistro, string> = { liberacao: "Registrar liberação da produção", chegada: "Registrar chegada na planta", faturamento: "Registrar faturamento", emplacamento: "Registrar emplacamento", devolucao: "Registrar devolução", devolucaoCvo: "Devolução para a CVO" };
 
 /**
  * Os PRÓXIMOS passos lógicos de um carro (e só eles):

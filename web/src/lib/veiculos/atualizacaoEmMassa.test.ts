@@ -39,4 +39,22 @@ describe("atualização em massa", () => {
     expect(linhasDeMatriz([["VIN", "Placa"], ["111", "ABC1D23"], ["222", ""]])).toEqual([{ ref: "111", placa: "ABC1D23" }, { ref: "222", placa: undefined }]);
     expect(linhasDeMatriz([["11111111111111111"]])).toEqual([{ ref: "11111111111111111", placa: undefined }]);
   });
+  it("liberação, chegada na planta e devolução para a CVO seguem a ordem do ciclo", () => {
+    const f2 = [v("a", { codigo: "A", vin: "AAAAAAAAAAAAAAAAA", status_ciclo: "pedido_recebido" }), v("b", { codigo: "B", vin: "BBBBBBBBBBBBBBBBB", status_ciclo: "liberado", data_liberacao: "2026-11-01" }), v("c", { codigo: "C", vin: "CCCCCCCCCCCCCCCCC", status_ciclo: "disponivel_sem_faturamento" }), v("d", { codigo: "D", vin: "DDDDDDDDDDDDDDDDD", status_ciclo: "em_devolucao" })];
+    const c2 = { veiculos: f2, data: "2026-11-12" };
+    expect(validarLista("liberacao", [{ ref: "A" }, { ref: "B" }], c2).map((x) => x.tom)).toEqual(["ok", "dup"]);
+    expect(validarLista("chegada", [{ ref: "A" }, { ref: "B" }, { ref: "C" }], c2).map((x) => x.tom)).toEqual(["erro", "ok", "dup"]);
+    const r = validarLista("devolucaoCvo", [{ ref: "C" }, { ref: "D" }], c2);
+    expect(r.map((x) => x.tom)).toEqual(["ok", "dup"]); expect(r[0]!.plano!.patch).toEqual({ status_ciclo: "em_devolucao" });
+  });
+  it("saiu e retornou do evento: acha a reserva do carro, respeita o evento escolhido e ignora quem já tem o checklist", () => {
+    const reservas = [{ id: "r1", veiculo_id: "1", evento_id: "e1", estado: "reservado" }, { id: "r2", veiculo_id: "2", evento_id: "e1", estado: "em_uso" }, { id: "r3", veiculo_id: "2", evento_id: "e2", estado: "reservado" }];
+    const base = { veiculos: frota, data: "2026-11-12", reservas, checklistsFeitos: new Set(["r2:retorno"]), nomeDoEvento: (id: string) => `Evento ${id}` };
+    const s = validarLista("saida", [{ ref: "ONIX RS 1111" }, { ref: "ONIX RS 2222" }, { ref: "S10 3333" }], base);
+    expect(s.map((x) => x.tom)).toEqual(["ok", "erro", "erro"]);   // o 2 está em dois eventos abertos; o 3 não tem reserva
+    expect(s[0]!.reservaId).toBe("r1");
+    expect(validarLista("saida", [{ ref: "ONIX RS 2222" }], { ...base, eventoId: "e2" })[0]!.reservaId).toBe("r3");
+    const rt = validarLista("retorno", [{ ref: "ONIX RS 2222" }], { ...base, eventoId: "e1" });
+    expect(rt[0]!.tom).toBe("dup");
+  });
 });

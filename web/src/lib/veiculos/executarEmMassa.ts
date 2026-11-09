@@ -1,3 +1,5 @@
+import { criarChecklistsEmMassa } from "../checklists/dados";
+import type { ChecklistNovo, Momento } from "../checklists/tipos";
 import { criarEvento, reservarSemData, reservarVeiculos } from "../eventos/dados";
 import { nomeAutomatico, nomeUnico } from "../eventos/nome";
 import type { Evento } from "../eventos/tipos";
@@ -25,4 +27,9 @@ export async function reservarEmMassa(veiculoIds: string[], evento: Evento | { n
   if (e.chegada_prevista && e.retirada_prevista) { await reservarVeiculos(e.id, veiculoIds, e.chegada_prevista, e.retirada_prevista, "reservado", { chegada: e.chegada_prevista, retirada: e.retirada_prevista }); return { evento: e, sem_data: false }; }
   await reservarSemData(e.id, veiculoIds);
   return { evento: e, sem_data: true };
+}
+
+/** Registra o checklist (saída ou retorno) de várias reservas de uma vez. Tudo ou nada; o banco põe cada reserva em uso (ou concluída). */
+export async function registrarChecklistsEmMassa(reservaIds: string[], momento: Momento, dados: Omit<ChecklistNovo, "reserva_id" | "momento" | "km">) {
+  return criarChecklistsEmMassa(reservaIds, momento, dados);
 }
