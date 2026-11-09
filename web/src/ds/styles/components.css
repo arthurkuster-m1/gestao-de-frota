@@ -169,7 +169,8 @@
 :root[data-theme="dark"] .ds-toast svg { color: #41673f; } /* toast claro sobre fundo escuro: verde escuro */
 
 /* ───── Casca com menu lateral ───── */
-.ds-page--wide { max-width: 1120px; }
+.ds-page--wide { max-width: none; margin: 0; }
+@media (min-width: 900px) { .ds-shell .ds-page--wide { padding-left: var(--space-6); padding-right: var(--space-6); } }
 .ds-nav a { display: grid; justify-items: center; gap: 2px; min-width: 64px; min-height: 52px; padding: 6px 12px; color: var(--color-brand-muted);
   border-radius: var(--radius-full); font-size: 11px; line-height: 14px; font-weight: 700; text-decoration: none;
   transition: background-color var(--dur-base) var(--ease-out), color var(--dur-base) var(--ease-out); }
