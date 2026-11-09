@@ -76,7 +76,7 @@
 .plan-objetivo { display: grid; gap: 2px; min-width: 170px; }
 
 /* Formulário de novo evento (janela larga) */
-.mt-evf { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+.mt-evf { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); align-items: start; }
 @media (min-width: 720px) { .mt-evf--3 { grid-template-columns: 2fr 1fr 1fr; } .mt-evf--4 { grid-template-columns: 1.1fr 1fr 1.4fr 1.4fr; } }
 .mt-evf__rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .mt-evf__rodape > span { flex: 1 1 280px; }
@@ -138,3 +138,6 @@
 .mt-vde__tabela td.mt-sel-b.mt-sel-l { box-shadow: inset 2px -2px 0 var(--color-accent); }
 .mt-vde__tabela td.mt-sel-b.mt-sel-r { box-shadow: inset -2px -2px 0 var(--color-accent); }
 .mt-vde__tabela th.mt-th--arrasta { cursor: grab; touch-action: manipulation; }
+
+@media (min-width: 720px) { .mt-evf--2 { grid-template-columns: 1fr 1.6fr; } }
+@media (min-width: 720px) { .mt-evf--iguais3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }

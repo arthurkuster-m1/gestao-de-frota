@@ -46,10 +46,9 @@ export function Massa() {
   const dados: LinhaGrade[] = useMemo(() => linhas.map((l, i) => ({ ...semMeta(l), __tom: resultados[i].tom, __texto: resultados[i].texto })), [linhas, resultados]);
   const cont = useMemo(() => { const c: Record<Tom, number> = { ok: 0, erro: 0, dup: 0, ign: 0 }; for (const r of resultados) c[r.tom]++; return c; }, [resultados]);
 
-  // A situação vem PRIMEIRO (logo depois do número da linha): é o que a pessoa precisa ver sem rolar para o lado.
   const colunas = useMemo(() => [
-    { ...COLUNA_SITUACAO, minWidth: 360, basis: 360, grow: 0 },
     ...CAMPOS.map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, textColumn as never), title: c.titulo, minWidth: c.largura, basis: c.largura, grow: 0 })),
+    { ...COLUNA_SITUACAO, minWidth: 360, basis: 360, grow: 1 },   // a situação da linha fica por último
   ], []);
 
   function adicionar(matriz: string[][]) {

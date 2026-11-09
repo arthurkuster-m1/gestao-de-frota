@@ -43,14 +43,14 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
           <Field label="Data de chegada"><DateField value={f.chegada} onChange={(e) => set({ chegada: e.target.value })} /></Field>
           <Field label="Data de retirada" error={periodoRuim ? "A retirada não pode ser antes da chegada." : null}><DateField value={f.retirada} onChange={(e) => set({ retirada: e.target.value })} /></Field>
         </div>
-        <div className="mt-evf mt-evf--4">
+        <div className="mt-evf mt-evf--iguais3">
           <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set({ tipo: e.target.value })} placeholder="Escolher…"><option value="">Sem tipo</option>{TIPOS_EVENTO.map((t) => <option key={t} value={t}>{t}</option>)}</Select></Field>
           <Field label="Solicitante"><Input value={f.solicitante} onChange={(e) => set({ solicitante: e.target.value })} /></Field>
-          <div className="ds-stack" style={{ gap: 8 }}>
-            <Field label="Nome do local"><Input value={f.local} onChange={(e) => set({ local: e.target.value })} placeholder="Ex.: Pavilhão de Exposições" maxLength={80} /></Field>
-            <Field label="Endereço completo"><CampoDeEndereco valor={f.endereco} onChange={(v) => set({ endereco: v })} titulo="Endereço do evento" /></Field>
-          </div>
           <Field label="Contato"><Input value={f.contato} onChange={(e) => set({ contato: e.target.value })} placeholder="Responsável no local (nome, telefone)" /></Field>
+        </div>
+        <div className="mt-evf mt-evf--2">
+          <Field label="Nome do local"><Input value={f.local} onChange={(e) => set({ local: e.target.value })} placeholder="Ex.: Pavilhão de Exposições" maxLength={80} /></Field>
+          <Field label="Endereço completo"><CampoDeEndereco valor={f.endereco} onChange={(v) => set({ endereco: v })} titulo="Endereço do evento" /></Field>
         </div>
         <ModelosDesejadosForm pedidos={pedidos} onChange={setPedidos} />
         <div className="mt-evf__rodape">

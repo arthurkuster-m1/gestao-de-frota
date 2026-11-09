@@ -12,6 +12,7 @@ import { Shell } from "./app/Shell";
 import { Veiculos } from "./pages/veiculos/Veiculos";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { Eventos } from "./pages/eventos/Eventos";
+import { MassaEventos } from "./pages/eventos/MassaEventos";
 import { Contratos } from "./pages/contratos/Contratos";
 import { Transportes } from "./pages/transportes/Transportes";
 import { Manutencoes } from "./pages/manutencoes/Manutencoes";
@@ -44,6 +45,7 @@ function Autenticado() {
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />
+          <Route path="eventos/massa" element={<MassaEventos />} />
           <Route path="eventos/:id?" element={<Eventos />} />
           <Route path="manutencoes/:id?" element={<Manutencoes />} />
           <Route path="transportes/:id?" element={<Transportes />} />
