@@ -27,7 +27,7 @@ export function useVisoes(tela: string) {
     if (error) throw traduzir(error);
     const v = visaoDaLinha(data as never); setVisoes((l) => [...l, v]); return v;
   };
-  const atualizar = async (id: string, patch: { nome?: string; config?: PreferenciasDaTabela }) => {
+  const atualizar = async (id: string, patch: { nome?: string; config?: PreferenciasDaTabela; tipo?: TipoDeVisualizacao }) => {
     const { data, error } = await supabase.from("visoes_salvas").update(patch).eq("id", id).select(COLUNAS).single();
     if (error) throw traduzir(error);
     const v = visaoDaLinha(data as never); setVisoes((l) => l.map((x) => (x.id === id ? v : x))); return v;
