@@ -11,8 +11,8 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
   return new ErroEvento(e.message);
 }
 const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato";
-const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios";
-const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios";
+const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios, origem, endereco_chegada, status_individual";
+const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios, origem, endereco_chegada, status_individual";
 const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
 
 export async function listarEventos(): Promise<Evento[]> {
@@ -62,7 +62,7 @@ export async function reservarVeiculos(eventoId: string, veiculoIds: string[], i
   }
   throw SEM_COLUNAS_NOVAS.test(error.message) ? new ErroEvento("Chegada e retirada ainda não foram ativadas no banco (falta aplicar a migration 0007).") : traduzir(error);
 }
-export async function atualizarReserva(id: string, patch: Partial<Pick<Reserva, "reserva_inicio" | "reserva_fim" | "chegada" | "retirada" | "estado" | "comentarios">>): Promise<Reserva> {
+export async function atualizarReserva(id: string, patch: Partial<Pick<Reserva, "reserva_inicio" | "reserva_fim" | "chegada" | "retirada" | "estado" | "comentarios" | "origem" | "endereco_chegada" | "status_individual">>): Promise<Reserva> {
   const { data, error } = await supabase.from("evento_veiculos").update(patch).eq("id", id).select(COLUNAS_RESERVA).single();
   if (!error) return data as Reserva;
   if (SEM_COLUNAS_NOVAS.test(error.message) && !("chegada" in patch) && !("retirada" in patch)) {   // migration 0007 ainda não aplicada

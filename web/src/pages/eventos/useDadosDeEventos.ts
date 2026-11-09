@@ -51,13 +51,19 @@ export function useDadosDeEventos() {
     const atualizada = await atualizarReserva(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Reserva>);
     setReservas((l) => l.map((x) => (x.id === linha.id ? atualizada : x)));
   };
-  const reservar = async (eventoId: string, ids: string[], ini: string, fim: string, janela: { chegada: string; retirada: string }) => {
+  /** Grava campos da reserva (individualização por carro: origem, endereço de chegada, status, datas). */
+  const salvarReserva = async (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "comentarios">>) => {
+    const salva = await atualizarReserva(id, patch); setReservas((l) => l.map((x) => (x.id === id ? salva : x)));
+  };
+  const reservar = async (eventoId: string, ids: string[], ini: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => {
     const novas = await reservarVeiculos(eventoId, ids, ini, fim, "reservado", janela);
     setReservas((l) => [...l, ...novas]);
     // liga cada carro ao pedido (modelo desejado) que ele atende; carro de outro modelo entra como substituição, sem pedido
     let abertos = desejados.filter((p) => p.evento_id === eventoId);
-    for (const r of novas) {
-      const v = veiculos.find((x) => x.id === r.veiculo_id); const p = v && pedidoQueAtende(v, abertos); if (!p) continue;
+    for (const [i, r] of novas.entries()) {
+      const v = veiculos.find((x) => x.id === r.veiculo_id);
+      const alvo = i === 0 && pedidoId ? abertos.find((x) => x.id === pedidoId && !x.reserva_id) : undefined;   // veio da linha de um pedido: liga a ela
+      const p = alvo ?? (v && pedidoQueAtende(v, abertos)); if (!p) continue;
       abertos = abertos.map((x) => (x.id === p.id ? { ...x, reserva_id: r.id } : x));
       try { const salvo = await atualizarDesejado(p.id, { reserva_id: r.id }); setDesejados((l) => l.map((x) => (x.id === salvo.id ? salvo : x))); } catch { /* o carro foi reservado; o vínculo com o pedido pode ser refeito */ }
     }
@@ -103,5 +109,5 @@ export function useDadosDeEventos() {
   const moverNota = (id: string, inicio: string, fim: string) => editarNota(id, { inicio, fim });
   const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

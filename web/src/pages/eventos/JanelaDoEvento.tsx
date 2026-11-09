@@ -13,9 +13,9 @@ import type { Veiculo } from "../../lib/veiculos/tipos";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import { ChecklistsDaReserva } from "../checklists/ChecklistsDaReserva";
 import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
-import { AdicionarVeiculos } from "./AdicionarVeiculos";
+import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
-import { PedidosDoEvento } from "./PedidosDoEvento";
+import type { useTransportes } from "../transportes/useTransportes";
 import { camposDaReserva, camposDoLocal, type ReservaLinha } from "./camposDoEvento";
 import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
 import "../veiculos/veiculos.css";
@@ -25,6 +25,7 @@ type Aba = AbaDoEvento;
 const ABAS: { id: Aba; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "locais", rotulo: "Locais" }, { id: "comentarios", rotulo: "Comentários" }];
 
 type Props = {
+  /** Transportes (para cadastrar PTA/TSO direto na tabela de carros) e gravação dos campos individuais da reserva. */ tr?: ReturnType<typeof useTransportes>; onSalvarReserva?: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual">>) => Promise<void>;
   /** Modelos desejados de todos os eventos e as ações sobre eles. */ desejados?: ModeloDesejado[]; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>; onAdicionarDesejados?: (eventoId: string, pedidos: PedidoDeCarro[]) => Promise<void>;
   evento: Evento | null; campos: readonly CampoDaTela<Evento>[]; abaInicial: Aba; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; manutencoes?: Manutencao[]; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
@@ -34,11 +35,10 @@ type Props = {
 };
 
 /** A janela do evento: dados, os carros reservados (período e estado editáveis no lugar, com aviso de conflito) e comentários. */
-export function JanelaDoEvento({ desejados = [], onNaoAtendido, onAdicionarDesejados, evento, campos, abaInicial, veiculos, reservas, eventos, locais, manutencoes, checklists = [], onSalvarChecklist, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
+export function JanelaDoEvento({ tr, onSalvarReserva, desejados = [], onNaoAtendido, onAdicionarDesejados, evento, campos, abaInicial, veiculos, reservas, eventos, locais, manutencoes, checklists = [], onSalvarChecklist, onEditarLocal, onAdicionarLocais, onRemoverLocal, onEditarEvento, onEditarReserva, onReservar, onRemoverReserva, onExcluir, onFechar }: Props) {
   const ref = useRef<HTMLDialogElement>(null);
   const toast = useToast();
   const [aba, setAba] = useState<Aba>(abaInicial);
-  const [adicionando, setAdicionando] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
   const [novoPedido, setNovoPedido] = useState<PedidoDeCarro[] | null>(null);
   const [novoLocal, setNovoLocal] = useState<EventoLocalNovo[] | null>(null);
@@ -100,30 +100,11 @@ export function JanelaDoEvento({ desejados = [], onNaoAtendido, onAdicionarDesej
 
             {aba === "veiculos" && (
               <div className="mt-reservas-ed" data-testid="aba-veiculos">
-                <div className="ds-row" style={{ justifyContent: "space-between" }}>
-                  <h3 className="t-h3">Carros deste evento</h3>
-                  <Button icon={<Plus size={18} />} onClick={() => setAdicionando(true)} data-testid="adicionar-carros">Reservar carros</Button>
-                </div>
-                {onNaoAtendido && (
-                  <>
-                    <PedidosDoEvento pedidos={desejados.filter((p) => p.evento_id === evento.id)} codigoDoCarro={(rid) => linhas.find((r) => r.id === rid)?.codigo ?? null} onNaoAtendido={onNaoAtendido} onErro={setFalha} />
-                    {onAdicionarDesejados && <div><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>}
-                  </>
-                )}
-                {linhas.length === 0 && <p className="t-body t-muted">Nenhum carro reservado ainda. O Status de uso e a Agenda dos carros se atualizam sozinhos quando você reserva.</p>}
-                {linhas.map((r) => (
-                  <article key={r.id} className="mt-reserva-ed" data-testid="reserva">
-                    <div className="mt-reserva-ed__topo">
-                      <Link to={`/veiculos/${r.veiculo_id}`} className="mt-reserva__evento">{r.codigo}</Link>
-                      <Button variant="ghost" size="icon" aria-label={`Remover ${r.codigo} do evento`} onClick={() => void onRemoverReserva(r).catch((e: Error) => setFalha(e.message))}><Trash size={20} /></Button>
-                    </div>
-                    <div className="mt-reserva-ed__campos">
-                      {camposDaLinha.map((c) => <div key={c.id}><span className="rot">{c.titulo}</span><CampoEditavel linha={r} campo={c} ed={edReserva} navegaveis={navegaveisReserva} /></div>)}
-                    </div>
-                    {onSalvarChecklist && <ChecklistsDaReserva reservaId={r.id} carro={r.codigo} checklists={checklists} onSalvar={onSalvarChecklist} />}
-                    {r.conflito && <p className="mt-escolha__aviso" role="note" data-testid="aviso-conflito"><Warning size={16} weight="fill" />Este carro também está em: {r.conflito}</p>}
-                  </article>
-                ))}
+                {onAdicionarDesejados && <div><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>}
+                {tr && onSalvarReserva && onNaoAtendido ? (
+                  <VeiculosDoEvento evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} locais={locais} desejados={desejados} manutencoes={manutencoes} tr={tr}
+                    checklists={checklists} onSalvarChecklist={onSalvarChecklist} onSalvarReserva={onSalvarReserva} onReservar={onReservar} onRemoverReserva={onRemoverReserva} onNaoAtendido={onNaoAtendido} onErro={setFalha} />
+                ) : <p className="t-body t-muted">Tabela de veículos indisponível nesta tela.</p>}
               </div>
             )}
 
@@ -154,7 +135,6 @@ export function JanelaDoEvento({ desejados = [], onNaoAtendido, onAdicionarDesej
             )}
           </div>
 
-          <AdicionarVeiculos aberto={adicionando} onFechar={() => setAdicionando(false)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes} pedidos={desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela)} />
           <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos">
             <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido || !onAdicionarDesejados) return; void onAdicionarDesejados(evento.id, novoPedido.filter((p) => p.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
               <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />
