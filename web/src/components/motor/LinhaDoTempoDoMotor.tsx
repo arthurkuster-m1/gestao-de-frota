@@ -7,7 +7,7 @@ import { empilhar, totalDeFaixas } from "../../lib/linhaDoTempo/faixas";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
-import { resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { CampoEditavel } from "./CampoEditavel";
 import { formatar } from "./formatar";
 import type { CampoDaTela } from "./tipos";
@@ -20,6 +20,8 @@ type Props<T> = {
   barrasDe: (l: T) => Barra[];
   /** O usuário arrastou uma barra (`delta` dias). Rejeita com `Error(mensagem)` se o banco recusar. */
   onAlterarBarra?: (linha: T, barra: Barra, modo: ModoDeArrasto, delta: number) => Promise<void>;
+  /** Com isto, as colunas da parte fixa se redimensionam arrastando a borda do título (grava em `larguras`, como na tabela). */
+  onPrefs?: (p: PreferenciasDaTabela) => void;
   onAbrir?: (l: T) => void; onAbrirBarra?: (l: T, b: Barra) => void; onEditar?: OnEditar<T>;
   vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
   /** Linha escolhida (Planejamento: o evento selecionado). */ selecionadoId?: string | null; aoSelecionar?: (l: T) => void;
@@ -29,7 +31,7 @@ type Props<T> = {
 
 const ALTURA_FAIXA = 28, ALTURA_MIN = 48;
 
-export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
+export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const rolagem = useRef<HTMLDivElement>(null);
   const ignorar = useRef(false);
@@ -37,6 +39,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barr
   const [fechados, setFechados] = useState<Set<string>>(new Set());
   const [arrasto, setArrasto] = useState<{ linhaId: string; barraId: string; modo: ModoDeArrasto; delta: number } | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [ajuste, setAjuste] = useState<{ id: string; largura: number } | null>(null);
   const { origem, dias, larguraDia, escala } = eixo;
   const hoje = hojeLocal();
   const larguraEixo = dias * larguraDia;
@@ -55,14 +58,14 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barr
   }, [campos, prefs, visiveis, quantas]);
   const colunasEsq = useMemo(() => {
     const out: { id: string; largura: number }[] = []; let soma = 0;
-    for (const c of escolhidas) { const w = Math.min(c.largura, largura > 0 ? Math.round(largura * 0.5) : c.largura); if (out.length > 0 && largura > 0 && soma + w > largura * 0.5) break; out.push({ id: c.id, largura: w }); soma += w; }
+    for (const c of escolhidas) { const w = Math.min(ajuste?.id === c.id ? ajuste.largura : c.largura, largura > 0 ? Math.round(largura * 0.5) : c.largura); if (out.length > 0 && largura > 0 && soma + w > largura * 0.5) break; out.push({ id: c.id, largura: w }); soma += w; }
     if (larguraEsquerda && out.length > 0) {   // largura combinada: a primeira coluna absorve a diferença
       const alvo = largura > 0 ? Math.min(larguraEsquerda, Math.round(largura * 0.5)) : larguraEsquerda;
       const resto = out.slice(1).reduce((s, c) => s + c.largura, 0);
       out[0] = { ...out[0]!, largura: Math.max(110, alvo - resto) };
     }
     return out;
-  }, [escolhidas, largura, larguraEsquerda]);
+  }, [escolhidas, largura, larguraEsquerda, ajuste]);
   const larguraEsq = colunasEsq.reduce((s, c) => s + c.largura, 0);
   const navegaveis = colunasEsq.filter((c) => porId.get(c.id)?.edicao).map((c) => c.id);
 
@@ -85,6 +88,16 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barr
     };
     return resultado.grupos ? resultado.grupos.map((g) => ({ chave: g.chave, rotulo: g.rotulo, linhas: g.linhas.map(linhaDe) })) : [{ chave: "", rotulo: "", linhas: resultado.linhas.map(linhaDe) }];
   }, [resultado, barrasDe, idDe, origem]);
+
+  const redimensionar = (e: React.PointerEvent, id: string, atual: number) => {
+    if (!onPrefs) return;
+    e.preventDefault(); e.stopPropagation();
+    const alvo = e.currentTarget as HTMLElement; alvo.setPointerCapture(e.pointerId);
+    const x0 = e.clientX; let ultima = atual;
+    const mover = (ev: PointerEvent) => { ultima = limitarLargura(atual + ev.clientX - x0); setAjuste({ id, largura: ultima }); };
+    const soltar = () => { alvo.removeEventListener("pointermove", mover); alvo.removeEventListener("pointerup", soltar); setAjuste(null); onPrefs({ ...prefs, larguras: { ...prefs.larguras, [id]: ultima } }); };
+    alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar);
+  };
 
   const aoRolarDoUsuario = () => { const el = rolagem.current; if (!el || ignorar.current) return; eixo.aoRolar(el.scrollLeft, Math.max(0, el.clientWidth - larguraEsq)); };
 
@@ -172,7 +185,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, idDe, eixo, barr
         <div className="mt-tl" ref={rolagem} onScroll={aoRolarDoUsuario} style={alturaMax ? { maxHeight: alturaMax } : undefined} data-testid="rolagem-tl">
           <div className="mt-tl__grade" style={{ width: larguraEsq + larguraEixo, ["--esq" as string]: `${larguraEsq}px` }}>
             <div className="mt-tl__cabecalho">
-              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c) => <div key={c.id} className="mt-tl__celula" style={{ width: c.largura }}>{porId.get(c.id)?.titulo}</div>)}</div>
+              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c) => <div key={c.id} className="mt-tl__celula mt-tl__cab" style={{ width: c.largura }}>{porId.get(c.id)?.titulo}{onPrefs && <span className="mt-alca" role="separator" aria-label={`Largura de ${porId.get(c.id)?.titulo}`} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />}</div>)}</div>
               <div className="mt-tl__eixo" style={{ width: larguraEixo }}>
                 <div className="mt-tl__meses">{meses.map((m) => <div key={m.chave} className="mt-tl__mes" style={{ width: m.dias * larguraDia }}><span>{nomeDoMes(m.chave)}</span></div>)}</div>
                 <div className="mt-tl__dias" style={{ width: larguraEixo }}>
