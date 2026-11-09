@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
+import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
 import { pedidoQueAtende } from "../../lib/eventos/desejados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
@@ -82,7 +83,8 @@ export function useDadosDeEventos() {
   };
   /** Cria o evento e os locais digitados. Se os locais falharem, o evento fica (e o aviso diz o que faltou). */
   const criar = async (e: EventoNovo, novosLocais: EventoLocalNovo[], pedidos: (ModeloDesejadoNovo & { quantidade?: number })[] = []): Promise<Evento> => {
-    const criado = await criarEvento(e);
+    const nome = e.nome.trim() ? e.nome : nomeUnico(nomeAutomatico(e.chegada_prevista, e.solicitante), (eventos ?? []).map((x) => x.nome));   // cadastro rápido
+    const criado = await criarEvento({ ...e, nome });
     setEventos((l) => [criado, ...(l ?? [])]);
     try { const feitos = await criarLocais(criado.id, novosLocais); setLocais((l) => [...l, ...feitos]); } catch (x) { toast(`Evento criado, mas os locais não foram salvos: ${(x as Error).message}`); }
     if (pedidos.length) { try { const feitos = await criarDesejados(criado.id, pedidos); setDesejados((l) => [...l, ...feitos]); } catch (x) { toast(`Evento criado, mas os modelos desejados não foram salvos: ${(x as Error).message}`); } }

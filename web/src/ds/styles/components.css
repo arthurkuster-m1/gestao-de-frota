@@ -1211,3 +1211,5 @@ html:root.tr-sam { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
 
 /* O aviso "Salvo" não tem botões: não pode bloquear toques nas células que ficam embaixo dele. */
 .ds-toasts { pointer-events: none; }
+
+@media (min-width: 640px) { .ds-sheet--wide { max-width: min(920px, calc(100vw - 48px)); } }

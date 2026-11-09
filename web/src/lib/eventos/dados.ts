@@ -10,7 +10,7 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
   if (e.code === "42501") return new ErroEvento("Sem permissão. Entre de novo na conta.");
   return new ErroEvento(e.message);
 }
-const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista";
+const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato";
 const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios";
 const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios";
 const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao";

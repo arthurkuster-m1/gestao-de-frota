@@ -39,7 +39,7 @@ export function FloatingNav({ items, active, onSelect, fixed = true, className }
 }
 
 /** Folha que sobe de baixo no celular e vira modal no desktop. Usa <dialog>: foco preso e Esc nativos. */
-export function Sheet({ open, onClose, title, children }: { open: boolean; onClose: () => void; title: string; children: ReactNode }) {
+export function Sheet({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; /** Janela larga (formulários de página inteira, como no Notion). */ wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
   useEffect(() => {
     const d = ref.current;
@@ -56,7 +56,7 @@ export function Sheet({ open, onClose, title, children }: { open: boolean; onClo
   return (
     <dialog
       ref={ref}
-      className="ds-sheet"
+      className={cx("ds-sheet", wide && "ds-sheet--wide")}
       aria-label={title}
       // o evento "close" sobe pela árvore do React: sem este filtro, fechar uma janela aninhada fecharia também a de fora
       onClose={(e) => { if (e.target === ref.current) onClose(); }}

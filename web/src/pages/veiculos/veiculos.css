@@ -74,3 +74,10 @@
 .mt-pedido-chip svg { flex: none; }
 
 .plan-objetivo { display: grid; gap: 2px; min-width: 170px; }
+
+/* Formulário de novo evento (janela larga) */
+.mt-evf { display: grid; gap: var(--space-3); grid-template-columns: minmax(0, 1fr); }
+@media (min-width: 720px) { .mt-evf--3 { grid-template-columns: 2fr 1fr 1fr; } .mt-evf--4 { grid-template-columns: 1.1fr 1fr 1.4fr 1.4fr; } }
+.mt-evf__rodape { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
+.mt-evf__rodape > span { flex: 1 1 280px; }
+.mt-evf kbd, .mt-evf__rodape kbd { padding: 1px 6px; border: 1px solid var(--color-border-strong); border-bottom-width: 2px; border-radius: 5px; font: inherit; font-size: 12px; background: var(--color-surface); }
