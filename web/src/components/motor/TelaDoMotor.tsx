@@ -7,6 +7,7 @@ import { prefsIguais } from "../../lib/motor/prefs";
 import { NOME_DA_VISAO_PADRAO, configSegura, type VisaoSalva } from "../../lib/motor/visoes";
 import { BarraDeVisualizacoes, layoutDe, type Layout } from "./BarraDeVisualizacoes";
 import { BarraDeConsulta, ChipsDeFiltro } from "./BarraDeConsulta";
+import { ChipsRapidos, filtrarPorChips, type ConfigDeChips, type SelecaoDeChips } from "./ChipsRapidos";
 import { CartoesDoMotor } from "./CartoesDoMotor";
 import { TabelaDoMotor } from "./TabelaDoMotor";
 import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
@@ -29,6 +30,8 @@ type Props<T> = {
     onAlterarBarra?: (linha: T, barra: Barra, modo: ModoDeArrasto, delta: number) => Promise<void>;
     onAbrirBarra?: (linha: T, barra: Barra) => void;
   };
+  /** Liga uma visualização FIXA depois da "Todas", com chips pré-montadas (ex.: "Por modelo"). */
+  chipsRapidos?: ConfigDeChips<T>;
   /** Usado pelo Planejamento: eixo do tempo COMPARTILHADO entre duas telas, visão fixa em linha do tempo, sem cabeçalho grande. */
   eixo?: EixoDoTempo; modoFixo?: "timeline"; compacta?: boolean; selecionadoId?: string | null; aoSelecionar?: (l: T) => void; alturaDaLinhaDoTempo?: string; larguraEsquerda?: number;
 };
@@ -42,7 +45,7 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
@@ -55,11 +58,14 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   const [erroVisao, setErroVisao] = useState<string | null>(null);
 
   /** A "Todas" também é salva no banco (uma linha reservada, escondida das abas), para valer em qualquer aparelho. */
-  const linhaPadrao: VisaoSalva | undefined = v.visoes.find((x) => x.nome === NOME_DA_VISAO_PADRAO);
+  const naFixa = !!chipsRapidos && abaId === chipsRapidos.id;
+  const nomeDaBaseSalva = naFixa ? `__${chipsRapidos!.id}__` : NOME_DA_VISAO_PADRAO; // linha reservada (escondida das abas) de Todas ou da fixa aberta
+  const linhaPadrao: VisaoSalva | undefined = v.visoes.find((x) => x.nome === nomeDaBaseSalva);
   const todasSalva: PreferenciasDaTabela = useMemo(() => (linhaPadrao ? configSegura(linhaPadrao.config) : {}), [linhaPadrao]);
-  const abas = useMemo(() => v.visoes.filter((x) => x.nome !== NOME_DA_VISAO_PADRAO), [v.visoes]);
+  const abas = useMemo(() => v.visoes.filter((x) => !/^__.+__$/.test(x.nome)), [v.visoes]);
   const ativa: VisaoSalva | undefined = abas.find((x) => x.id === abaId);
-  const abaValida = abaId === "todas" || !!ativa || v.carregando;
+  const abaValida = abaId === "todas" || naFixa || !!ativa || v.carregando;
+  const [rapidos, setRapidos] = useState<SelecaoDeChips>([null, null]);
   useEffect(() => { if (!abaValida) setAbaId("todas"); }, [abaValida]);
   const base = ativa ? ativa.config : todasSalva;
   const prefs = rascunho ?? base;
@@ -69,11 +75,12 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   const modo: "tabela" | "cards" | "timeline" = modoFixo === "timeline" ? "timeline" : prefs.visualizacao === "galeria" ? "cards" : prefs.visualizacao === "timeline" && linhaDoTempo ? "timeline" : "tabela";
 
   const layouts: readonly Layout[] = linhaDoTempo ? ["tabela", "galeria", "timeline"] : ["tabela", "galeria"];
+  const doChip = useMemo(() => (naFixa && linhas ? filtrarPorChips(linhas, chipsRapidos!, rapidos) : linhas), [naFixa, linhas, chipsRapidos, rapidos]);
   const buscadas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q || !linhas) return linhas ?? [];
-    return linhas.filter((x) => campos.some((c) => c.tipo === "texto" && String(c.valorDe(x) ?? "").toLowerCase().includes(q)));
-  }, [linhas, busca, campos]);
+    if (!q || !doChip) return doChip ?? [];
+    return doChip.filter((x) => campos.some((c) => c.tipo === "texto" && String(c.valorDe(x) ?? "").toLowerCase().includes(q)));
+  }, [doChip, busca, campos]);
 
   async function comAviso<R>(fn: () => Promise<R>): Promise<R | undefined> { setOcupado(true); setErroVisao(null); try { return await fn(); } catch (e) { setErroVisao((e as Error).message); throw e; } finally { setOcupado(false); } }
 
@@ -92,14 +99,14 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
             if (!rascunho) return;
             const tipo = layoutDe({ tipo: "tabela", config: rascunho });
             if (ativa) await comAviso(() => v.atualizar(ativa.id, { config: rascunho, tipo: layoutDe({ tipo: ativa.tipo, config: rascunho }) }));
-            else await comAviso(() => v.salvarPadrao(NOME_DA_VISAO_PADRAO, tipo, rascunho));
+            else await comAviso(() => v.salvarPadrao(nomeDaBaseSalva, tipo, rascunho));
             setRascunho(null);
           }}
           onDescartar={() => setRascunho(null)}
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
           onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
-          acoes={acoes}
+          acoes={acoes} fixas={chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []} nomeDaBase={naFixa ? chipsRapidos!.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
             <div className="mt-busca">
@@ -110,6 +117,8 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
               <button type="button" className={cx("mt-btn", "mt-btn--icone", !!busca && "is-on")} aria-label="Abrir busca" title="Buscar" data-testid="abrir-busca" onClick={() => { if (busca) { setBusca(""); setBuscando(false); } else setBuscando(!buscando); }}><MagnifyingGlass size={18} /></button>
             </div>
           </>} />
+
+        {naFixa && linhas && <ChipsRapidos cfg={chipsRapidos!} linhas={linhas} selecao={rapidos} onSelecao={setRapidos} ordem={prefs.ordemDosChips ?? []} onOrdem={(o) => onPrefs({ ...prefs, ordemDosChips: o })} />}
 
         <ChipsDeFiltro campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} abrirIndice={filtroNovo} aoAbrir={() => setFiltroNovo(null)} aoAdicionar={setFiltroNovo} />
 

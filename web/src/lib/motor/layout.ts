@@ -48,6 +48,8 @@ export const preferenciasDaTabelaSchema = z
         escala: z.enum(["dia", "semana"]),
       })
       .optional(),
+    /** Ordem escolhida (arrastando) das chips rápidas de uma visualização fixa, como "mae" ou "mae/versão". */
+    ordemDosChips: z.array(z.string().min(1).max(160)).max(400).optional(),
     /** Colunas congeladas (ficam fixas à esquerda ao rolar): quantas, contando a primeira. 0 = nenhuma. */
     congelar: z.number().int().min(0).max(6).optional(),
     /** Filtros, ordenação e agrupamento (ver `consulta.ts`). */

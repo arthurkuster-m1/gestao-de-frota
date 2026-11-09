@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Plus, Table, Car } from "@phosphor-icons/react";
 import { Button, Card, EmptyState, useToast } from "../../ds";
 import { usePopover } from "../../ds/popover";
+import type { ConfigDeChips } from "../../components/motor/ChipsRapidos";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
 import { hojeLocal } from "../../lib/motor/datas";
@@ -18,6 +19,7 @@ import { STATUS_DE_USO, agendaTexto, reservasPorVeiculo, statusDeUso } from "../
 import type { OnEditar } from "../../components/motor/useEdicao";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
+import { partirModelo } from "../../lib/veiculos/modelo";
 import { avisoDoCicloAutomatico } from "../../lib/veiculos/ciclo";
 import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
 import "../veiculos/veiculos.css";
@@ -98,7 +100,7 @@ export function Veiculos() {
   useEffect(() => { if (idAberto && lista && !lista.some((x) => x.id === idAberto)) navigate("/veiculos", { replace: true }); }, [idAberto, lista, navigate]);
 
   return (
-    <TelaDoMotor<Veiculo> tela="veiculos" titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
+    <TelaDoMotor<Veiculo> tela="veiculos" chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
       acoes={<NovoMenu />}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
@@ -108,6 +110,11 @@ export function Veiculos() {
       filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
   );
 }
+
+const CHIPS_POR_MODELO: ConfigDeChips<Veiculo> = {
+  id: "por-modelo", rotulo: "Por modelo", semValor: "Sem modelo",
+  niveis: [{ rotulo: "Modelo", valorDe: (v) => partirModelo(v.modelo).mae }, { rotulo: "Versão", valorDe: (v) => partirModelo(v.modelo).versao }],
+};
 
 /** Botão único "Novo": pergunta se é um veículo ou uma importação em massa. */
 function NovoMenu() {

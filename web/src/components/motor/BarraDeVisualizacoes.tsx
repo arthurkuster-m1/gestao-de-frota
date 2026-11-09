@@ -24,13 +24,17 @@ type Props<T> = {
   onRenomear: (id: string, nome: string) => Promise<void>; onDuplicar: (v: VisaoSalva) => Promise<void>; onExcluir: (id: string) => Promise<void>;
   /** Ícones à direita (filtrar, ordenar, agrupar, busca) e os botões de ação da tela (ex.: Novo). */
   ferramentas: ReactNode; acoes?: ReactNode;
+  /** Abas fixas (não se apagam nem se renomeiam), logo depois da "Todas": ex.: "Por modelo". */
+  fixas?: readonly { id: string; rotulo: string }[];
+  /** Nome da visualização-base aberta (Todas ou uma fixa), para os textos de salvar. */
+  nomeDaBase?: string;
 };
 
 /**
  * A linha de visualizações, como no Notion: as abas (cada uma com o ícone do seu layout), o "+" com os modelos de visualização e, no canto direito,
  * os ícones pequenos de filtrar/ordenar/agrupar/buscar, a configuração da visualização (nome, layout, propriedades, duplicar, apagar) e o botão de ação.
  */
-export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onRenomear, onDuplicar, onExcluir, ferramentas, acoes }: Props<T>) {
+export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onRenomear, onDuplicar, onExcluir, ferramentas, acoes, fixas = [], nomeDaBase = "Todas" }: Props<T>) {
   const [salvandoComo, setSalvandoComo] = useState(false);
   const [excluindo, setExcluindo] = useState<VisaoSalva | null>(null);
   const [nome, setNome] = useState("");
@@ -55,6 +59,7 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
       <div className="mt-vbar" data-testid="barra-visualizacoes">
         <div className="mt-abas" role="tablist" aria-label="Visualizações">
           {aba("todas", "Todas", abaId === "todas" ? layoutAtivo : "tabela")}
+          {fixas.map((f) => aba(f.id, f.rotulo, abaId === f.id ? layoutAtivo : "tabela"))}
           {visoes.map((v) => aba(v.id, v.nome, v.id === abaId ? layoutAtivo : layoutDe(v)))}
           <Painel soIcone rotulo="Nova visualização" icone={<Plus size={18} />} largura={260} testid="nova-aba">
             <div className="mt-painel__corpo">
@@ -67,11 +72,11 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
         </div>
         <div className="mt-vbar__dir">
           {alterada && (
-            <div className="mt-alterada" role="status" data-testid="barra-alterada" title={ativa ? "Alterações não salvas nesta visualização" : "Alterações não salvas em Todas"}>
+            <div className="mt-alterada" role="status" data-testid="barra-alterada" title={ativa ? "Alterações não salvas nesta visualização" : `Alterações não salvas em ${nomeDaBase}`}>
               <span className="mt-alterada__ponto" aria-hidden />
               <button type="button" className="mt-alterada__txt" onClick={onDescartar} data-testid={ativa ? "descartar-visao" : "restaurar-todas"}>{ativa ? "Descartar" : "Redefinir"}</button>
               <span className="mt-alterada__salvar">
-                <button type="button" className="mt-alterada__ok" disabled={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">{ativa ? "Salvar" : "Salvar em Todas"}</button>
+                <button type="button" className="mt-alterada__ok" disabled={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">{ativa ? "Salvar" : `Salvar em ${nomeDaBase}`}</button>
                 {!ativa && (
                   <Painel soIcone rotulo="Mais opções de salvar" icone={<CaretDown size={14} weight="bold" />} largura={240} testid="salvar-mais">
                     <div className="mt-painel__corpo"><button type="button" className="mt-item" data-testid="salvar-como" onClick={() => { setNome(""); setFalha(null); setSalvandoComo(true); }}><Copy size={18} />Salvar como visualização</button></div>
@@ -87,7 +92,7 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
                 <Field label="Nome da visualização"><Input value={nomeEditado ?? ativa.nome} aria-label="Nome da visualização" maxLength={60} onChange={(e) => setNomeEditado(e.target.value)}
                   onBlur={() => { if (nomeEditado !== null && nomeEditado.trim() && nomeEditado.trim() !== ativa.nome) void envia(() => onRenomear(ativa.id, nomeEditado.trim())); setNomeEditado(null); }}
                   onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></Field>
-              ) : <span className="t-body" style={{ fontWeight: 700 }}>Todas <span className="t-body-sm t-muted">(visualização padrão)</span></span>}
+              ) : <span className="t-body" style={{ fontWeight: 700 }}>{nomeDaBase} <span className="t-body-sm t-muted">(visualização padrão)</span></span>}
               {!layoutFixo && layoutsDisponiveis.length > 1 && (
                 <Field label="Layout"><div className="mt-layouts" role="radiogroup" aria-label="Layout">
                   {layoutsDisponiveis.map((l) => <button key={l} type="button" role="radio" aria-checked={layoutAtivo === l} className={cx("mt-layout", layoutAtivo === l && "is-on")} data-testid={`layout-${l}`} onClick={() => onPrefs({ ...prefs, visualizacao: l })}>{ICONE_GRANDE[l]}<span>{ROTULO_DO_TIPO[l]}</span></button>)}
