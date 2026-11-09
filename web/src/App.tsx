@@ -10,7 +10,6 @@ import { EmBreve } from "./pages/EmBreve";
 import { SemConfig } from "./pages/SemConfig";
 import { Shell } from "./app/Shell";
 import { Veiculos } from "./pages/veiculos/Veiculos";
-import { FormVeiculo } from "./pages/veiculos/FormVeiculo";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { Eventos } from "./pages/eventos/Eventos";
 import { Contratos } from "./pages/contratos/Contratos";
@@ -41,7 +40,7 @@ function Autenticado() {
       <Routes>
         <Route element={<Shell />}>
           <Route index element={<Home />} />
-          <Route path="veiculos/novo" element={<FormVeiculo />} />
+          <Route path="veiculos/novo" element={<Navigate to="/veiculos?novo=1" replace />} />
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />

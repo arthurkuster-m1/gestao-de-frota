@@ -1,11 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Plus, Table, Car } from "@phosphor-icons/react";
 import { Button, Card, EmptyState, useToast } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import type { ConfigDeChips } from "../../components/motor/ChipsRapidos";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
+import { NovoVeiculo } from "./NovoVeiculo";
 import { hojeLocal } from "../../lib/motor/datas";
 import { atualizarReserva } from "../../lib/eventos/dados";
 import { barrasDoVeiculo } from "../../lib/eventos/barras";
@@ -73,6 +74,9 @@ export function Veiculos() {
   // eventos, reservas, manutenções, anotações e as ações sobre eles: os mesmos do Planejamento
   const d = useDadosDeEventos();
   const criacao = useCriacaoNaLinha(d);
+  const [busca, setBusca] = useSearchParams();
+  const [novo, setNovo] = useState(busca.get("novo") === "1");   // /veiculos/novo (link antigo) abre a janela
+  useEffect(() => { if (busca.get("novo")) { const b = new URLSearchParams(busca); b.delete("novo"); setBusca(b, { replace: true }); } }, [busca, setBusca]);
   const reservas = d.eventos ? d.reservas : null;
   const eventos = d.eventos ?? [];
   const erroUso = d.erro;
@@ -110,15 +114,16 @@ export function Veiculos() {
   return (
     <>
     <TelaDoMotor<Veiculo> tela="veiculos" chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
-      acoes={<NovoMenu />}
+      acoes={<NovoMenu aoNovo={() => setNovo(true)} />}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
       linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
         onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } navigate(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
-      vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
+      vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Button icon={<Plus size={20} />} onClick={() => setNovo(true)}>Cadastrar o primeiro</Button>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
       filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
     {criacao.dialogos}
+    <NovoVeiculo aberto={novo} onFechar={() => setNovo(false)} onCriado={(v) => setLista((l) => [v, ...(l ?? [])])} />
     </>
   );
 }
@@ -129,7 +134,7 @@ const CHIPS_POR_MODELO: ConfigDeChips<Veiculo> = {
 };
 
 /** Botão único "Novo": pergunta se é um veículo ou uma importação em massa. */
-function NovoMenu() {
+function NovoMenu({ aoNovo }: { aoNovo: () => void }) {
   const gatilho = useRef<HTMLSpanElement>(null);
   const { ref, aberto, setAberto } = usePopover(gatilho, { largura: 240 });
   const navigate = useNavigate();
@@ -138,7 +143,7 @@ function NovoMenu() {
     <span ref={gatilho} style={{ display: "inline-flex" }}>
       <Button icon={<Plus size={20} />} onClick={() => setAberto(!aberto)} aria-haspopup="menu" aria-expanded={aberto} data-testid="novo-menu">Novo</Button>
       <div ref={ref} popover="auto" role="menu" className="ds-pop" data-testid="novo-menu-lista">
-        <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => ir("/veiculos/novo")}><span>Adicionar novo veículo</span><Plus size={18} /></button>
+        <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => { setAberto(false); aoNovo(); }}><span>Adicionar novo veículo</span><Plus size={18} /></button>
         <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => ir("/veiculos/massa")}><span>Importar em massa</span><Table size={18} /></button>
       </div>
     </span>
