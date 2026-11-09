@@ -33,7 +33,7 @@ describe("atualização em massa", () => {
   });
   it("devolução e reserva", () => {
     expect(validarLista("devolucao", [{ ref: "ABC1D23" }, { ref: "S10 4444" }], ctx).map((x) => x.tom)).toEqual(["ok", "dup"]);
-    expect(validarLista("reserva", [{ ref: "ONIX RS 1111" }, { ref: "ONIX RS 2222" }], { ...ctx, jaNoEvento: new Set(["2"]) }).map((x) => x.tom)).toEqual(["ok", "dup"]);
+    expect(validarLista("reserva", [{ ref: "ONIX RS 1111" }, { ref: "ONIX RS 2222" }], { ...ctx, eventoId: "e1", jaNoEvento: new Set(["2"]) }).map((x) => x.tom)).toEqual(["ok", "dup"]);
   });
   it("matriz: ignora cabeçalho, lê referência e placa", () => {
     expect(linhasDeMatriz([["VIN", "Placa"], ["111", "ABC1D23"], ["222", ""]])).toEqual([{ ref: "111", placa: "ABC1D23" }, { ref: "222", placa: undefined }]);

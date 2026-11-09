@@ -1,6 +1,6 @@
-import { useEffect, useRef } from "react";
 import { CaretDown } from "@phosphor-icons/react";
 import type { CellProps, Column } from "react-datasheet-grid";
+import { EditorDeCelula } from "../../components/motor/EditorDeCelula";
 import { textoParaOpcao } from "../../lib/lancamentos/matriz";
 import type { Opcao } from "../../lib/lancamentos/tipos";
 
@@ -13,17 +13,9 @@ type Celula = string | undefined;
 export function colunaOpcao(opcoes: readonly Opcao[]): Partial<Column<Celula, unknown, string>> {
   const rotulo = (v: Celula) => opcoes.find((o) => o.value === v)?.label ?? v ?? "";
   function Seletor({ rowData, setRowData, focus, active, stopEditing }: CellProps<Celula, unknown>) {
-    const ref = useRef<HTMLSelectElement>(null);
-    useEffect(() => { if (focus) { ref.current?.focus(); try { ref.current?.showPicker?.(); } catch { /* o navegador abre a lista no clique seguinte */ } } }, [focus]);
     if (focus) {
-      return (
-        <select ref={ref} className="mt-opcao-sel" value={rowData ?? ""} aria-label="Escolher a opção"
-          onChange={(e) => { setRowData(e.target.value || undefined); stopEditing(); }} onBlur={() => stopEditing()}>
-          <option value="">—</option>
-          {opcoes.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-          {rowData && !opcoes.some((o) => o.value === rowData) && <option value={rowData}>{rowData}</option>}
-        </select>
-      );
+      // a lista de opções do app (a mesma da edição de células), já aberta
+      return <EditorDeCelula tipo="opcao" valor={rowData ?? null} opcoes={opcoes} obrigatorio={false} rotulo="Escolher a opção" onConfirmar={(v) => { setRowData(typeof v === "string" && v ? v : undefined); stopEditing(); }} onCancelar={() => stopEditing()} />;
     }
     // um clique numa célula já ativa abre a lista (o mesmo que o duplo clique da grade)
     return (
