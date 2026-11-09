@@ -9,6 +9,7 @@ import { aplicarConsulta } from "../../lib/motor/consulta";
 import { diaDaSemanaDaChave, diferencaEmDias, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { CampoEditavel } from "./CampoEditavel";
+import { CaixaDeSelecao, type Selecao } from "./CaixaDeSelecao";
 import { formatar } from "./formatar";
 import type { CampoDaTela } from "./tipos";
 import { useEdicao, type OnEditar } from "./useEdicao";
@@ -24,6 +25,8 @@ type Props<T> = {
   onPrefs?: (p: PreferenciasDaTabela) => void;
   /** Duplo clique num dia vazio da linha: `data` (aaaa-mm-dd) na linha `l`. */
   onCriarNaData?: (l: T, data: string) => void;
+  /** Seleção de várias linhas (caixinha na primeira coluna da parte fixa). */
+  selecao?: Selecao;
   onAbrir?: (l: T) => void; onAbrirBarra?: (l: T, b: Barra) => void; onEditar?: OnEditar<T>;
   vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
   /** Linha escolhida (Planejamento: o evento selecionado). */ selecionadoId?: string | null; aoSelecionar?: (l: T) => void;
@@ -33,7 +36,7 @@ type Props<T> = {
 
 const ALTURA_FAIXA = 28, ALTURA_MIN = 48;
 
-export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriarNaData, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
+export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriarNaData, selecao, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const rolagem = useRef<HTMLDivElement>(null);
   const ignorar = useRef(false);
@@ -158,7 +161,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
   const linhaDeDados = (d: (typeof dados)[number]["linhas"][number]) => {
     const alt = Math.max(ALTURA_MIN, d.faixas * ALTURA_FAIXA + 16);
     return (
-      <div key={d.id} className={cx("mt-tl__linha", selecionadoId === d.id && "is-sel")} style={{ height: alt }} data-testid="linha-tl">
+      <div key={d.id} className={cx("mt-tl__linha", selecionadoId === d.id && "is-sel", selecao?.ids.has(d.id) && "is-marcada")} style={{ height: alt }} data-testid="linha-tl">
         <div className="mt-tl__esq" style={{ width: larguraEsq }}>
           {colunasEsq.map((c, i) => {
             const campo = porId.get(c.id)!;
@@ -166,6 +169,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
             return (
               <div key={c.id} className="mt-tl__celula" style={{ width: c.largura }} data-campo={c.id}
                 onClick={primeira && aoSelecionar ? () => aoSelecionar(d.l) : undefined}>
+                {primeira && selecao && <CaixaDeSelecao marcada={selecao.ids.has(d.id)} onChange={() => selecao.alternar(d.id)} rotulo="Selecionar linha" />}
                 {primeira ? (
                   <span className="mt-primeira">
                     <span className={cx("mt-primeira__txt", aoSelecionar && "mt-tl__selecionavel")}>{ed.editavel && campo.edicao && !aoSelecionar ? <CampoEditavel linha={d.l} campo={campo} ed={ed} navegaveis={navegaveis} /> : formatar(campo, d.l)}</span>

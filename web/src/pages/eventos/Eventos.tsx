@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CalendarCheck, Plus, Table } from "@phosphor-icons/react";
+import { CalendarBlank, CalendarCheck, Plus, Table } from "@phosphor-icons/react";
 import { Button, EmptyState } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
@@ -26,7 +26,7 @@ export function Eventos() {
 
   return (
     <>
-      <TelaDoMotor<Evento> tela="eventos" titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
+      <TelaDoMotor<Evento> tela="eventos" acoesDaSelecao={({ ids }) => <Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
         acoes={<NovoMenuDeEventos aoNovo={() => setCriando(true)} />}
         linhas={d.eventos} erro={d.erro} campos={d.campos} idDe={(x) => x.id} onEditar={d.editarEvento} onAbrir={(x) => navigate(`/eventos/${x.id}`)}
         linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => navigate(`/eventos/${e.id}`) }}

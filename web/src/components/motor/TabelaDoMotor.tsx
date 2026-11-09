@@ -7,6 +7,7 @@ import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { CaixaDeSelecao, type Selecao } from "./CaixaDeSelecao";
 import { ThOrdenavel } from "./ThOrdenavel";
 import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCores } from "./EditorDeCores";
@@ -24,6 +25,8 @@ type Props<T> = {
   idDe: (l: T) => string; onAbrir?: (l: T) => void; vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
   /** Grava um campo editado na célula. Rejeita com `Error(mensagem)` se o banco recusar. Sem isto, a tabela é só de leitura. */
   onEditar?: OnEditar<T>;
+  /** Seleção de várias linhas (caixinha na primeira coluna). Sem isto, a tabela não tem caixinhas. */
+  selecao?: Selecao;
   /** Avisa que o menu da coluna criou um filtro (a tela abre o editor dele). */
   aoNovoFiltro?: (indice: number) => void;
 };
@@ -31,7 +34,7 @@ type Props<T> = {
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
 
-export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro }: Props<T>) {
+export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro, selecao }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const colunas = useMemo(() => resolverColunas(campos, prefs).filter((c) => c.visivel), [campos, prefs]);
   const resultado = useMemo(() => aplicarConsulta(linhas, campos, prefs, { hoje: hojeLocal() }), [linhas, campos, prefs]);
@@ -165,14 +168,15 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       else setSel({ a: p, b: p });
       arrastandoSel.current = true;
     };
+    const conteudoDaCelula = i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l);
     return (
       <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, (prefs.quebrarLinhas ?? []).includes(c.id) && "mt-quebra", editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
-        {i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l)}
+        {i === 0 && selecao ? <span className="mt-comchk"><CaixaDeSelecao marcada={selecao.ids.has(idDe(l))} onChange={() => selecao.alternar(idDe(l))} rotulo="Selecionar linha" />{conteudoDaCelula}</span> : conteudoDaCelula}
       </td>
     );
   };
   const linha = (l: T) => (
-    <tr key={idDe(l)} data-testid="linha-motor">
+    <tr key={idDe(l)} data-testid="linha-motor" className={selecao?.ids.has(idDe(l)) ? "is-sel" : undefined}>
       {colunas.map((c, i) => celula(l, c, i, indiceDe.get(idDe(l)) ?? 0))}
     </tr>
   );
@@ -195,7 +199,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                     return (
                       <ThOrdenavel key={c.id} id={c.id} travada={i < congeladas || !!c.fixa} estilo={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
                         onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
-                        <span className="mt-th">{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
+                        <span className="mt-th">{i === 0 && selecao && <CaixaDeSelecao marcada={resultado.linhas.length > 0 && resultado.linhas.every((x) => selecao.ids.has(idDe(x)))} parcial={resultado.linhas.some((x) => selecao.ids.has(idDe(x)))} onChange={(m) => selecao.alternarVarios(resultado.linhas.map(idDe), m)} rotulo="Selecionar todas as linhas" />}{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
                         <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
                       </ThOrdenavel>
                     );

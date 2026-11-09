@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { Card, Page, Skeleton, cx } from "../../ds";
+import { Button, Card, Page, Skeleton, cx } from "../../ds";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { prefsIguais } from "../../lib/motor/prefs";
@@ -20,6 +20,10 @@ import "./motor.css";
 type Props<T> = {
   /** Identifica a tela nas visualizações salvas ("veiculos", "eventos"…). */
   tela: string; titulo: string; subtitulo: string; acoes?: ReactNode; avisos?: ReactNode;
+  /** Ações extras da barra que aparece ao selecionar linhas (a barra já traz "Filtrar seleção" e "Limpar"). */
+  acoesDaSelecao?: (c: { ids: string[]; itens: T[]; limpar: () => void }) => ReactNode;
+  /** Abre a tela já filtrada por estes ids (ex.: "Visualizar no Planejamento"). */
+  selecaoInicial?: readonly string[];
   /** Canto superior direito do cabeçalho (ex.: o seletor de subpáginas de Eventos). */ cabecalhoDireita?: ReactNode;
   linhas: readonly T[] | null; erro: string | null; campos: readonly CampoDaTela<T>[]; idDe: (l: T) => string;
   onEditar: OnEditar<T>; onAbrir: (l: T) => void; vazio: ReactNode; rotuloDoTotal: (n: number) => string; placeholderDaBusca: string;
@@ -48,11 +52,21 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
   const [busca, setBusca] = useState("");
+  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  /** "Filtrar seleção": a visualização passa a mostrar só estas linhas (não é salvo na visualização). */
+  const chaveInicial = (selecaoInicial ?? []).join(",");
+  const [soSelecao, setSoSelecao] = useState<Set<string> | null>(() => (selecaoInicial?.length ? new Set(selecaoInicial) : null));
+  useEffect(() => { if (selecaoInicial?.length) setSoSelecao(new Set(selecaoInicial)); }, [chaveInicial]);   // eslint-disable-line react-hooks/exhaustive-deps
+  const selecao = useMemo(() => ({
+    ids: selecionados,
+    alternar: (id: string) => setSelecionados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
+    alternarVarios: (ids: string[], marcar: boolean) => setSelecionados((s) => { const n = new Set(s); for (const id of ids) { if (marcar) n.add(id); else n.delete(id); } return n; }),
+  }), [selecionados]);
   const [abaId, setAbaId] = useState("todas");
   const [rascunho, setRascunho] = useState<PreferenciasDaTabela | null>(null);
   const [buscando, setBuscando] = useState(false);
@@ -79,11 +93,12 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
 
   const layouts: readonly Layout[] = linhaDoTempo ? ["tabela", "galeria", "timeline"] : ["tabela", "galeria"];
   const doChip = useMemo(() => (naFixa && linhas ? filtrarPorChips(linhas, chipsRapidos!, rapidos) : linhas), [naFixa, linhas, chipsRapidos, rapidos]);
+  const aposSelecao = useMemo(() => (soSelecao && doChip ? doChip.filter((x) => soSelecao.has(idDe(x))) : doChip), [soSelecao, doChip, idDe]);
   const buscadas = useMemo(() => {
     const q = busca.trim().toLowerCase();
-    if (!q || !doChip) return doChip ?? [];
-    return doChip.filter((x) => campos.some((c) => c.tipo === "texto" && String(c.valorDe(x) ?? "").toLowerCase().includes(q)));
-  }, [doChip, busca, campos]);
+    if (!q || !aposSelecao) return aposSelecao ?? [];
+    return aposSelecao.filter((x) => campos.some((c) => c.tipo === "texto" && String(c.valorDe(x) ?? "").toLowerCase().includes(q)));
+  }, [aposSelecao, busca, campos]);
 
   async function comAviso<R>(fn: () => Promise<R>): Promise<R | undefined> { setOcupado(true); setErroVisao(null); try { return await fn(); } catch (e) { setErroVisao((e as Error).message); throw e; } finally { setOcupado(false); } }
 
@@ -125,13 +140,26 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
 
         <ChipsDeFiltro campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} abrirIndice={filtroNovo} aoAbrir={() => setFiltroNovo(null)} aoAdicionar={setFiltroNovo} />
 
+        {soSelecao && (
+          <div className="mt-chips" data-testid="chip-selecao"><span className="mt-chip is-on"><b>Seleção</b><span className="mt-chip__valor">{soSelecao.size} {soSelecao.size === 1 ? "item" : "itens"}</span>
+            <button type="button" className="mt-chip__lixo" aria-label="Tirar o filtro da seleção" title="Mostrar tudo de novo" onClick={() => setSoSelecao(null)} data-testid="tirar-filtro-selecao">✕</button></span></div>
+        )}
+        {selecionados.size > 0 && (
+          <div className="mt-selbar" role="toolbar" aria-label="Ações da seleção" data-testid="barra-selecao">
+            <b>{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</b>
+            <Button size="sm" onClick={() => { setSoSelecao(new Set(selecionados)); setSelecionados(new Set()); }} data-testid="filtrar-selecao">Filtrar seleção</Button>
+            {acoesDaSelecao?.({ ids: [...selecionados], itens: (linhas ?? []).filter((x) => selecionados.has(idDe(x))) as T[], limpar: () => setSelecionados(new Set()) })}
+            <Button size="sm" variant="ghost" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+          </div>
+        )}
+
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
           : modo === "timeline" && linhaDoTempo
-            ? <LinhaDoTempoDoMotor linhas={buscadas} campos={campos} prefs={prefs} onPrefs={compacta ? undefined : onPrefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onCriarNaData={linhaDoTempo.onCriarNaData} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
+            ? <LinhaDoTempoDoMotor selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={compacta ? undefined : onPrefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onCriarNaData={linhaDoTempo.onCriarNaData} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
           : modo === "cards"
             ? <CartoesDoMotor linhas={buscadas} campos={campos} prefs={prefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} />
-            : <TabelaDoMotor linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
+            : <TabelaDoMotor selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
       </div>
       {filhos}
     </Casca>

@@ -307,3 +307,14 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-cabecalho { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .mt-tabela th.mt-th--arrasta { cursor: grab; touch-action: manipulation; }
 .mt-tabela th.is-arrastando { cursor: grabbing; box-shadow: var(--shadow-md); }
+
+/* Seleção de linhas (caixinha) */
+.mt-chk-sel { width: 16px; height: 16px; flex: none; margin: 0 8px 0 0; accent-color: var(--color-accent); cursor: pointer; }
+.mt-comchk { display: flex; align-items: center; min-width: 0; width: 100%; }
+.mt-comchk > :last-child { flex: 1; min-width: 0; }
+.mt-tabela tr.is-sel td { background: var(--color-accent-soft); }
+.mt-tl__linha.is-marcada .mt-tl__esq { background: var(--color-accent-soft); }
+.mt-tl__celula .mt-chk-sel { margin-right: 10px; }
+.mt-th .mt-chk-sel { margin-right: 10px; vertical-align: -3px; }
+.mt-selbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border: 1px solid var(--color-accent-ring); border-radius: var(--radius-lg); background: var(--color-surface); position: sticky; top: 8px; z-index: 6; box-shadow: var(--shadow-xs); }
+.mt-selbar b { margin-right: 4px; }

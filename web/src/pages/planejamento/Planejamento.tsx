@@ -1,6 +1,6 @@
 import { useAbrirNoLugar } from "../../app/noLugar";
 import { useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { CalendarPlus, NotePencil, Wrench, X } from "@phosphor-icons/react";
 import { Button, Card, Segmented, Select, Sheet, useToast } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
@@ -14,6 +14,7 @@ import { conflitos } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import { PedidosDoEvento } from "../eventos/PedidosDoEvento";
 import { useCriacaoNaLinha } from "./useCriacaoNaLinha";
+import { AcoesDosVeiculosSelecionados } from "../veiculos/AcoesDosVeiculosSelecionados";
 import type { AnotacaoDoCarro } from "../../lib/eventos/tipos";
 import { barraDoEvento, barrasDoVeiculo } from "../../lib/eventos/barras";
 import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
@@ -40,6 +41,9 @@ const LARGURA_ESQUERDA = 260;
  */
 export function Planejamento() {
   const navigate = useNavigate();
+  const [params] = useSearchParams();
+  /** /planejamento?veiculos=a,b ou ?eventos=a,b: abre o Planejamento já filtrado pela seleção ("Visualizar no Planejamento"). */
+  const idsDaUrl = (chave: string) => (params.get(chave) ?? "").split(",").filter(Boolean);
   const abrirNoLugar = useAbrirNoLugar();
   const toast = useToast();
   const eixo = useEixoDoTempo("dia");
@@ -116,7 +120,7 @@ export function Planejamento() {
 
         <section aria-label="Veículos" className="ds-stack" data-testid="pane-veiculos">
           <h2 className="t-h3">Veículos</h2>
-          <TelaDoMotor<Veiculo> tela="planejamento-veiculos" titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
+          <TelaDoMotor<Veiculo> tela="planejamento-veiculos" selecaoInicial={idsDaUrl("veiculos")} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} semPlanejamento />} titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
             linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => abrirNoLugar(`/veiculos/${v.id}`)}
             linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
               onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) criacao.editarNota(b.id); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
@@ -137,7 +141,7 @@ export function Planejamento() {
             </div></Card>
           )}
           {modoEvento && <PedidosDoEvento pedidos={pedidosDoSel} codigoDoCarro={(rid) => { const r = d.reservas.find((x) => x.id === rid); return r ? nomeDoCarro(r.veiculo_id) : null; }} onNaoAtendido={d.marcarNaoAtendido} />}
-          <TelaDoMotor<Evento> tela="planejamento-eventos" titulo="Eventos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
+          <TelaDoMotor<Evento> tela="planejamento-eventos" selecaoInicial={idsDaUrl("eventos")} titulo="Eventos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
             linhas={d.eventos ? eventosVisiveis : null} erro={d.erro} campos={d.campos} idDe={(e) => e.id} onEditar={d.editarEvento} onAbrir={(e) => abrirNoLugar(`/eventos/${e.id}`)} selecionadoId={selecionadoId} aoSelecionar={(e) => setSelecionadoId((atual) => (atual === e.id ? null : e.id))}
             linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => setSelecionadoId(e.id) }}
             rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento…" alturaDaLinhaDoTempo="30dvh" larguraEsquerda={LARGURA_ESQUERDA}
