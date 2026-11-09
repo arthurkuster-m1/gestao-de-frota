@@ -4,7 +4,7 @@ import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
-import { proximaOrdenacao } from "../../lib/motor/ordenar-por-coluna";
+import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCelula } from "./EditorDeCelula";
 import { prepararEdicao, valorParaEditor } from "./edicao";
 import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, textoDaCelula, type Ponto } from "./selecao";
@@ -18,12 +18,14 @@ type Props<T> = {
   idDe: (l: T) => string; onAbrir?: (l: T) => void; vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
   /** Grava um campo editado na célula. Rejeita com `Error(mensagem)` se o banco recusar. Sem isto, a tabela é só de leitura. */
   onEditar?: OnEditar<T>;
+  /** Avisa que o menu da coluna criou um filtro (a tela abre o editor dele). */
+  aoNovoFiltro?: (indice: number) => void;
 };
 
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
 
-export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar }: Props<T>) {
+export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const colunas = useMemo(() => resolverColunas(campos, prefs).filter((c) => c.visivel), [campos, prefs]);
   const resultado = useMemo(() => aplicarConsulta(linhas, campos, prefs, { hoje: hojeLocal() }), [linhas, campos, prefs]);
@@ -31,6 +33,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const [arrastando, setArrastando] = useState<{ id: string; largura: number } | null>(null);
   const campoPorId = useMemo(() => new Map(campos.map((c) => [c.id, c])), [campos]);
   const toast = useToast();
+  const [menuCol, setMenuCol] = useState<{ id: string; el: HTMLElement } | null>(null);
 
   // Seleção de células (clicar e arrastar, como no Excel/Notion): copiar e colar usam texto tabulado.
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);
@@ -159,6 +162,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   return (
     <div className="mt-tabela-wrap">
       {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
+      <MenuDaColuna ancora={menuCol?.el ?? null} campo={menuCol ? campoPorId.get(menuCol.id) : undefined} indice={menuCol ? colunas.findIndex((c) => c.id === menuCol.id) : 0} prefs={prefs} onPrefs={onPrefs} aoFiltrar={aoNovoFiltro} onFechar={() => setMenuCol(null)} />
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
         <div className={cx("mt-tabela", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
           <table style={{ width: total, tableLayout: "fixed" }}>
@@ -168,7 +172,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                 const ativa = ordemAtual?.campo === c.id;
                 return (
                   <th key={c.id} style={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
-                    onClick={() => onPrefs({ ...prefs, ordenacao: proximaOrdenacao(prefs.ordenacao, c.id) })}>
+                    onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
                     <span className="mt-th">{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
                     <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />
                   </th>

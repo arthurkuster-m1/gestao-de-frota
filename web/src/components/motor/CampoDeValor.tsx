@@ -1,4 +1,5 @@
-import { DateField, Input, Select } from "../../ds";
+import { Check } from "@phosphor-icons/react";
+import { DateField, Input, Select, cx } from "../../ds";
 import { DATAS_RELATIVAS, PERIODOS_RELATIVOS, type Filtro } from "../../lib/motor/consulta";
 import { ROTULO_DA_DATA, ROTULO_DO_PERIODO } from "./rotulos";
 import { Tag } from "./Tag";
@@ -13,8 +14,14 @@ export function CampoDeValor({ tipo, operador, valor, opcoes, onChange }: { tipo
     const alterna = (v: string) => onChange(marcados.includes(v) ? marcados.filter((x) => x !== v) : [...marcados, v]);
     if (opcoes.length === 0) return <p className="t-body-sm t-muted">Sem valores para escolher ainda.</p>;
     return (
-      <div className="mt-opcoes" role="group" aria-label="Valores do filtro">
-        {opcoes.map((o) => <Tag key={o.value} opcao={o} selecionada={marcados.includes(o.value)} comCheck onClick={() => alterna(o.value)} />)}
+      <div className="mt-notion" data-testid="lista-de-valores">
+        <div className="mt-notion__lista" role="group" aria-label="Valores do filtro">
+          {opcoes.map((o) => { const on = marcados.includes(o.value); return (
+            <button key={o.value} type="button" role="checkbox" aria-checked={on} className={cx("mt-notion__linha", on && "is-on")} onClick={() => alterna(o.value)}>
+              <span className={cx("mt-chk", on && "is-on")} aria-hidden>{on && <Check size={11} weight="bold" />}</span><Tag opcao={o} />
+            </button>); })}
+        </div>
+        {marcados.length > 0 && <button type="button" className="mt-notion__limpar" onClick={() => onChange([])}>Limpar seleção</button>}
       </div>
     );
   }
