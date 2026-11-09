@@ -7,6 +7,8 @@ export type OpcaoDoCampo = { value: string; label: string; tom?: "success" | "wa
 /** Um campo da tela: o que a consulta entende (tipo, valor) + o que a tabela mostra (título, largura, célula). */
 /** Como um campo se edita no lugar (tabela, cards, linha do tempo). Campo sem isto é só leitura (ex.: o código, que é calculado). */
 export type EdicaoDoCampo = {
+  /** Campo de endereço: edita na janela do endereço (CEP → cidade/UF) e grava numa linha só, na máscara. */
+  endereco?: boolean;
   /** Coluna do banco que recebe o valor. */
   coluna: string;
   obrigatorio?: boolean;

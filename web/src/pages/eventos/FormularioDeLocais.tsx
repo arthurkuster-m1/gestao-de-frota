@@ -1,6 +1,7 @@
 import { Plus, Trash } from "@phosphor-icons/react";
-import { Button, Field, Input, Select } from "../../ds";
-import { UFS, type EventoLocalNovo } from "../../lib/eventos/tipos";
+import { Button, Field, Input } from "../../ds";
+import { CampoDeEndereco } from "../../components/motor/EditorDeEndereco";
+import { type EventoLocalNovo } from "../../lib/eventos/tipos";
 
 export const localVazio = (): EventoLocalNovo => ({ rotulo: "", endereco: "", cidade: "", estado: "" });
 
@@ -15,14 +16,8 @@ export function FormularioDeLocais({ locais, onChange }: { locais: EventoLocalNo
             <span className="t-body" style={{ fontWeight: 700 }}>{locais.length > 1 ? `Local ${i + 1}` : "Local do evento"}</span>
             {locais.length > 1 && <Button type="button" variant="ghost" size="icon" aria-label={`Remover local ${i + 1}`} onClick={() => onChange(locais.filter((_, k) => k !== i))}><Trash size={20} /></Button>}
           </div>
-          <div className="vei-form__linha">
-            <Field label="Endereço"><Input value={l.endereco} onChange={(e) => muda(i, { endereco: e.target.value })} placeholder="Rua, número" maxLength={300} /></Field>
-            <Field label="Nome do local (opcional)"><Input value={l.rotulo ?? ""} onChange={(e) => muda(i, { rotulo: e.target.value })} maxLength={80} /></Field>
-          </div>
-          <div className="vei-form__linha">
-            <Field label="Cidade"><Input value={l.cidade ?? ""} onChange={(e) => muda(i, { cidade: e.target.value })} /></Field>
-            <Field label="Estado"><Select value={l.estado ?? ""} onChange={(e) => muda(i, { estado: e.target.value })} placeholder="Selecionar…"><option value="">—</option>{UFS.map((u) => <option key={u} value={u}>{u}</option>)}</Select></Field>
-          </div>
+          <Field label="Nome do local"><Input value={l.rotulo ?? ""} onChange={(e) => muda(i, { rotulo: e.target.value })} placeholder="Ex.: Pavilhão de Exposições" maxLength={80} /></Field>
+          <Field label="Endereço completo"><CampoDeEndereco valor={l.endereco} onChange={(v) => muda(i, { endereco: v })} titulo="Endereço do local" /></Field>
         </div>
       ))}
       <Button type="button" variant="secondary" size="sm" icon={<Plus size={18} />} onClick={() => onChange([...locais, localVazio()])} data-testid="adicionar-local">Adicionar outro local</Button>

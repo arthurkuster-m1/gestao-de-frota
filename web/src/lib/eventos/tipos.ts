@@ -24,8 +24,8 @@ export const ESTADOS_RESERVA = [
 ] as const satisfies readonly { value: string; label: string; tom: Tom }[];
 export type EstadoReserva = (typeof ESTADOS_RESERVA)[number]["value"];
 
-export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string; chegada_prevista: string | null; retirada_prevista: string | null; contato: string | null; cliente_id?: string | null };
-export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null; chegada_prevista?: string | null; retirada_prevista?: string | null; contato?: string | null; cliente_id?: string | null };
+export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string; chegada_prevista: string | null; retirada_prevista: string | null; contato: string | null; cliente_id?: string | null; origem?: string | null };
+export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null; chegada_prevista?: string | null; retirada_prevista?: string | null; contato?: string | null; cliente_id?: string | null; origem?: string | null };
 export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; chegada: string | null; retirada: string | null; estado: EstadoReserva; comentarios: string | null; origem?: string | null; endereco_chegada?: string | null; status_individual?: StatusEvento | null };
 
 /** Um endereço do evento (digitado em cada evento; um evento pode ter vários). */

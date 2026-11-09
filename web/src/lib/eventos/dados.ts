@@ -1,4 +1,5 @@
 import { supabase } from "../supabase";
+import { cidadeEUf } from "../enderecos";
 import type { AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "./tipos";
 
 export class ErroEvento extends Error {}
@@ -10,7 +11,7 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
   if (e.code === "42501") return new ErroEvento("Sem permissão. Entre de novo na conta.");
   return new ErroEvento(e.message);
 }
-const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato, cliente_id";
+const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato, cliente_id, origem";
 const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios, origem, endereco_chegada, status_individual";
 const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios, origem, endereco_chegada, status_individual";
 const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
@@ -92,13 +93,15 @@ export async function listarLocais(): Promise<EventoLocal[]> {
 export async function criarLocais(eventoId: string, locais: EventoLocalNovo[], primeiraPosicao = 0): Promise<EventoLocal[]> {
   const validos = locais.filter((l) => l.endereco.trim() !== "");
   if (validos.length === 0) return [];
-  const linhas = validos.map((l, i) => ({ evento_id: eventoId, rotulo: l.rotulo?.trim() || null, endereco: l.endereco.trim(), cidade: l.cidade?.trim() || null, estado: l.estado ? l.estado.toUpperCase() : null, posicao: primeiraPosicao + i }));
+  const linhas = validos.map((l, i) => ({ evento_id: eventoId, rotulo: l.rotulo?.trim() || null, endereco: l.endereco.trim(), ...(() => { const c = cidadeEUf(l.endereco); return { cidade: l.cidade?.trim() || c.cidade, estado: l.estado ? l.estado.toUpperCase() : c.estado }; })(), posicao: primeiraPosicao + i }));
   const { data, error } = await supabase.from("evento_locais").insert(linhas).select(COLUNAS_LOCAL);
   if (error) throw traduzir(error);
   return (data ?? []) as EventoLocal[];
 }
 export async function atualizarLocal(id: string, patch: Partial<EventoLocalNovo>): Promise<EventoLocal> {
-  const { data, error } = await supabase.from("evento_locais").update(patch).eq("id", id).select(COLUNAS_LOCAL).single();
+  // cidade e UF saem sozinhas da linha do endereço (a máscara traz as duas)
+  const derivado = typeof patch.endereco === "string" ? (() => { const c = cidadeEUf(patch.endereco); return { cidade: c.cidade, estado: c.estado }; })() : {};
+  const { data, error } = await supabase.from("evento_locais").update({ ...patch, ...derivado }).eq("id", id).select(COLUNAS_LOCAL).single();
   if (error) throw traduzir(error);
   return data as EventoLocal;
 }

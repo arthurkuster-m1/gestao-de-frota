@@ -1,6 +1,7 @@
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useMemo, useState, type ReactNode } from "react";
 import { CaretLeft, CaretRight, ClipboardText, Columns, ListChecks, Lock, Plus, Trash, Warning } from "@phosphor-icons/react";
+import { validarEndereco } from "../../lib/enderecos";
 import { Button, Switch, cx, useToast } from "../../ds";
 import { Tag } from "../../components/motor/Tag";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
@@ -74,7 +75,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
   } : undefined);
 
   const campo = (id: string, titulo: string, tipo: "texto" | "data" | "opcao", coluna: string, valorDe: (l: LinhaDoEvento) => { valor: string | null; herdado: boolean }): CampoDaTela<LinhaDoEvento> => ({
-    id, titulo, tipo, largura: 160, edicao: { coluna }, valorDe: (l) => valorDe(l).valor, ...(tipo === "opcao" ? { opcoes: OPCOES_STATUS_EVENTO } : {}),
+    id, titulo, tipo, largura: 160, edicao: coluna === "origem" || coluna === "endereco_chegada" ? { coluna, endereco: true, validar: validarEndereco } : { coluna }, valorDe: (l) => valorDe(l).valor, ...(tipo === "opcao" ? { opcoes: OPCOES_STATUS_EVENTO } : {}),
     celula: (l) => { const { valor, herdado } = valorDe(l); const txt = !valor ? "—" : tipo === "data" ? formatarDiaBr(valor) : tipo === "opcao" ? <Tag opcao={OPCOES_STATUS_EVENTO.find((o) => o.value === valor) ?? { value: valor, label: valor }} campoId="status" /> : valor;
       return <span className={cx(herdado && "mt-herdado")} title={herdado && valor ? "Vem do evento" : undefined}>{txt}</span>; },
   });

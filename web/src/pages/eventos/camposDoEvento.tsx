@@ -1,3 +1,4 @@
+import { validarEndereco } from "../../lib/enderecos";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { ESTADOS_RESERVA, STATUS_EVENTO, TIPOS_EVENTO, UFS, type Evento, type EventoLocal, type Reserva } from "../../lib/eventos/tipos";
 import { estaAberta } from "../../lib/eventos/uso";
@@ -11,7 +12,7 @@ export type ContextoDeEventos = {
   /** Clientes (id → nome) para o campo Cliente do evento. */ clientes?: Map<string, string>; reservasDoEvento: Map<string, Reserva[]>; locaisDoEvento: Map<string, EventoLocal[]>; veiculos: Map<string, Veiculo>; carregado: boolean; valorDoEvento?: Map<string, number> };
 
 /** "Av. Paulista, 1000 — São Paulo/SP" (e o rótulo, se houver). */
-export const textoDoLocal = (l: EventoLocal) => [l.rotulo ? `${l.rotulo}:` : null, l.endereco, [l.cidade, l.estado].filter(Boolean).join("/") ? `— ${[l.cidade, l.estado].filter(Boolean).join("/")}` : null].filter(Boolean).join(" ");
+export const textoDoLocal = (l: EventoLocal) => [l.rotulo ? `${l.rotulo}:` : null, l.endereco].filter(Boolean).join(" ");
 const codigo = (v: Veiculo | undefined) => (v ? (v.codigo ?? v.modelo.toUpperCase()) : "?");
 
 /** Os campos de evento. Carros, Início e Fim são CALCULADOS das reservas (só leitura); o resto se edita no lugar. */
@@ -29,6 +30,7 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
     { id: "inicio", titulo: "Data de chegada", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_inicio).sort()[0]! : e.chegada_prevista; }, largura: 150, edicao: { coluna: "chegada_prevista" } },
     { id: "fim", titulo: "Data de retirada", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_fim).sort().at(-1)! : e.retirada_prevista; }, largura: 150, edicao: { coluna: "retirada_prevista" } },
     { id: "solicitante", titulo: "Solicitante", tipo: "texto", valorDe: (e) => e.solicitante, largura: 200, edicao: { coluna: "solicitante" } },
+    { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (e) => e.origem ?? null, largura: 320, padrao: false, edicao: { coluna: "origem", maxLength: 300, endereco: true, validar: validarEndereco } },
     { id: "contato", titulo: "Contato", tipo: "texto", valorDe: (e) => e.contato, largura: 220, edicao: { coluna: "contato" } },
     { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (e) => e.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
     { id: "cadastradoEm", titulo: "Criado em", tipo: "data", valorDe: (e) => e.created_at.slice(0, 10), largura: 150, padrao: false },
@@ -52,7 +54,5 @@ const OPCOES_UF: OpcaoDoCampo[] = UFS.map((u) => ({ value: u, label: u, tom: "ne
 /** Os campos de um local do evento (todos editáveis no lugar; o endereço é obrigatório). */
 export const camposDoLocal: CampoDaTela<EventoLocal>[] = [
   { id: "rotulo", titulo: "Nome do local", tipo: "texto", valorDe: (l) => l.rotulo, largura: 200, edicao: { coluna: "rotulo", maxLength: 80 } },
-  { id: "endereco", titulo: "Endereço", tipo: "texto", valorDe: (l) => l.endereco, largura: 300, edicao: { coluna: "endereco", obrigatorio: true, maxLength: 300 } },
-  { id: "cidade", titulo: "Cidade", tipo: "texto", valorDe: (l) => l.cidade, largura: 160, edicao: { coluna: "cidade" } },
-  { id: "estado", titulo: "Estado", tipo: "opcao", valorDe: (l) => l.estado, opcoes: OPCOES_UF, rotuloDoValor: (x) => x, largura: 100, edicao: { coluna: "estado" } },
+  { id: "endereco", titulo: "Endereço", tipo: "texto", valorDe: (l) => l.endereco, largura: 360, edicao: { coluna: "endereco", obrigatorio: true, maxLength: 300, endereco: true, validar: validarEndereco } },
 ];

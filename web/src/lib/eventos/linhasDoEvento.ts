@@ -23,17 +23,17 @@ export function montarLinhas(eventoId: string, reservas: readonly Reserva[], ped
 }
 
 /** O que cada campo individual vale: o da reserva, se foi individualizado; senão herda do evento. `herdado` diz de onde veio. */
-export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista">, locais: readonly EventoLocal[]) {
+export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista"> & { origem?: string | null }, locais: readonly EventoLocal[]) {
   const r = l.reserva;
   const principal = [...locais].sort((a, b) => a.posicao - b.posicao)[0];
-  const enderecoDoEvento = principal ? [principal.endereco, [principal.cidade, principal.estado].filter(Boolean).join("/")].filter(Boolean).join(", ") : null;
+  const enderecoDoEvento = principal ? principal.endereco : null;   // já é a linha completa (rua, número - cidade/UF - CEP)
   const pega = <T,>(proprio: T | null | undefined, padrao: T | null) => ({ valor: (proprio ?? padrao) as T | null, herdado: proprio == null });
   return {
     status: pega(r?.status_individual, evento.status),
     chegada: pega(r?.chegada, evento.chegada_prevista),
     retirada: pega(r?.retirada, evento.retirada_prevista),
     enderecoChegada: pega(r?.endereco_chegada, enderecoDoEvento),
-    origem: pega(r?.origem, null),
+    origem: pega(r?.origem, evento.origem ?? null),
   };
 }
 

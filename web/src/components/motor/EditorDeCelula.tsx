@@ -4,6 +4,7 @@ import { DateField, cx } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import type { TipoDeCampo } from "../../lib/motor/consulta";
 import type { ValorEditavel } from "./edicao";
+import { EditorDeEndereco } from "./EditorDeEndereco";
 import { Tag } from "./Tag";
 import type { EdicaoDoCampo, OpcaoDoCampo } from "./tipos";
 
@@ -17,6 +18,7 @@ type Props = {
 
 /** O controle de edição no lugar: o MESMO para a célula da tabela, o campo do card e a barra da linha do tempo. */
 export function EditorDeCelula({ campoId, tipo, valor, opcoes, obrigatorio, edicao, rotulo, invalido, validar, onConfirmar, onCancelar }: Props) {
+  if (edicao?.endereco) return <EditorDeEndereco valor={typeof valor === "string" ? valor : null} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   if (tipo === "opcao" || tipo === "pessoa") return <EditorDeOpcao campoId={campoId} valor={typeof valor === "string" ? valor : null} opcoes={opcoes ?? []} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   if (tipo === "data") return <EditorDeData valor={typeof valor === "string" ? valor : null} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   return <EditorDeTexto tipo={tipo} valor={valor} edicao={edicao} rotulo={rotulo} invalido={invalido} validar={validar} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
