@@ -92,8 +92,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
             if (!rascunho) return;
             const tipo = layoutDe({ tipo: "tabela", config: rascunho });
             if (ativa) await comAviso(() => v.atualizar(ativa.id, { config: rascunho, tipo: layoutDe({ tipo: ativa.tipo, config: rascunho }) }));
-            else if (linhaPadrao) await comAviso(() => v.atualizar(linhaPadrao.id, { config: rascunho, tipo }));
-            else await comAviso(() => v.criar(NOME_DA_VISAO_PADRAO, tipo, rascunho));
+            else await comAviso(() => v.salvarPadrao(NOME_DA_VISAO_PADRAO, tipo, rascunho));
             setRascunho(null);
           }}
           onDescartar={() => setRascunho(null)}

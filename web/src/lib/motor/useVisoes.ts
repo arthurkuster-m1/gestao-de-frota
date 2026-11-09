@@ -32,10 +32,21 @@ export function useVisoes(tela: string) {
     if (error) throw traduzir(error);
     const v = visaoDaLinha(data as never); setVisoes((l) => l.map((x) => (x.id === id ? v : x))); return v;
   };
+  /** Grava a "Todas": consulta o banco (não o estado da tela, que pode estar defasado) e atualiza a linha reservada; só cria se não existir. */
+  const salvarPadrao = async (nome: string, tipo: TipoDeVisualizacao, config: PreferenciasDaTabela): Promise<VisaoSalva> => {
+    const { data: achada, error: e1 } = await supabase.from("visoes_salvas").select("id").eq("tela", tela).eq("nome", nome).maybeSingle();
+    if (e1) throw traduzir(e1);
+    if (achada) {
+      const { data, error } = await supabase.from("visoes_salvas").update({ config, tipo }).eq("id", achada.id).select(COLUNAS).single();
+      if (error) throw traduzir(error);
+      const v = visaoDaLinha(data as never); setVisoes((l) => (l.some((x) => x.id === v.id) ? l.map((x) => (x.id === v.id ? v : x)) : [...l, v])); return v;
+    }
+    return criar(nome, tipo, config);
+  };
   const excluir = async (id: string) => {
     const { error } = await supabase.from("visoes_salvas").delete().eq("id", id);
     if (error) throw traduzir(error);
     setVisoes((l) => l.filter((x) => x.id !== id));
   };
-  return { visoes, carregando, erro, criar, atualizar, excluir, recarregar: carregar };
+  return { visoes, carregando, erro, criar, atualizar, salvarPadrao, excluir, recarregar: carregar };
 }
