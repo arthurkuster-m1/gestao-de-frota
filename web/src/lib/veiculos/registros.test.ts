@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { planoDoRegistro } from "./registros";
+import { planoDoRegistro, proximosPassos } from "./registros";
 
 const v = (status_ciclo: string, blindado = false, placa: string | null = null) => ({ status_ciclo, blindado, placa }) as never;
 describe("registrar ações do veículo", () => {
@@ -15,5 +15,17 @@ describe("registrar ações do veículo", () => {
     expect(planoDoRegistro("devolucao", v("em_devolucao"), { data: "2026-11-12" }).patch).toEqual({ data_devolucao: "2026-11-12", status_ciclo: "devolvido" });
     expect(planoDoRegistro("liberacao", v("pedido_recebido"), { data: "2026-11-12" }).patch.status_ciclo).toBe("liberado");
     expect(planoDoRegistro("liberacao", v("disponivel"), { data: "2026-11-12" }).patch).toEqual({ data_liberacao: "2026-11-12" });
+  });
+  it("só os próximos passos lógicos, do pedido à devolução", () => {
+    const p = (c: string) => proximosPassos({ status_ciclo: c } as never);
+    expect(p("pedido_recebido")).toEqual(["liberacao"]);
+    expect(p("liberado")).toEqual(["chegada"]);
+    expect(p("disponivel_sem_faturamento")).toEqual(["faturamento", "devolucao"]);   // faturar OU devolver
+    expect(p("revisao_emplacamento")).toEqual(["emplacamento"]);                       // faturado: só emplacar
+    expect(p("disponivel")).toEqual(["devolucao"]); expect(p("em_blindagem")).toEqual(["devolucao"]);
+    expect(p("devolvido")).toEqual([]);
+  });
+  it("chegada na planta só muda o ciclo (sem data)", () => {
+    expect(planoDoRegistro("chegada", v("liberado"), { data: "2026-11-12" })).toEqual({ patch: { status_ciclo: "disponivel_sem_faturamento" }, resumo: ["Ciclo de vida → Disponível sem faturamento"] });
   });
 });
