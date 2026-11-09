@@ -9,15 +9,15 @@ import type { EdicaoDoCampo, OpcaoDoCampo } from "./tipos";
 
 export type Movimento = "proximo" | "anterior";
 type Props = {
-  tipo: TipoDeCampo; valor: ValorEditavel; opcoes?: readonly OpcaoDoCampo[]; obrigatorio?: boolean; edicao?: EdicaoDoCampo; rotulo: string; invalido?: boolean;
+  campoId?: string; tipo: TipoDeCampo; valor: ValorEditavel; opcoes?: readonly OpcaoDoCampo[]; obrigatorio?: boolean; edicao?: EdicaoDoCampo; rotulo: string; invalido?: boolean;
   /** Confere o valor ANTES de concluir: devolve a mensagem de erro (o editor continua aberto) ou null. */
   validar?: (v: ValorEditavel) => string | null;
   onConfirmar: (v: ValorEditavel, mover?: Movimento) => void; onCancelar: () => void;
 };
 
 /** O controle de edição no lugar: o MESMO para a célula da tabela, o campo do card e a barra da linha do tempo. */
-export function EditorDeCelula({ tipo, valor, opcoes, obrigatorio, edicao, rotulo, invalido, validar, onConfirmar, onCancelar }: Props) {
-  if (tipo === "opcao" || tipo === "pessoa") return <EditorDeOpcao valor={typeof valor === "string" ? valor : null} opcoes={opcoes ?? []} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
+export function EditorDeCelula({ campoId, tipo, valor, opcoes, obrigatorio, edicao, rotulo, invalido, validar, onConfirmar, onCancelar }: Props) {
+  if (tipo === "opcao" || tipo === "pessoa") return <EditorDeOpcao campoId={campoId} valor={typeof valor === "string" ? valor : null} opcoes={opcoes ?? []} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   if (tipo === "data") return <EditorDeData valor={typeof valor === "string" ? valor : null} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   return <EditorDeTexto tipo={tipo} valor={valor} edicao={edicao} rotulo={rotulo} invalido={invalido} validar={validar} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
 }
@@ -68,7 +68,7 @@ function EditorDeData({ valor, obrigatorio, rotulo, onConfirmar, onCancelar }: P
   );
 }
 
-function EditorDeOpcao({ valor, opcoes, obrigatorio, rotulo, onConfirmar, onCancelar }: Pick<Props, "opcoes" | "obrigatorio" | "rotulo" | "onConfirmar" | "onCancelar"> & { valor: string | null }) {
+function EditorDeOpcao({ campoId, valor, opcoes, obrigatorio, rotulo, onConfirmar, onCancelar }: Pick<Props, "opcoes" | "obrigatorio" | "rotulo" | "onConfirmar" | "onCancelar" | "campoId"> & { valor: string | null }) {
   const gatilho = useRef<HTMLButtonElement>(null);
   const { ref, aberto, setAberto } = usePopover(gatilho, { largura: 300, alturaMax: 420 });
   const abriu = useRef(false);
@@ -84,7 +84,7 @@ function EditorDeOpcao({ valor, opcoes, obrigatorio, rotulo, onConfirmar, onCanc
         {!obrigatorio && <button type="button" role="option" aria-selected={valor === null} className="mt-lista__item" onClick={() => escolher(null)}><span className="mt-lista__sem">Sem valor</span></button>}
         {opcoes?.map((o) => (
           <div key={o.value} className={cx("mt-lista__item", o.value === valor && "is-atual")} role="presentation">
-            <Tag opcao={o} selecionada={o.value === valor} comCheck comoOpcao onClick={() => escolher(o.value)} />
+            <Tag opcao={o} campoId={campoId} selecionada={o.value === valor} comCheck comoOpcao onClick={() => escolher(o.value)} />
           </div>
         ))}
       </div>

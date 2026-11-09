@@ -112,7 +112,7 @@ function ChipDeFiltro<T>({ filtro, indice, campo, opcoes, abrir, aoAbrir, onChan
           <span className="mt-mini"><Select aria-label="Formato do filtro" value={filtro.operador} onChange={(e) => { const op = e.target.value as Operador; onChange({ ...filtro, operador: op, ...(semValor(op) ? { valor: undefined } : {}) }); }}>{OPERADORES_DO_TIPO[tipo].map((o) => <option key={o} value={o}>{rotuloDoOperador(o, tipo)}</option>)}</Select></span>
           <button type="button" className="mt-chip__lixo" aria-label="Remover filtro" title="Remover filtro" onClick={() => { setAberto(false); onRemover(); }}><Trash size={16} /></button>
         </div>
-        {campo && !semValor(filtro.operador) && <div className="mt-chip__valorbox"><CampoDeValor tipo={tipo} operador={filtro.operador} valor={filtro.valor} opcoes={opcoes} onChange={(v) => onChange({ ...filtro, valor: v })} /></div>}
+        {campo && !semValor(filtro.operador) && <div className="mt-chip__valorbox"><CampoDeValor tipo={tipo} campoId={campo.id} operador={filtro.operador} valor={filtro.valor} opcoes={opcoes} onChange={(v) => onChange({ ...filtro, valor: v })} /></div>}
         {!campo && <p className="t-body-sm t-muted">Essa propriedade não existe mais.</p>}
       </div>
     </>

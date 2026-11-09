@@ -9,7 +9,7 @@ export function CampoEditavel<T>({ linha, campo, ed, navegaveis }: { linha: T; c
   if (ed.estaAberto(linha, campo.id) && campo.edicao) {
     return (
       <div className="mt-campo-editando" data-testid="campo-editando">
-        <EditorDeCelula tipo={campo.tipo} valor={valorParaEditor(campo.tipo, campo.valorDe(linha))} opcoes={campo.opcoes} obrigatorio={campo.edicao.obrigatorio} edicao={campo.edicao} rotulo={campo.titulo}
+        <EditorDeCelula campoId={campo.id} tipo={campo.tipo} valor={valorParaEditor(campo.tipo, campo.valorDe(linha))} opcoes={campo.opcoes} obrigatorio={campo.edicao.obrigatorio} edicao={campo.edicao} rotulo={campo.titulo}
           validar={ed.validar(campo)} onConfirmar={(v, mover) => void ed.confirmar(linha, campo, v, mover, navegaveis)} onCancelar={ed.cancelar} />
       </div>
     );

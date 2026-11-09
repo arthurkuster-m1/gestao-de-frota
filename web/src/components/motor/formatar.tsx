@@ -1,5 +1,6 @@
 import type { ReactNode } from "react";
 import { Badge } from "../../ds";
+import { Tag } from "./Tag";
 import type { ValorDoCampo } from "../../lib/motor/consulta";
 import { formatarDiaBr } from "../../lib/motor/datas";
 import type { CampoDaTela } from "./tipos";
@@ -13,7 +14,7 @@ export function formatar<T>(c: CampoDaTela<T>, l: T): ReactNode {
   if (c.tipo === "data") return formatarDiaBr(String(v));
   if (c.tipo === "opcao") {
     const o = c.opcoes?.find((x) => x.value === v);
-    return o?.tom ? <Badge tone={o.tom}>{o.label}</Badge> : (o?.label ?? String(v));
+    return o?.tom ? <Tag opcao={o} campoId={c.id} /> : (o?.label ?? String(v));
   }
   if (Array.isArray(v)) return v.map((x) => c.rotuloDoValor?.(x) ?? x).join(", ");
   return String(v);

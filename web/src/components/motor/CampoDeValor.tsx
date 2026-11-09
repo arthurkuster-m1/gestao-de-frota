@@ -6,7 +6,7 @@ import { Tag } from "./Tag";
 import type { OpcaoDoCampo } from "./tipos";
 
 /** O valor de um filtro, no controle certo para o tipo do campo e o operador. */
-export function CampoDeValor({ tipo, operador, valor, opcoes, onChange }: { tipo: string; operador: Filtro["operador"]; valor: Filtro["valor"]; opcoes: readonly OpcaoDoCampo[]; onChange: (v: Filtro["valor"]) => void }) {
+export function CampoDeValor({ tipo, campoId, operador, valor, opcoes, onChange }: { tipo: string; campoId?: string; operador: Filtro["operador"]; valor: Filtro["valor"]; opcoes: readonly OpcaoDoCampo[]; onChange: (v: Filtro["valor"]) => void }) {
   if (tipo === "texto") return <Input value={typeof valor === "string" ? valor : ""} onChange={(e) => onChange(e.target.value)} placeholder="Valor…" aria-label="Valor do filtro" />;
   if (tipo === "numero") return <Input type="number" inputMode="decimal" value={valor === undefined ? "" : String(valor)} onChange={(e) => onChange(e.target.value === "" ? undefined : Number(e.target.value))} aria-label="Valor do filtro" />;
   if (tipo === "opcao" || tipo === "pessoa" || tipo === "multi") {
@@ -18,7 +18,7 @@ export function CampoDeValor({ tipo, operador, valor, opcoes, onChange }: { tipo
         <div className="mt-notion__lista" role="group" aria-label="Valores do filtro">
           {opcoes.map((o) => { const on = marcados.includes(o.value); return (
             <button key={o.value} type="button" role="checkbox" aria-checked={on} className={cx("mt-notion__linha", on && "is-on")} onClick={() => alterna(o.value)}>
-              <span className={cx("mt-chk", on && "is-on")} aria-hidden>{on && <Check size={11} weight="bold" />}</span><Tag opcao={o} />
+              <span className={cx("mt-chk", on && "is-on")} aria-hidden>{on && <Check size={11} weight="bold" />}</span><Tag opcao={o} campoId={campoId} />
             </button>); })}
         </div>
         {marcados.length > 0 && <button type="button" className="mt-notion__limpar" onClick={() => onChange([])}>Limpar seleção</button>}

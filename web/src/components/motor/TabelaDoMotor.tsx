@@ -5,6 +5,8 @@ import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { MenuDaColuna } from "./MenuDaColuna";
+import { EditorDeCores } from "./EditorDeCores";
+import { opcoesDoCampo } from "./BarraDeConsulta";
 import { EditorDeCelula } from "./EditorDeCelula";
 import { prepararEdicao, valorParaEditor } from "./edicao";
 import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, textoDaCelula, type Ponto } from "./selecao";
@@ -33,6 +35,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const [arrastando, setArrastando] = useState<{ id: string; largura: number } | null>(null);
   const campoPorId = useMemo(() => new Map(campos.map((c) => [c.id, c])), [campos]);
   const toast = useToast();
+  const [coresDe, setCoresDe] = useState<CampoDaTela<T> | null>(null);
   const [menuCol, setMenuCol] = useState<{ id: string; el: HTMLElement } | null>(null);
 
   // Seleção de células (clicar e arrastar, como no Excel/Notion): copiar e colar usam texto tabulado.
@@ -129,7 +132,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     if (ed.estaAberto(l, c.id) && campo.edicao) {
       return (
         <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), "mt-editando")} data-testid="celula-editando">
-          <EditorDeCelula tipo={campo.tipo} valor={valorParaEditor(campo.tipo, campo.valorDe(l))} opcoes={campo.opcoes} obrigatorio={campo.edicao.obrigatorio} edicao={campo.edicao} rotulo={campo.titulo}
+          <EditorDeCelula campoId={campo.id} tipo={campo.tipo} valor={valorParaEditor(campo.tipo, campo.valorDe(l))} opcoes={campo.opcoes} obrigatorio={campo.edicao.obrigatorio} edicao={campo.edicao} rotulo={campo.titulo}
             validar={ed.validar(campo)} onConfirmar={(v, mover) => void ed.confirmar(l, campo, v, mover, editaveis)} onCancelar={ed.cancelar} />
         </td>
       );
@@ -162,7 +165,8 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   return (
     <div className="mt-tabela-wrap">
       {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
-      <MenuDaColuna ancora={menuCol?.el ?? null} campo={menuCol ? campoPorId.get(menuCol.id) : undefined} indice={menuCol ? colunas.findIndex((c) => c.id === menuCol.id) : 0} prefs={prefs} onPrefs={onPrefs} aoFiltrar={aoNovoFiltro} onFechar={() => setMenuCol(null)} />
+      <MenuDaColuna ancora={menuCol?.el ?? null} campo={menuCol ? campoPorId.get(menuCol.id) : undefined} indice={menuCol ? colunas.findIndex((c) => c.id === menuCol.id) : 0} prefs={prefs} onPrefs={onPrefs} aoFiltrar={aoNovoFiltro} aoEditarCores={setCoresDe} onFechar={() => setMenuCol(null)} />
+      {coresDe && <EditorDeCores aberto onFechar={() => setCoresDe(null)} campoId={coresDe.id} titulo={coresDe.titulo} opcoes={opcoesDoCampo(coresDe, linhas)} />}
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
         <div className={cx("mt-tabela", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
           <table style={{ width: total, tableLayout: "fixed" }}>

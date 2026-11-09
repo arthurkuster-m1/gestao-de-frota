@@ -1,13 +1,13 @@
 import { useEffect, useRef } from "react";
-import { ArrowDown, ArrowUp, EyeSlash, Funnel, PushPin, Rows, X } from "@phosphor-icons/react";
+import { ArrowDown, ArrowUp, EyeSlash, Palette, Funnel, PushPin, Rows, X } from "@phosphor-icons/react";
 import { usePopover } from "../../ds/popover";
 import { OPERADORES_DO_TIPO } from "../../lib/motor/consulta";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import type { CampoDaTela } from "./tipos";
 
 /** O mini menu de uma coluna (clique no título): filtrar, ordenar, agrupar, ocultar e congelar já naquela coluna. */
-export function MenuDaColuna<T>({ ancora, campo, indice, prefs, onPrefs, aoFiltrar, onFechar }: {
-  ancora: HTMLElement | null; campo: CampoDaTela<T> | undefined; indice: number; prefs: PreferenciasDaTabela; onPrefs: (p: PreferenciasDaTabela) => void; aoFiltrar?: (i: number) => void; onFechar: () => void;
+export function MenuDaColuna<T>({ ancora, campo, indice, prefs, onPrefs, aoFiltrar, aoEditarCores, onFechar }: {
+  ancora: HTMLElement | null; campo: CampoDaTela<T> | undefined; indice: number; prefs: PreferenciasDaTabela; onPrefs: (p: PreferenciasDaTabela) => void; aoFiltrar?: (i: number) => void; aoEditarCores?: (c: CampoDaTela<T>) => void; onFechar: () => void;
 }) {
   const gatilho = useRef<HTMLElement | null>(null);
   gatilho.current = ancora;
@@ -32,6 +32,7 @@ export function MenuDaColuna<T>({ ancora, campo, indice, prefs, onPrefs, aoFiltr
       <button type="button" role="menuitem" className="mt-item" aria-current={ordem === "desc"} data-testid="coluna-desc" onClick={() => faz({ ordenacao: ordem === "desc" ? undefined : [{ campo: campo.id, direcao: "desc" }] })}><ArrowDown size={18} />Ordenar decrescente{ordem === "desc" && " ✓"}</button>
       <button type="button" role="menuitem" className="mt-item" data-testid="coluna-agrupar" onClick={() => faz({ agrupar: agrupada ? undefined : campo.id })}>{agrupada ? <X size={18} /> : <Rows size={18} />}{agrupada ? "Remover agrupamento" : "Agrupar por esta coluna"}</button>
       <button type="button" role="menuitem" className="mt-item" data-testid="coluna-congelar" onClick={() => faz({ congelar: congelada ? 0 : indice + 1 })}><PushPin size={18} />{congelada ? "Descongelar colunas" : "Congelar até aqui"}</button>
+      {campo.tipo === "opcao" && aoEditarCores && <button type="button" role="menuitem" className="mt-item" data-testid="coluna-cores" onClick={() => { fecha(); aoEditarCores(campo); }}><Palette size={18} />Editar cores</button>}
       {podeOcultar && <button type="button" role="menuitem" className="mt-item" data-testid="coluna-ocultar" onClick={() => faz({ visiveis: { ...prefs.visiveis, [campo.id]: false } })}><EyeSlash size={18} />Ocultar coluna</button>}
     </div>
   );

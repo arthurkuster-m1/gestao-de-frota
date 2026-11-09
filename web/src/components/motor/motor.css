@@ -252,3 +252,22 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-chk.is-on { background: var(--color-accent); border-color: var(--color-accent); }
 .mt-notion__limpar { margin-top: 4px; padding: 10px 8px 4px; border: 0; border-top: 1px solid var(--color-border); background: transparent; color: var(--color-text-muted); font: inherit; font-size: 13px; text-align: left; cursor: pointer; }
 .mt-notion__limpar:hover { color: var(--color-text); }
+
+/* Tags de opção vivas, no estilo do Notion: fundo colorido, texto escuro e bolinha */
+.ds-badge[class*="ds-badge--cor-"]::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--tag-dot); flex: none; }
+.ds-badge[class*="ds-badge--cor-"] { background: var(--tag-bg); color: var(--tag-fg); font-weight: 600; }
+.ds-badge--cor-cinza { --tag-bg: #e3e2e0; --tag-fg: #32302c; --tag-dot: #9b9a97; }
+.ds-badge--cor-marrom { --tag-bg: #eee0da; --tag-fg: #442a1e; --tag-dot: #937264; }
+.ds-badge--cor-laranja { --tag-bg: #fadec9; --tag-fg: #5c3b23; --tag-dot: #d9730d; }
+.ds-badge--cor-amarelo { --tag-bg: #fdecc8; --tag-fg: #402c1b; --tag-dot: #dfab01; }
+.ds-badge--cor-verde { --tag-bg: #dbedd8; --tag-fg: #1c3829; --tag-dot: #0f7b6c; }
+.ds-badge--cor-azul { --tag-bg: #d3e5ef; --tag-fg: #183347; --tag-dot: #0b6e99; }
+.ds-badge--cor-roxo { --tag-bg: #e8deee; --tag-fg: #412454; --tag-dot: #9065b0; }
+.ds-badge--cor-rosa { --tag-bg: #f5e0e9; --tag-fg: #4c2337; --tag-dot: #ad1a72; }
+.ds-badge--cor-vermelho { --tag-bg: #ffe2dd; --tag-fg: #5d1715; --tag-dot: #e03e3e; }
+:root[data-theme="dark"] .ds-badge[class*="ds-badge--cor-"] { background: color-mix(in srgb, var(--tag-dot) 30%, #1c1c1f); color: color-mix(in srgb, var(--tag-dot) 35%, #fff); }
+.mt-cor-linha { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding: 6px 0; border-bottom: 1px solid var(--color-border); }
+.mt-cor-paleta { display: flex; gap: 6px; flex-wrap: wrap; }
+.mt-cor { display: inline-grid; place-items: center; width: 26px; height: 26px; padding: 0; border-radius: 50%; border: 2px solid transparent; background: var(--tag-dot) !important; color: #fff !important; cursor: pointer; }
+.mt-cor::before { display: none !important; }
+.mt-cor.is-on { border-color: var(--color-text); }
