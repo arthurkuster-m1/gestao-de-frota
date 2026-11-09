@@ -118,7 +118,7 @@ export async function listarDesejados(): Promise<ModeloDesejado[]> {
 }
 /** Cria uma linha por carro pedido (`quantidade` carros iguais viram linhas iguais). */
 export async function criarDesejados(eventoId: string, itens: (ModeloDesejadoNovo & { quantidade?: number })[], primeiraPosicao = 0): Promise<ModeloDesejado[]> {
-  const linhas = itens.filter((i) => limpo(i.modelo)).flatMap((i) => Array.from({ length: Math.max(1, Math.min(50, i.quantidade ?? 1)) }, () => ({ modelo: i.modelo.trim(), versao: limpo(i.versao), cor: limpo(i.cor), my: limpo(i.my) })))
+  const linhas = itens.filter((i) => limpo(i.modelo)).flatMap((i) => Array.from({ length: Math.max(1, Math.min(50, i.quantidade ?? 1)) }, () => ({ modelo: i.modelo.trim(), cor: limpo(i.cor), my: limpo(i.my) })))
     .map((l, k) => ({ ...l, evento_id: eventoId, posicao: primeiraPosicao + k }));
   if (linhas.length === 0) return [];
   const { data, error } = await supabase.from("evento_modelos_desejados").insert(linhas).select(COLUNAS_DESEJADO);

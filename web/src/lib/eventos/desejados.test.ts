@@ -6,12 +6,18 @@ const ped = (p: Partial<ModeloDesejado>): ModeloDesejado => ({ id: "1", evento_i
 const v = (modelo: string, cor: string | null = null, my: string | null = null) => ({ modelo, cor, my });
 
 describe("modelos desejados", () => {
-  it("só modelo mãe: qualquer versão serve", () => { expect(combina(v("S10 High Country"), ped({}))).toBe(true); expect(combina(v("Onix RS"), ped({}))).toBe(false); });
-  it("modelo, versão, cor e MY informados precisam bater (sem caixa)", () => {
-    const d = ped({ versao: "TRAILBOSS PITCH", cor: "branco", my: "2027" });
-    expect(combina(v("s10 trailboss pitch", "Branco", "2027"), d)).toBe(true);
+  it("modelo é o começo do modelo do carro, palavra por palavra", () => {
+    expect(combina(v("S10 High Country"), ped({}))).toBe(true);
+    expect(combina(v("S10"), ped({}))).toBe(true);
+    expect(combina(v("S100"), ped({}))).toBe(false);
+    expect(combina(v("Onix RS"), ped({}))).toBe(false);
+    expect(combina(v("S10 TRAILBOSS PITCH", "Branco", "2027"), ped({ modelo: "s10 trailboss" }))).toBe(true);
+    expect(combina(v("S10 TRAILBOSS"), ped({ modelo: "S10 TRAILBOSS PITCH" }))).toBe(false);
+  });
+  it("cor e MY informados precisam bater (sem caixa)", () => {
+    const d = ped({ cor: "branco", my: "2027" });
+    expect(combina(v("S10 TRAILBOSS PITCH", "Branco", "2027"), d)).toBe(true);
     expect(combina(v("S10 TRAILBOSS PITCH", "Preto", "2027"), d)).toBe(false);
-    expect(combina(v("S10 TRAILBOSS", "Branco", "2027"), d)).toBe(false);
     expect(combina(v("S10 TRAILBOSS PITCH", "Branco", "2026"), d)).toBe(false);
   });
   it("pedidos atendidos ou indisponíveis não filtram mais; sem pedido em aberto, tudo serve", () => {

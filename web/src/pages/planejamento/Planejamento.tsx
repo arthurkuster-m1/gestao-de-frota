@@ -12,7 +12,7 @@ import { aplicarArrasto } from "../../lib/linhaDoTempo/arrasto";
 import { conflitos } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import { PedidosDoEvento } from "../eventos/PedidosDoEvento";
-import { AnotacaoDoCarroSheet } from "./AnotacaoDoCarroSheet";
+import { useCriacaoNaLinha } from "./useCriacaoNaLinha";
 import type { AnotacaoDoCarro } from "../../lib/eventos/tipos";
 import { barraDoEvento, barrasDoVeiculo } from "../../lib/eventos/barras";
 import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
@@ -47,13 +47,7 @@ export function Planejamento() {
   const [criando, setCriando] = useState(false);
   /** Objetivo do planejamento: visão geral, ou planejar UM evento (a tela se volta só para ele). */
   const [objetivo, setObjetivo] = useState<"geral" | "evento">("geral");
-  /** Duplo clique num dia do carro: o que criar ali. */
-  const [noDia, setNoDia] = useState<{ veiculoId: string; data: string } | null>(null);
-  const [criandoManutencao, setCriandoManutencao] = useState<{ veiculoId: string; data: string } | null>(null);
-  const [criandoNota, setCriandoNota] = useState<{ veiculoId: string; data: string } | null>(null);
-  const [editandoNota, setEditandoNota] = useState<AnotacaoDoCarro | null>(null);
-  const [aoCriarEvento, setAoCriarEvento] = useState<{ veiculoId: string; data: string } | null>(null);
-  const [veiculosIniciais, setVeiculosIniciais] = useState<string[]>([]);
+  const criacao = useCriacaoNaLinha(d, (e) => { setObjetivo('evento'); setSelecionadoId(e.id); });
 
   const nomes = useMemo(() => new Map((d.eventos ?? []).map((e) => [e.id, e.nome])), [d.eventos]);
   const nomeDoEvento = (id: string) => nomes.get(id) ?? "?";
@@ -110,7 +104,7 @@ export function Planejamento() {
               </Select></label>
             {objetivo === "evento" && (
               <label className="plan-objetivo"><span className="t-body-sm t-muted">Evento</span>
-                <Select aria-label="Evento a planejar" value={selecionadoId ?? ""} placeholder="Escolher evento…" onChange={(e) => { if (e.target.value === "__novo__") { setAoCriarEvento(null); setVeiculosIniciais([]); setCriando(true); } else setSelecionadoId(e.target.value || null); }}>
+                <Select aria-label="Evento a planejar" value={selecionadoId ?? ""} placeholder="Escolher evento…" onChange={(e) => { if (e.target.value === "__novo__") setCriando(true); else setSelecionadoId(e.target.value || null); }}>
                   {(d.eventos ?? []).map((ev) => <option key={ev.id} value={ev.id}>{ev.nome}</option>)}
                   <option value="__novo__">＋ Criar novo evento…</option>
                 </Select></label>
@@ -122,8 +116,8 @@ export function Planejamento() {
           <h2 className="t-h3">Veículos</h2>
           <TelaDoMotor<Veiculo> tela="planejamento-veiculos" titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
             linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => navigate(`/veiculos/${v.id}`)}
-            linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => setNoDia({ veiculoId: v.id, data }),
-              onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) setEditandoNota(d.anotacoes.find((n) => n.id === b.id) ?? null); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
+            linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
+              onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) criacao.editarNota(b.id); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
             rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar carro…" alturaDaLinhaDoTempo="38dvh" larguraEsquerda={LARGURA_ESQUERDA}
             vazio={modoEvento ? <p className="t-body t-muted">Nenhum carro livre nessas datas que caiba no pedido do evento.</p> : <p className="t-body t-muted">Nenhum veículo cadastrado ainda.</p>} />
         </section>
@@ -150,22 +144,9 @@ export function Planejamento() {
       </div>
 
       {selecionado && <AdicionarVeiculos aberto={reservando} onFechar={() => setReservando(false)} evento={selecionado} veiculos={d.veiculos} reservas={d.reservas} eventos={d.eventos ?? []} manutencoes={d.manutencoes} pedidos={d.desejados} onNaoAtendido={d.marcarNaoAtendido}
-        veiculosIniciais={veiculosIniciais} dataInicial={aoCriarEvento?.data ?? null} onReservar={(ids, ini, fim, janela) => d.reservar(selecionado.id, ids, ini, fim, janela)} />}
-      <NovaManutencao aberto={!!criandoManutencao} onFechar={() => setCriandoManutencao(null)} veiculos={d.veiculos} veiculoInicial={criandoManutencao?.veiculoId} dataInicial={criandoManutencao?.data} onCriar={d.criarDeManutencao} />
-      <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar}
-        onCriado={(e) => { setObjetivo("evento"); setSelecionadoId(e.id); setVeiculosIniciais(aoCriarEvento ? [aoCriarEvento.veiculoId] : []); setReservando(true); }} />
-      <AnotacaoDoCarroSheet aberto={!!criandoNota || !!editandoNota} onFechar={() => { setCriandoNota(null); setEditandoNota(null); }} carro={nomeDoCarro(editandoNota?.veiculo_id ?? criandoNota?.veiculoId)}
-        veiculoId={criandoNota?.veiculoId ?? null} dataInicial={criandoNota?.data ?? null} anotacao={editandoNota} onCriar={d.criarNota} onExcluir={d.excluirNota} onEditar={d.editarNota} />
-      <Sheet open={!!noDia} onClose={() => setNoDia(null)} title="Criar neste dia">
-        {noDia && (
-          <div className="ds-stack" data-testid="criar-no-dia">
-            <p className="t-body-sm t-muted"><b>{nomeDoCarro(noDia.veiculoId)}</b> · {noDia.data.split("-").reverse().join("/")}</p>
-            <Button size="lg" block icon={<CalendarPlus size={20} />} data-testid="criar-evento-no-dia" onClick={() => { setAoCriarEvento(noDia); setNoDia(null); setCriando(true); }}>Novo evento com este carro</Button>
-            <Button size="lg" block variant="secondary" icon={<Wrench size={20} />} data-testid="criar-manutencao-no-dia" onClick={() => { setCriandoManutencao(noDia); setNoDia(null); }}>Nova manutenção</Button>
-            <Button size="lg" block variant="secondary" icon={<NotePencil size={20} />} data-testid="criar-anotacao-no-dia" onClick={() => { setCriandoNota(noDia); setNoDia(null); }}>Nova anotação do carro</Button>
-          </div>
-        )}
-      </Sheet>
+        onReservar={(ids, ini, fim, janela) => d.reservar(selecionado.id, ids, ini, fim, janela)} />}
+      <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => { setObjetivo("evento"); setSelecionadoId(e.id); setReservando(true); }} />
+      {criacao.dialogos}
     </div>
   );
 }

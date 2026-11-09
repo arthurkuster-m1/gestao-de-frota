@@ -7,14 +7,16 @@ import type { ConfigDeChips } from "../../components/motor/ChipsRapidos";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { JanelaDoVeiculo } from "./JanelaDoVeiculo";
 import { hojeLocal } from "../../lib/motor/datas";
-import { atualizarReserva, listarEventos, listarReservas } from "../../lib/eventos/dados";
+import { atualizarReserva } from "../../lib/eventos/dados";
 import { barrasDoVeiculo } from "../../lib/eventos/barras";
-import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
+import { aplicarArrasto, diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import type { ModoDeArrasto, Barra } from "../../lib/linhaDoTempo/tipos";
 import type { Evento, Reserva } from "../../lib/eventos/tipos";
 import { barrasDeManutencao, ehBarraDeManutencao } from "../../lib/manutencoes/barras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
-import { useManutencoes } from "../manutencoes/useManutencoes";
+import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
+import { useCriacaoNaLinha } from "../planejamento/useCriacaoNaLinha";
+import { anotacoesPorVeiculo, barrasDeAnotacao, ehBarraDeAnotacao } from "../../lib/veiculos/anotacoes";
 import { Tag } from "../../components/motor/Tag";
 import { STATUS_DE_USO, agendaItens, agendaTexto, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import type { OnEditar } from "../../components/motor/useEdicao";
@@ -68,19 +70,22 @@ export function Veiculos() {
   const { id: idAberto } = useParams<{ id?: string }>();
   const [lista, setLista] = useState<Veiculo[] | null>(null);
   const [erro, setErro] = useState<string | null>(null);
-  const [reservas, setReservas] = useState<Reserva[] | null>(null);
-  const [eventos, setEventos] = useState<Evento[]>([]);
-  const [erroUso, setErroUso] = useState<string | null>(null);
-  const man = useManutencoes();
+  // eventos, reservas, manutenções, anotações e as ações sobre eles: os mesmos do Planejamento
+  const d = useDadosDeEventos();
+  const criacao = useCriacaoNaLinha(d);
+  const reservas = d.eventos ? d.reservas : null;
+  const eventos = d.eventos ?? [];
+  const erroUso = d.erro;
+  const man = { doCarro: d.manutencoesDoCarro, mover: d.moverManutencao, criar: d.criarDeManutencao, erro: null as string | null };
+  const notasPorCarro = useMemo(() => anotacoesPorVeiculo(d.anotacoes), [d.anotacoes]);
 
   useEffect(() => { listarVeiculos().then(setLista, (e: Error) => setErro(e.message)); }, []);
-  useEffect(() => { Promise.all([listarReservas(), listarEventos()]).then(([r, e]) => { setReservas(r); setEventos(e); }, (e: Error) => setErroUso(e.message)); }, []);
 
   const ctx = useMemo<ContextoDeUso>(() => {
-    if (!reservas) return SEM_USO;
+    if (!d.eventos) return SEM_USO;
     const nomes = new Map(eventos.map((e) => [e.id, e.nome]));
-    return { reservas: reservasPorVeiculo(reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal(), manutencoes: man.doCarro };
-  }, [reservas, eventos, man.doCarro]);
+    return { reservas: reservasPorVeiculo(d.reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal(), manutencoes: man.doCarro };
+  }, [d.reservas, d.eventos, eventos, man.doCarro]);
   const campos = useMemo(() => camposDoVeiculo(ctx), [ctx]);
 
   const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
@@ -92,24 +97,29 @@ export function Veiculos() {
   /** Arrastar uma barra de reserva na linha do tempo muda as datas da reserva (mover leva chegada e retirada junto). */
   const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
     if (ehBarraDeManutencao(barra)) { await man.mover(barra.id, modo, delta); return; }
+    if (ehBarraDeAnotacao(barra)) { const n = aplicarArrasto({ inicio: barra.inicio, fim: barra.fim }, modo, delta); await d.moverNota(barra.id, n.inicio, n.fim); return; }
     const r = reservas?.find((x) => x.id === barra.id); if (!r) return;
     const dif = diferencas(r, reajustarReserva(r, modo, delta));
     if (Object.keys(dif).length === 0) return;
     const salva = await atualizarReserva(r.id, dif);
-    setReservas((l) => (l ?? []).map((x) => (x.id === r.id ? salva : x)));
+    d.setReservas((l) => l.map((x) => (x.id === r.id ? salva : x)));
   };
   const aberto = idAberto && lista ? (lista.find((x) => x.id === idAberto) ?? null) : null;
   useEffect(() => { if (idAberto && lista && !lista.some((x) => x.id === idAberto)) navigate("/veiculos", { replace: true }); }, [idAberto, lista, navigate]);
 
   return (
+    <>
     <TelaDoMotor<Veiculo> tela="veiculos" chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
       acoes={<NovoMenu />}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
-      linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal())], onAlterarBarra: alterarReserva, onAbrirBarra: (_v, b) => navigate(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`) }}
+      linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
+        onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } navigate(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Link to="/veiculos/novo"><Button icon={<Plus size={20} />}>Cadastrar o primeiro</Button></Link>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
       filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
+    {criacao.dialogos}
+    </>
   );
 }
 
