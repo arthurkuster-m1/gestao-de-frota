@@ -141,3 +141,34 @@
 
 @media (min-width: 720px) { .mt-evf--2 { grid-template-columns: 1fr 1.6fr; } }
 @media (min-width: 720px) { .mt-evf--iguais3 { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+
+/* Agenda do carro: calendário e linha do tempo */
+.mt-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); }
+.mt-cal__cab { padding: 6px 8px; font-size: 12px; font-weight: 700; color: var(--color-text-muted); background: var(--color-surface-elevated); border-bottom: 1px solid var(--color-border); }
+.mt-cal__dia { min-height: 92px; padding: 4px; display: grid; align-content: start; gap: 3px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); min-width: 0; }
+.mt-cal__dia:nth-child(7n) { border-right: 0; }
+.mt-cal__dia.is-fora { background: var(--color-bg); color: var(--color-text-subtle); }
+.mt-cal__dia.is-hoje .mt-cal__num { background: var(--color-accent); color: var(--color-accent-fg, #fff); border-radius: 999px; }
+.mt-cal__num { font-size: 12px; font-weight: 600; width: 22px; height: 22px; display: grid; place-items: center; }
+.mt-cal__mes { min-width: 130px; text-align: center; text-transform: capitalize; }
+.mt-cal__mais { font-size: 11px; color: var(--color-text-muted); padding-left: 4px; }
+.mt-cal__chip, .mt-agtl__barra { display: block; padding: 2px 6px; border-radius: 6px; font-size: 11.5px; font-weight: 600; line-height: 18px; text-decoration: none; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; background: var(--color-surface-elevated); color: var(--color-text); border: 1px solid var(--color-border-strong); }
+.mt-cal__chip--info { background: var(--color-info-bg); color: var(--color-info-fg); border-color: transparent; }
+.mt-cal__chip--accent { background: var(--color-accent-soft); color: var(--color-accent); border-color: transparent; }
+.mt-cal__chip--success { background: var(--color-success-bg); color: var(--color-success-fg); border-color: transparent; }
+.mt-cal__chip--warning { background: var(--color-warning-bg); color: var(--color-warning-fg); border-color: transparent; }
+.mt-cal__chip--error { background: var(--color-error-bg); color: var(--color-error-fg); border-color: transparent; }
+.mt-cal__chip:hover, .mt-agtl__barra:hover { filter: brightness(0.95); }
+.mt-agtl { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-width: 100%; }
+.mt-agtl__grade { position: relative; }
+.mt-agtl__dias { display: flex; border-bottom: 1px solid var(--color-border-strong); background: var(--color-surface-elevated); }
+.mt-agtl__dia { flex: none; position: relative; display: grid; place-items: end center; height: 42px; padding-bottom: 4px; font-size: 11px; color: var(--color-text-muted); border-left: 1px solid var(--color-border); }
+.mt-agtl__dia b { font-size: 12px; color: var(--color-text); }
+.mt-agtl__dia.is-hoje { background: var(--color-accent-soft); }
+.mt-agtl__nome { position: absolute; top: 3px; left: 4px; font-size: 11px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
+.mt-agtl__corpo { position: relative; }
+.mt-agtl__barra { position: absolute; }
+.mt-agtl__hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--color-accent); opacity: 0.5; pointer-events: none; }
+.mt-janela .mt-agenda-tags, .mt-ficha .mt-agenda-tags { flex-direction: column; align-items: flex-start; flex-wrap: wrap; }
+.mt-ficha__divisor { margin: var(--space-4) 0 var(--space-1); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-subtle); }
+.mt-ficha__divisor:first-child { margin-top: 0; }

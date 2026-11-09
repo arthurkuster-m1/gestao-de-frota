@@ -12,7 +12,11 @@ import { listarAtividades, type Atividade } from "../../lib/veiculos/dados";
 import { quando, textoAtividade } from "../../lib/veiculos/atividade";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { ESTADOS_RESERVA, type Evento, type Reserva } from "../../lib/eventos/tipos";
-import { agendaTexto, estaAberta, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
+import { STATUS_DE_USO, agendaItens, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
+import { barrasDoVeiculo } from "../../lib/eventos/barras";
+import { barrasDeManutencao } from "../../lib/manutencoes/barras";
+import { AgendaDoCarro, type ItemDaAgenda } from "./AgendaDoCarro";
+import { AgendaEmTags } from "./AgendaEmTags";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
 import { Tag } from "../../components/motor/Tag";
 import { Button } from "../../ds";
@@ -20,10 +24,16 @@ import { NovaManutencao } from "../manutencoes/NovaManutencao";
 import { STATUS_MANUTENCAO, type Manutencao, type ManutencaoNova } from "../../lib/manutencoes/tipos";
 import "./veiculos.css";
 
-type Aba = "dados" | "atividade" | "comentarios" | "agenda" | "eventos" | "manutencoes" | "multas";
+type Aba = "dados" | "agenda" | "eventos" | "manutencoes" | "multas" | "historico";
 const ABAS: { id: Aba; rotulo: string }[] = [
-  { id: "dados", rotulo: "Dados" }, { id: "atividade", rotulo: "Atividade" }, { id: "comentarios", rotulo: "Comentários" },
-  { id: "agenda", rotulo: "Agenda" }, { id: "eventos", rotulo: "Eventos" }, { id: "manutencoes", rotulo: "Manutenções" }, { id: "multas", rotulo: "Multas" },
+  { id: "dados", rotulo: "Dados" }, { id: "agenda", rotulo: "Agenda" }, { id: "eventos", rotulo: "Eventos" },
+  { id: "manutencoes", rotulo: "Manutenções" }, { id: "multas", rotulo: "Multas" }, { id: "historico", rotulo: "Histórico" },
+];
+/** A ficha em blocos, com divisor: Uso, Dados e Datas (o resto das propriedades fica fora da ficha). */
+const BLOCOS: { titulo: string; ids: string[] }[] = [
+  { titulo: "Uso", ids: ["codigo", "statusUso", "agenda"] },
+  { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "pedido", "ciclo", "seguro"] },
+  { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "faturadoEm", "emplacadoEm", "devolvidoEm"] },
 ];
 
 function EmBreve({ icone, titulo, children }: { icone: ReactNode; titulo: string; children: ReactNode }) {
@@ -40,7 +50,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome:
         return (
           <li key={r.id} className="mt-reserva">
             <div className="mt-reserva__topo"><LinkNoLugar to={`/eventos/${r.evento_id}`} className="mt-reserva__evento">{nome(r.evento_id)}</LinkNoLugar><Tag opcao={{ value: e.value, label: e.label, tom: e.tom }} /></div>
-            <span className="t-body-sm t-muted">{formatarDiaBr(r.reserva_inicio)} até {formatarDiaBr(r.reserva_fim)}</span>
+            <span className="t-body-sm t-muted">{r.reserva_inicio && r.reserva_fim ? `${formatarDiaBr(r.reserva_inicio)} até ${formatarDiaBr(r.reserva_fim)}` : "Sem data definida"}</span>
           </li>
         );
       })}
@@ -62,13 +72,22 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
   useEffect(() => { const d = ref.current; if (!d) return; if (id && !d.open) d.showModal(); if (!id && d.open) d.close(); }, [id]);
   useEffect(() => { setAba("dados"); setHist(null); }, [id]);
   useEffect(() => { setComentario(veiculo?.comentarios ?? ""); setErroComentario(null); }, [id, veiculo?.comentarios]);
-  useEffect(() => { if (aba === "atividade" && id) { setHist(null); listarAtividades(id).then(setHist, () => setHist([])); } }, [aba, id, veiculo?.status_ciclo]);
+  useEffect(() => { if (aba === "historico" && id) { setHist(null); listarAtividades(id).then(setHist, () => setHist([])); } }, [aba, id, veiculo?.status_ciclo]);
 
   const nomeDoEvento = (id: string) => eventos.find((e) => e.id === id)?.nome ?? "?";
   const titulo = veiculo ? (veiculo.codigo ?? veiculo.modelo.toUpperCase()) : "";
   const editaveis = campos.filter((c) => c.edicao).map((c) => c.id);
-  const lista = campos.filter((c) => c.id !== "codigo" && c.id !== "comentarios");
   const campoComentarios = campos.find((c) => c.id === "comentarios");
+  const hoje = hojeLocal();
+  const statusAtual = statusDeUso(reservas, manutencoes, hoje);
+  const itensTexto = agendaItens(reservas, nomeDoEvento, hoje, manutencoes);
+  /** Compromissos COM data (calendário e linha do tempo) e eventos do carro sem data (ficam só numa lista). */
+  const comData = reservas.filter((r) => r.estado !== "cancelado" && r.reserva_inicio && r.reserva_fim);
+  const semData = reservas.filter((r) => r.estado !== "cancelado" && !(r.reserva_inicio && r.reserva_fim));
+  const itensDaAgenda: ItemDaAgenda[] = [
+    ...barrasDoVeiculo(comData, nomeDoEvento).map((b) => ({ ...b, href: `/eventos/${(b.dados as { eventoId: string }).eventoId}` })),
+    ...barrasDeManutencao(manutencoes, hoje).map((b) => ({ ...b, href: `/manutencoes/${b.id}` })),
+  ];
 
   async function salvarComentario() {
     if (!veiculo || !campoComentarios || comentario === (veiculo.comentarios ?? "")) return;
@@ -91,26 +110,39 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
           <div className="mt-janela__conteudo">
             {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
             {aba === "dados" && (
-              <dl className="mt-ficha" data-testid="ficha-dados">
-                <div className="mt-ficha__linha" onClick={clicarNaLinha}><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 700 }}>{titulo}</span></dd></div>
-                {lista.map((c) => <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={veiculo} campo={c} ed={ed} navegaveis={editaveis} /></dd></div>)}
-              </dl>
-            )}
-            {aba === "atividade" && (hist === null ? <Skeleton h={20} /> : hist.length === 0 ? <p className="t-body t-muted">Sem atividade registrada.</p>
-              : <ul className="vei-hist" data-testid="historico">{hist.map((a) => <li key={a.id}><span className="t-body">{textoAtividade(a.descricao)}</span><span className="t-body-sm t-muted">{quando(a.ocorreu_em)}</span></li>)}</ul>)}
-            {aba === "comentarios" && (
               <div className="ds-stack">
-                <p className="t-body-sm t-muted">Anotações livres sobre este carro. Salva ao sair do campo.</p>
-                <Textarea rows={10} value={comentario} aria-label="Comentários do veículo" data-testid="campo-comentarios" onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
-                {erroComentario && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erroComentario}</p>}
+                <dl className="mt-ficha" data-testid="ficha-dados">
+                  {BLOCOS.map((bl) => (
+                    <div key={bl.titulo} style={{ display: "contents" }}>
+                      <h3 className="mt-ficha__divisor" data-testid="divisor-ficha">{bl.titulo}</h3>
+                      {bl.ids.map((cid) => {
+                        if (cid === "codigo") return <div key={cid} className="mt-ficha__linha"><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 700 }}>{titulo}</span></dd></div>;
+                        const c = campos.find((x) => x.id === cid); if (!c) return null;
+                        return <div key={cid} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={veiculo} campo={c} ed={ed} navegaveis={editaveis} /></dd></div>;
+                      })}
+                    </div>
+                  ))}
+                </dl>
+                <section className="ds-stack">
+                  <h3 className="mt-ficha__divisor">Comentários</h3>
+                  <Textarea rows={5} value={comentario} aria-label="Comentários do veículo" data-testid="campo-comentarios" placeholder="Anotações livres sobre este carro. Salva ao sair do campo." onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
+                  {erroComentario && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erroComentario}</p>}
+                </section>
               </div>
             )}
             {aba === "agenda" && (usoCarregado ? (
               <div className="ds-stack" data-testid="aba-agenda">
-                <div className="mt-agenda"><span className="t-body-sm t-muted">Status de uso</span><b>{rotuloDoUso(statusDeUso(reservas, manutencoes, hojeLocal()))}</b></div>
-                <div className="mt-agenda"><span className="t-body-sm t-muted">Agenda</span><p className="t-body" data-testid="agenda-texto">{agendaTexto(reservas, nomeDoEvento, hojeLocal(), manutencoes) || "Sem reservas abertas: o carro está livre."}</p></div>
-                <h3 className="t-h3">Reservas abertas</h3>
-                <ListaDeReservas reservas={reservas.filter(estaAberta)} nome={nomeDoEvento} vazio="Nenhuma reserva aberta." />
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Status de uso</span><span><Tag campoId="statusUso" opcao={{ value: statusAtual, label: rotuloDoUso(statusAtual), tom: STATUS_DE_USO.find((u) => u.value === statusAtual)?.tom }} /></span></div>
+                <div className="mt-agenda"><span className="t-body-sm t-muted">Agenda</span><span data-testid="agenda-texto">{itensTexto.length ? <AgendaEmTags itens={itensTexto} /> : <span className="t-body">Sem reservas abertas: o carro está livre.</span>}</span></div>
+                <h3 className="t-h3">Calendário do carro</h3>
+                <AgendaDoCarro itens={itensDaAgenda} />
+                {semData.length > 0 && (
+                  <section className="ds-stack" data-testid="eventos-sem-data">
+                    <h3 className="t-h3">Eventos sem data</h3>
+                    <p className="t-body-sm t-muted">O carro está cadastrado nestes eventos, mas eles ainda não têm data: por isso não aparecem no calendário nem na linha do tempo.</p>
+                    <ListaDeReservas reservas={semData} nome={nomeDoEvento} vazio="" />
+                  </section>
+                )}
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "eventos" && (usoCarregado ? <ListaDeReservas reservas={[...reservas].sort((a, b) => b.reserva_inicio.localeCompare(a.reserva_inicio))} nome={nomeDoEvento} vazio="Este carro ainda não foi reservado para nenhum evento." />
@@ -136,6 +168,8 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
               </div>
             ))}
             {aba === "multas" && <EmBreve icone={<Warning size={32} />} titulo="Multas">Multas do carro, com o evento e o cliente que estavam com ele na hora. Entra com a tela de Multas.</EmBreve>}
+            {aba === "historico" && (hist === null ? <Skeleton h={20} /> : hist.length === 0 ? <p className="t-body t-muted">Sem atividade registrada.</p>
+              : <ul className="vei-hist" data-testid="historico">{hist.map((a) => <li key={a.id}><span className="t-body">{textoAtividade(a.descricao)}</span><span className="t-body-sm t-muted">{quando(a.ocorreu_em)}</span></li>)}</ul>)}
           </div>
           {onCriarManutencao && <NovaManutencao aberto={novaManutencao} onFechar={() => setNovaManutencao(false)} veiculos={[veiculo]} veiculoInicial={veiculo.id} onCriar={onCriarManutencao} />}
         </div>
