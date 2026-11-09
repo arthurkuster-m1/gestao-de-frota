@@ -52,17 +52,17 @@ export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoI
   return [...oficina, ...eventos].join(" + ");
 }
 
-export type ItemDaAgenda = { uso: StatusDeUso; texto: string };
+export type ItemDaAgenda = { uso: StatusDeUso; texto: string; /** Para onde a tag leva: o evento da reserva ou a manutenção. */ href: string };
 const ROTULO_ITEM: Record<string, string> = { reservado: "Reservado", em_uso: "Em uso", em_retorno: "Em retorno" };
 
 /** A agenda do carro item a item (um por reserva/manutenção abertas), na mesma ordem de `agendaTexto`: "Em uso - Evento XYZ 05/11 até 07/11". `uso` dá a cor da tag. */
 export function agendaItens(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string, manutencoes: readonly Manutencao[] = []): ItemDaAgenda[] {
   const ano = hoje.slice(0, 4);
   const oficina = manutencoes.filter(estaEmAberto).sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
-    .map((m): ItemDaAgenda => ({ uso: "manutencao", texto: `Em manutenção - ${m.nome} ${m.data_fim ? `${dm(m.data_inicio, ano)} até ${dm(m.data_fim, ano)}` : `desde ${dm(m.data_inicio, ano)}`}` }));
+    .map((m): ItemDaAgenda => ({ uso: "manutencao", href: `/manutencoes/${m.id}`, texto: `Em manutenção - ${m.nome} ${m.data_fim ? `${dm(m.data_inicio, ano)} até ${dm(m.data_fim, ano)}` : `desde ${dm(m.data_inicio, ano)}`}` }));
   const eventos = reservas.filter(estaAberta)
     .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
-    .map((r): ItemDaAgenda => ({ uso: r.estado as StatusDeUso, texto: `${ROTULO_ITEM[r.estado]} - Evento ${nomeDoEvento(r.evento_id)} ${dm(r.reserva_inicio, ano)} até ${dm(r.reserva_fim, ano)}` }));
+    .map((r): ItemDaAgenda => ({ uso: r.estado as StatusDeUso, href: `/eventos/${r.evento_id}`, texto: `${ROTULO_ITEM[r.estado]} - Evento ${nomeDoEvento(r.evento_id)} ${dm(r.reserva_inicio, ano)} até ${dm(r.reserva_fim, ano)}` }));
   return [...oficina, ...eventos];
 }
 

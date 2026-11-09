@@ -298,3 +298,6 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-tabela td.mt-quebra { height: auto; white-space: normal; overflow: visible; padding-top: 8px; padding-bottom: 8px; vertical-align: middle; }
 .mt-tabela td.mt-quebra .mt-agenda-tags { flex-direction: column; align-items: flex-start; flex-wrap: nowrap; }
 .mt-tabela td.mt-quebra .mt-tag { white-space: normal; }
+.mt-agenda-link { display: inline-flex; flex: none; text-decoration: none; border-radius: var(--radius-full); }
+.mt-agenda-link:hover .mt-tag { filter: brightness(0.94); text-decoration: underline; }
+.mt-agenda-link:focus-visible { outline: 2px solid var(--color-accent-ring); outline-offset: 2px; }
