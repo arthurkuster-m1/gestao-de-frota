@@ -274,8 +274,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
             </div>
           </Painel>
-          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos" title="Checklist de envio de todos os carros que ainda não têm">Checklist de envio ({linhasSemSaida.length})</Button>}
-          <Button size="sm" icon={<Plus size={16} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
+          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos" title="Checklist de envio de todos os carros que ainda não têm">Checklist<span className="mt-so-pc"> de envio</span> ({linhasSemSaida.length})</Button>}
+          <Button size="sm" icon={<Plus size={16} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar<span className="mt-so-pc"> carros</span></Button>
         </div>
       </div>
 
