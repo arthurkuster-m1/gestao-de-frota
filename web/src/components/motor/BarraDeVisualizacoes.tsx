@@ -1,6 +1,6 @@
 import { useRef, useState, type ReactNode } from "react";
 import { ChartBarHorizontal, Copy, Plus, Rows, SlidersHorizontal, SquaresFour, Trash } from "@phosphor-icons/react";
-import { Button, Field, Input, Segmented, Sheet, cx } from "../../ds";
+import { Button, Field, Input, Sheet, cx } from "../../ds";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { MAXIMO_DE_VISUALIZACOES, ROTULO_DO_TIPO, type TipoDeVisualizacao, type VisaoSalva } from "../../lib/motor/visoes";
 import { Painel } from "./Painel";
@@ -11,6 +11,7 @@ export type Layout = "tabela" | "galeria" | "timeline";
 const ICONE: Record<Layout, ReactNode> = { tabela: <Rows size={16} />, galeria: <SquaresFour size={16} />, timeline: <ChartBarHorizontal size={16} /> };
 /** O layout que uma visualização mostra de verdade: o da config (que o Arthur muda dentro dela) ou, na falta, o tipo salvo. */
 export const layoutDe = (v: { tipo: TipoDeVisualizacao; config: PreferenciasDaTabela }): Layout => { const l = v.config.visualizacao ?? v.tipo; return l === "galeria" || l === "timeline" ? l : "tabela"; };
+const ICONE_GRANDE: Record<Layout, ReactNode> = { tabela: <Rows size={22} />, galeria: <SquaresFour size={22} />, timeline: <ChartBarHorizontal size={22} /> };
 const nomeNovo = (base: string, existentes: string[]) => { if (!existentes.includes(base)) return base; let n = 2; while (existentes.includes(`${base} ${n}`)) n++; return `${base} ${n}`; };
 
 type Props<T> = {
@@ -74,7 +75,9 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
                   onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></Field>
               ) : <span className="t-body" style={{ fontWeight: 700 }}>Todas <span className="t-body-sm t-muted">(visualização padrão)</span></span>}
               {!layoutFixo && layoutsDisponiveis.length > 1 && (
-                <Field label="Layout"><Segmented block options={layoutsDisponiveis.map((l) => ({ value: l, label: <span className="mt-modo">{ICONE[l]}{ROTULO_DO_TIPO[l]}</span> }))} value={layoutAtivo} onChange={(l) => onPrefs({ ...prefs, visualizacao: l })} /></Field>
+                <Field label="Layout"><div className="mt-layouts" role="radiogroup" aria-label="Layout">
+                  {layoutsDisponiveis.map((l) => <button key={l} type="button" role="radio" aria-checked={layoutAtivo === l} className={cx("mt-layout", layoutAtivo === l && "is-on")} data-testid={`layout-${l}`} onClick={() => onPrefs({ ...prefs, visualizacao: l })}>{ICONE_GRANDE[l]}<span>{ROTULO_DO_TIPO[l]}</span></button>)}
+                </div></Field>
               )}
               <Propriedades campos={campos} prefs={prefs} onChange={onPrefs} />
               {falha && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{falha}</p>}
@@ -94,10 +97,10 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
 
       {alterada && (
         <div className="mt-alterada" role="status" data-testid="barra-alterada">
-          <span className="t-body-sm">{ativa ? "Alterações não salvas nesta visualização." : "Você mudou filtros ou colunas."}</span>
+          <span className="t-body-sm">{ativa ? "Alterações não salvas nesta visualização." : "Alterações não salvas em Todas."}</span>
           <div className="ds-row">
             {ativa ? (<><Button size="sm" variant="secondary" onClick={onDescartar}>Descartar</Button><Button size="sm" loading={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">Salvar</Button></>)
-              : (<><Button size="sm" variant="secondary" onClick={onDescartar} data-testid="restaurar-todas">Restaurar padrão</Button><Button size="sm" onClick={() => { setNome(""); setFalha(null); setSalvandoComo(true); }} data-testid="salvar-como">Salvar como visualização</Button></>)}
+              : (<><Button size="sm" variant="ghost" onClick={onDescartar} data-testid="restaurar-todas">Descartar</Button><Button size="sm" variant="secondary" onClick={() => { setNome(""); setFalha(null); setSalvandoComo(true); }} data-testid="salvar-como">Salvar como visualização</Button><Button size="sm" loading={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">Salvar em Todas</Button></>)}
           </div>
         </div>
       )}

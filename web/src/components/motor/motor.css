@@ -189,3 +189,31 @@ button.mt-tag:hover { filter: brightness(0.96); }
 @media (max-width: 640px) { .mt-busca input { width: 150px; } .mt-vbar__dir { flex: 1 1 100%; margin-left: 0; max-width: 100%; } .mt-vbar__acoes { margin-left: auto; padding-top: 4px; justify-content: flex-end; } }
 .mt-vbar__dir .mt-barra { display: contents; }
 .mt-modo { white-space: nowrap; }
+
+/* ── Filtros no estilo do Notion: escolher a propriedade; chips; formato e valor num painel pequeno ── */
+.mt-escolher-prop { gap: 6px; }
+.mt-escolher-prop__busca { display: flex; align-items: center; gap: 6px; padding: 0 10px; min-height: 34px; border: 1px solid var(--color-accent-ring); border-radius: var(--radius-md); background: var(--color-surface); color: var(--color-text-subtle); }
+.mt-escolher-prop__busca input { flex: 1; border: 0; outline: 0; background: transparent; font-size: 13px; color: var(--color-text); min-width: 0; }
+.mt-escolher-prop__lista { display: grid; gap: 1px; max-height: 300px; overflow-y: auto; }
+.mt-chips { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.mt-chip { display: inline-flex; align-items: center; gap: 6px; min-height: 28px; padding: 0 10px; border-radius: var(--radius-full); border: 1px solid var(--color-border-strong); background: var(--color-surface); color: var(--color-text-muted); font-size: 12.5px; max-width: 100%; }
+.mt-chip b { font-weight: 600; color: inherit; }
+.mt-chip.is-on { background: var(--color-accent-soft); border-color: var(--color-accent-ring); color: var(--color-accent); }
+.mt-chip__valor { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.mt-chip__juncao { font-size: 10.5px; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; }
+.mt-chips .mt-btn { min-height: 28px; padding: 0 10px; font-size: 12.5px; color: var(--color-text-subtle); border-style: dashed; background: transparent; }
+.mt-chip__painel { padding: 10px; }
+.mt-chip__topo { display: flex; align-items: center; gap: 6px; margin-bottom: 8px; }
+.mt-chip__prop { font-weight: 600; font-size: 13px; }
+.mt-chip__lixo { margin-left: auto; display: inline-grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); }
+.mt-chip__lixo:hover { background: var(--color-surface-elevated); color: var(--color-error-fg); }
+.mt-chip__valorbox { display: grid; gap: 6px; }
+/* seletor bem pequenininho (formato do filtro e E/OU) */
+.mt-mini .ds-selectbox { min-height: 26px; height: 26px; padding: 0 8px; font-size: 12px; border-radius: var(--radius-md); gap: 4px; width: auto; }
+.mt-mini { display: inline-flex; }
+
+/* escolha do layout dentro da visualização: três "cartinhas" iguais (o texto nunca é cortado) */
+.mt-layouts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+.mt-layout { display: grid; justify-items: center; gap: 6px; padding: 10px 6px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-lg); background: var(--color-surface); color: var(--color-text-muted); font-size: 12.5px; font-weight: 600; text-align: center; line-height: 1.2; }
+.mt-layout:hover { border-color: var(--color-accent-ring); }
+.mt-layout.is-on { background: var(--color-accent-soft); border-color: var(--color-accent); color: var(--color-accent); }
