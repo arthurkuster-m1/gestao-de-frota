@@ -46,7 +46,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
   const toque = useRef({ y0: 0, dy: 0 });
   const comecarArrasto = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); toque.current = { y0: e.clientY, dy: 0 }; setArrasto(0); };
   const moverArrasto = (e: React.PointerEvent<HTMLDivElement>) => { if (arrasto === null) return; toque.current.dy = Math.max(0, e.clientY - toque.current.y0); setArrasto(toque.current.dy); };
-  const soltarArrasto = () => { if (arrasto === null) return; const fechar = toque.current.dy > 110; setArrasto(null); if (fechar) ref.current?.close(); };
+  const soltarArrasto = () => { if (arrasto === null) return; const fechar = toque.current.dy > 80; setArrasto(null); if (fechar) ref.current?.close(); };
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -67,7 +67,8 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
       // o evento "close" sobe pela árvore do React: sem este filtro, fechar uma janela aninhada fecharia também a de fora
       onClose={(e) => { if (e.target === ref.current) onClose(); }}
       onClick={(e) => { if (e.target === ref.current) onClose(); }}
-      style={arrasto === null ? undefined : { transform: `translateY(${arrasto}px)`, transition: "none" }}
+      // "translate" (e não "transform"): a animação de abertura usa transform com fill-mode both e engoliria o deslocamento
+      style={arrasto === null ? undefined : { translate: `0 ${arrasto}px`, transition: "none" }}
     >
       <div className="ds-sheet__body">
         <div className="ds-sheet__alca" onPointerDown={comecarArrasto} onPointerMove={moverArrasto} onPointerUp={soltarArrasto} onPointerCancel={soltarArrasto} data-testid="alca-da-janela"><div className="ds-sheet__grip" aria-hidden /></div>
