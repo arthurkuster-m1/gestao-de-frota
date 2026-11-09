@@ -1,3 +1,4 @@
+import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { Plus, Table, Car } from "@phosphor-icons/react";
@@ -46,7 +47,7 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110, edicao: { coluna: "placa", maxLength: 8, placeholder: "ABC1D23", normalizar: normalizarPlaca, validar: (t) => (placaValida(t) ? null : "A placa tem 7 caracteres.") } },
   { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? [], ctx.manutencoes?.get(v.id) ?? [], ctx.hoje) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
   { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) || null : null), multilinha: true, largura: 420,
-    celula: (v) => { const itens = ctx.carregado ? agendaItens(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) : []; return itens.length === 0 ? <span className="mt-vazio">—</span> : <span className="mt-agenda-tags">{itens.map((it, k) => <Link key={k} to={it.href} className="mt-agenda-link" onClick={(e) => e.stopPropagation()} title="Abrir"><Tag campoId="statusUso" opcao={{ value: it.uso, label: it.texto, tom: OPCOES_USO.find((o) => o.value === it.uso)?.tom }} /></Link>)}</span>; } },
+    celula: (v) => { const itens = ctx.carregado ? agendaItens(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) : []; return itens.length === 0 ? <span className="mt-vazio">—</span> : <span className="mt-agenda-tags">{itens.map((it, k) => <LinkNoLugar key={k} to={it.href} className="mt-agenda-link" onClick={(e) => e.stopPropagation()} title="Abrir"><Tag campoId="statusUso" opcao={{ value: it.uso, label: it.texto, tom: OPCOES_USO.find((o) => o.value === it.uso)?.tom }} /></LinkNoLugar>)}</span>; } },
   { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190, edicao: { coluna: "vin", maxLength: 20, placeholder: "17 caracteres", normalizar: normalizarVin, validar: (t) => (vinValido(t) ? null : "O VIN tem 17 letras e números.") } },
   { id: "modelo", titulo: "Modelo", tipo: "texto", valorDe: (v) => v.modelo, largura: 160, padrao: false, edicao: { coluna: "modelo", obrigatorio: true } },
   { id: "cor", titulo: "Cor", tipo: "texto", valorDe: (v) => v.cor, largura: 130, edicao: { coluna: "cor" } },
@@ -67,6 +68,7 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
 
 export function Veiculos() {
   const navigate = useNavigate();
+  const abrirNoLugar = useAbrirNoLugar();
   const toast = useToast();
   const { id: idAberto } = useParams<{ id?: string }>();
   const [lista, setLista] = useState<Veiculo[] | null>(null);
@@ -118,7 +120,7 @@ export function Veiculos() {
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
       linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
-        onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } navigate(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
+        onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } abrirNoLugar(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Button icon={<Plus size={20} />} onClick={() => setNovo(true)}>Cadastrar o primeiro</Button>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
       filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />

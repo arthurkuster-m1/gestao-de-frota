@@ -1,3 +1,4 @@
+import { useAbrirNoLugar } from "../../app/noLugar";
 import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { CalendarPlus, NotePencil, Wrench, X } from "@phosphor-icons/react";
@@ -39,6 +40,7 @@ const LARGURA_ESQUERDA = 260;
  */
 export function Planejamento() {
   const navigate = useNavigate();
+  const abrirNoLugar = useAbrirNoLugar();
   const toast = useToast();
   const eixo = useEixoDoTempo("dia");
   const d = useDadosDeEventos();
@@ -115,7 +117,7 @@ export function Planejamento() {
         <section aria-label="Veículos" className="ds-stack" data-testid="pane-veiculos">
           <h2 className="t-h3">Veículos</h2>
           <TelaDoMotor<Veiculo> tela="planejamento-veiculos" titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
-            linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => navigate(`/veiculos/${v.id}`)}
+            linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => abrirNoLugar(`/veiculos/${v.id}`)}
             linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctxUso.reservas.get(v.id) ?? [], nomeDoEvento, selecionadoId), ...barrasDeManutencao(d.manutencoesDoCarro.get(v.id) ?? [], ctxUso.hoje), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
               onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) criacao.editarNota(b.id); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
             rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar carro…" alturaDaLinhaDoTempo="38dvh" larguraEsquerda={LARGURA_ESQUERDA}
@@ -129,14 +131,14 @@ export function Planejamento() {
               <span className="t-body"><b>{selecionado.nome}</b> · {carrosDoSelecionado} carro{carrosDoSelecionado === 1 ? "" : "s"} reservado{carrosDoSelecionado === 1 ? "" : "s"}. As reservas dele estão destacadas nos carros.</span>
               <span className="ds-row" style={{ flexWrap: "wrap" }}>
                 <Button size="sm" onClick={() => setReservando(true)} data-testid="reservar-para-selecionado">Reservar carros</Button>
-                <Button size="sm" variant="secondary" onClick={() => navigate(`/eventos/${selecionado.id}`)}>Abrir evento</Button>
+                <Button size="sm" variant="secondary" onClick={() => abrirNoLugar(`/eventos/${selecionado.id}`)}>Abrir evento</Button>
                 <Button size="sm" variant="ghost" icon={<X size={16} />} onClick={() => setSelecionadoId(null)} aria-label="Limpar seleção">Limpar</Button>
               </span>
             </div></Card>
           )}
           {modoEvento && <PedidosDoEvento pedidos={pedidosDoSel} codigoDoCarro={(rid) => { const r = d.reservas.find((x) => x.id === rid); return r ? nomeDoCarro(r.veiculo_id) : null; }} onNaoAtendido={d.marcarNaoAtendido} />}
           <TelaDoMotor<Evento> tela="planejamento-eventos" titulo="Eventos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
-            linhas={d.eventos ? eventosVisiveis : null} erro={d.erro} campos={d.campos} idDe={(e) => e.id} onEditar={d.editarEvento} onAbrir={(e) => navigate(`/eventos/${e.id}`)} selecionadoId={selecionadoId} aoSelecionar={(e) => setSelecionadoId((atual) => (atual === e.id ? null : e.id))}
+            linhas={d.eventos ? eventosVisiveis : null} erro={d.erro} campos={d.campos} idDe={(e) => e.id} onEditar={d.editarEvento} onAbrir={(e) => abrirNoLugar(`/eventos/${e.id}`)} selecionadoId={selecionadoId} aoSelecionar={(e) => setSelecionadoId((atual) => (atual === e.id ? null : e.id))}
             linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => setSelecionadoId(e.id) }}
             rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento…" alturaDaLinhaDoTempo="30dvh" larguraEsquerda={LARGURA_ESQUERDA}
             vazio={<p className="t-body t-muted">Nenhum evento ainda. Crie o primeiro em “Novo evento”.</p>} />

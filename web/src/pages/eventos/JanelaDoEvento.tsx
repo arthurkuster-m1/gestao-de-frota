@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from "react";
-import { useNavigate, useSearchParams } from "react-router-dom";
+import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
@@ -30,6 +30,7 @@ export type AbaDoEvento = "dados" | "veiculos" | "transportes" | "contratos";
 const ABAS: { id: AbaDoEvento; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "transportes", rotulo: "Transportes" }, { id: "contratos", rotulo: "Contratos" }];
 
 type Props = {
+  /** Aba aberta (a tela escolhe onde guardá-la: no endereço ou na memória). */ aba: AbaDoEvento; onAba: (a: AbaDoEvento) => void;
   evento: Evento; campos: readonly CampoDaTela<Evento>[]; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[];
   tr: ReturnType<typeof useTransportes>; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
@@ -48,9 +49,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const { evento, campos, tr, cheia, aoAlternarCheia, onFechar } = p;
   const navigate = useNavigate();
   const toast = useToast();
-  const [busca, setBusca] = useSearchParams();
-  const aba: AbaDoEvento = ABAS.some((a) => a.id === busca.get("aba")) ? (busca.get("aba") as AbaDoEvento) : "dados";
-  const irParaAba = (id: string) => setBusca(id === "dados" ? {} : { aba: id }, { replace: true });
+  const { aba, onAba } = p;
+  const irParaAba = (id: string) => onAba(id as AbaDoEvento);
   const [falha, setFalha] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
   const [novoLocal, setNovoLocal] = useState<EventoLocalNovo[] | null>(null);

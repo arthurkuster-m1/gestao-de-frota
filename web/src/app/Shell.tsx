@@ -4,6 +4,7 @@ import { List, X } from "@phosphor-icons/react";
 import { Avatar, Button, FloatingNav } from "../ds";
 import { useEspaco } from "../lib/espaco";
 import { SidebarContent } from "./Sidebar";
+import { PaineisNoLugar } from "./PaineisNoLugar";
 import { DESTINOS, destinoDoCaminho } from "./modules";
 
 export function Shell() {
@@ -37,7 +38,7 @@ export function Shell() {
           <span className="t-h3">{titulo}</span>
           {eu ? <Avatar nome={eu.display_name} /> : <span style={{ width: 40 }} />}
         </header>
-        <Outlet />
+        <PaineisNoLugar><Outlet /></PaineisNoLugar>
       </div>
 
       <dialog ref={ref} className="ds-drawer" aria-label="Menu" onClose={() => setGaveta(false)} onClick={(e) => { if (e.target === ref.current) setGaveta(false); }}>

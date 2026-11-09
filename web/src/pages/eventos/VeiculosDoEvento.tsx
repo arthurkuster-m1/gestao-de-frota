@@ -1,5 +1,5 @@
+import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useMemo, useState, type ReactNode } from "react";
-import { Link } from "react-router-dom";
 import { CaretLeft, CaretRight, ClipboardText, Columns, ListChecks, Lock, Plus, Trash, Warning } from "@phosphor-icons/react";
 import { Button, Switch, cx, useToast } from "../../ds";
 import { Tag } from "../../components/motor/Tag";
@@ -150,7 +150,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, eventos, locais, 
                   <td>
                     <span className="mt-vde__codigo">
                       {!r && <Lock size={14} weight="fill" aria-label="Pedido do evento" />}
-                      {v ? <Link to={`/veiculos/${v.id}`} className="mt-reserva__evento">{codigoDaLinha(l)}</Link> : <span className="mt-vde__pedido">{codigoDaLinha(l)}</span>}
+                      {v ? <LinkNoLugar to={`/veiculos/${v.id}`} className="mt-reserva__evento">{codigoDaLinha(l)}</LinkNoLugar> : <span className="mt-vde__pedido">{codigoDaLinha(l)}</span>}
                       {l.pedido?.nao_atendido && <span className="t-body-sm" style={{ color: "var(--color-error-fg)" }}>Veículo não estava disponível</span>}
                       {choques.length > 0 && <span title={`Também está em: ${agendaTexto(choques, (x) => nomes.get(x) ?? "?", hojeLocal())}`} data-testid="aviso-conflito"><Warning size={16} weight="fill" /></span>}
                     </span>

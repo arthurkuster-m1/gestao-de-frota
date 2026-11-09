@@ -1,3 +1,4 @@
+import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CalendarBlank, CalendarCheck, Plus, Warning, Wrench, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
@@ -37,7 +38,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome:
         const e = ESTADOS_RESERVA.find((x) => x.value === r.estado)!;
         return (
           <li key={r.id} className="mt-reserva">
-            <div className="mt-reserva__topo"><Link to={`/eventos/${r.evento_id}`} className="mt-reserva__evento">{nome(r.evento_id)}</Link><Tag opcao={{ value: e.value, label: e.label, tom: e.tom }} /></div>
+            <div className="mt-reserva__topo"><LinkNoLugar to={`/eventos/${r.evento_id}`} className="mt-reserva__evento">{nome(r.evento_id)}</LinkNoLugar><Tag opcao={{ value: e.value, label: e.label, tom: e.tom }} /></div>
             <span className="t-body-sm t-muted">{formatarDiaBr(r.reserva_inicio)} até {formatarDiaBr(r.reserva_fim)}</span>
           </li>
         );

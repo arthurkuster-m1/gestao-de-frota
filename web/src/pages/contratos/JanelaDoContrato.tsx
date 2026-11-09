@@ -1,3 +1,4 @@
+import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash, Warning, X } from "@phosphor-icons/react";
@@ -50,7 +51,7 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
             {(ed.erro || edAd.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro ?? edAd.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { ed.setErro(null); edAd.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
             <dl className="mt-ficha" data-testid="ficha-dados">
               {campos.filter((c) => c.id !== "carros" && c.id !== "aditivos").map((c) => (
-                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <Link to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</Link> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
+                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <LinkNoLugar to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</LinkNoLugar> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
               ))}
             </dl>
 

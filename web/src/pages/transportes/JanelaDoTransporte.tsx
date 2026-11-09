@@ -1,3 +1,4 @@
+import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash, X } from "@phosphor-icons/react";
@@ -45,7 +46,7 @@ export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vin
             {(ed.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { ed.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
             <dl className="mt-ficha" data-testid="ficha-dados">
               {campos.filter((c) => c.id !== "carros").map((c) => (
-                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <Link to={`/eventos/${transporte.evento_id}`} className="mt-reserva__evento">{formatar(c, transporte)}</Link> : <CampoEditavel linha={transporte} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
+                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <LinkNoLugar to={`/eventos/${transporte.evento_id}`} className="mt-reserva__evento">{formatar(c, transporte)}</LinkNoLugar> : <CampoEditavel linha={transporte} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
               ))}
             </dl>
             {transporte.modalidade === "retirada" ? null : combinam.length === 0 && <p className="t-body-sm t-muted">Ainda não há pagamento de {transporte.modalidade === "pta" ? "PTA" : "NF da TSO"}. Crie em Pagamentos para ligar aqui.</p>}
