@@ -46,7 +46,7 @@ export function useDadosDeEventos() {
     const m = new Map<string, Reserva[]>();
     for (const r of reservas) { const l = m.get(r.evento_id); if (l) l.push(r); else m.set(r.evento_id, [r]); }
     const lm = new Map<string, EventoLocal[]>();
-    for (const l of [...locais].sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
+    for (const l of locais.filter((x) => x.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
     const sd = new Map<string, ReservaDoEvento[]>();
     for (const r of reservasSemData) { const l = sd.get(r.evento_id); if (l) l.push(r); else sd.set(r.evento_id, [r]); }
     return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento };
@@ -114,8 +114,9 @@ export function useDadosDeEventos() {
     setLocais((l) => l.map((x) => (x.id === linha.id ? novo : x)));
   };
   const adicionarLocais = async (eventoId: string, novos: EventoLocalNovo[]) => {
-    const criados = await criarLocais(eventoId, novos, locais.filter((l) => l.evento_id === eventoId).length);
-    setLocais((l) => [...l, ...criados]); toast(`${criados.length} local${criados.length === 1 ? "" : "is"} adicionado${criados.length === 1 ? "" : "s"}`);
+    const tipoNovo = novos[0]?.tipo ?? "local";
+    const criados = await criarLocais(eventoId, novos, locais.filter((l) => l.evento_id === eventoId && (l.tipo ?? "local") === tipoNovo).length);
+    setLocais((l) => [...l, ...criados]); toast(tipoNovo === "origem" ? "Origem adicionada" : "Local adicionado");
   };
   const tirarLocal = async (l: EventoLocal) => { await removerLocal(l.id); setLocais((x) => x.filter((y) => y.id !== l.id)); toast("Local removido"); };
   /** Arrastar a barra de um evento move TODAS as reservas dele (chegada e retirada acompanham). */
@@ -147,5 +148,7 @@ export function useDadosDeEventos() {
   const moverNota = (id: string, inicio: string, fim: string) => editarNota(id, { inicio, fim });
   const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  const locaisSemOrigens = useMemo(() => locais.filter((l) => l.tipo !== "origem"), [locais]);
+  const origensExtras = useMemo(() => locais.filter((l) => l.tipo === "origem"), [locais]);
+  return { pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

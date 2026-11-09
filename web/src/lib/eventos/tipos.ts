@@ -32,8 +32,9 @@ export type Reserva = { id: string; evento_id: string; veiculo_id: string; reser
 export type ReservaDoEvento = Omit<Reserva, "reserva_inicio" | "reserva_fim"> & { reserva_inicio: string | null; reserva_fim: string | null };
 
 /** Um endereço do evento (digitado em cada evento; um evento pode ter vários). */
-export type EventoLocal = { id: string; evento_id: string; rotulo: string | null; endereco: string; cidade: string | null; estado: string | null; posicao: number };
-export type EventoLocalNovo = { rotulo?: string | null; endereco: string; cidade?: string | null; estado?: string | null };
+/** `tipo`: "local" = endereço do evento; "origem" = origem extra (a principal fica em eventos.origem). Sem a migration 0022 vem vazio (= local). */
+export type EventoLocal = { id: string; evento_id: string; rotulo: string | null; endereco: string; cidade: string | null; estado: string | null; posicao: number; tipo?: "local" | "origem" };
+export type EventoLocalNovo = { rotulo?: string | null; endereco: string; cidade?: string | null; estado?: string | null; tipo?: "local" | "origem" };
 
 export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"] as const;
 

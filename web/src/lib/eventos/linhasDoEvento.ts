@@ -32,7 +32,7 @@ export function statusPelaReserva(estado: string | undefined, doEvento: StatusEv
 }
 export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista"> & { origem?: string | null }, locais: readonly EventoLocal[]) {
   const r = l.reserva;
-  const principal = [...locais].sort((a, b) => a.posicao - b.posicao)[0];
+  const principal = locais.filter((l) => l.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)[0];
   const enderecoDoEvento = principal ? principal.endereco : null;   // já é a linha completa (rua, número - cidade/UF - CEP)
   const pega = <T,>(proprio: T | null | undefined, padrao: T | null) => ({ valor: (proprio ?? padrao) as T | null, herdado: proprio == null });
   return {

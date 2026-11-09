@@ -5,6 +5,7 @@ import type { ReservaDoEvento, AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Eve
 export class ErroEvento extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroEvento {
   if (/eventos|evento_veiculos/.test(e.message) && /schema cache|does not exist/.test(e.message)) return new ErroEvento("Eventos e reservas ainda não foram ativados no banco (falta aplicar a migration 0006).");
+  if (/tipo/.test(e.message) && /schema cache|does not exist|column/.test(e.message)) return new ErroEvento("Várias origens ainda não foram ativadas no banco (falta aplicar a migration 0022).");
   if (e.code === "23505") return new ErroEvento(/evento_veiculos_evento_id_veiculo_id/.test(e.message) ? "Esse carro já está nesse evento." : "Já existe um evento com esse nome.");
   if (e.code === "23514") return new ErroEvento(/janela_check/.test(e.message) ? "A chegada e a retirada precisam ficar dentro do período da reserva, nessa ordem." : /evento_locais/.test(e.message) ? "O endereço não pode ficar vazio (e o estado é a sigla, como SP)." : /reserva_fim|check/.test(e.message) ? "A data final não pode ser antes da inicial." : "Algum campo está inválido.");
   if (e.code === "23503") return new ErroEvento("O veículo ou o evento não existe mais.");
@@ -14,7 +15,8 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
 const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato, cliente_id, origem";
 const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios, origem, endereco_chegada, status_individual";
 const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios, origem, endereco_chegada, status_individual";
-const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
+const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao, tipo";
+const COLUNAS_LOCAL_ANTIGAS = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
 
 export async function listarEventos(): Promise<Evento[]> {
   const { data, error } = await supabase.from("eventos").select(COLUNAS_EVENTO).order("created_at", { ascending: false }).limit(2000);
@@ -100,13 +102,18 @@ export async function atualizarReservas(ids: string[], patchDe: (id: string) => 
 
 export async function listarLocais(): Promise<EventoLocal[]> {
   const { data, error } = await supabase.from("evento_locais").select(COLUNAS_LOCAL).order("posicao", { ascending: true }).limit(10000);
-  if (error) throw traduzir(error);
+  if (error) {
+    // sem a migration 0022 a coluna "tipo" não existe: lê sem ela (tudo é local)
+    const antigo = await supabase.from("evento_locais").select(COLUNAS_LOCAL_ANTIGAS).order("posicao", { ascending: true }).limit(10000);
+    if (antigo.error) throw traduzir(error);
+    return (antigo.data ?? []) as EventoLocal[];
+  }
   return (data ?? []) as EventoLocal[];
 }
 export async function criarLocais(eventoId: string, locais: EventoLocalNovo[], primeiraPosicao = 0): Promise<EventoLocal[]> {
   const validos = locais.filter((l) => l.endereco.trim() !== "");
   if (validos.length === 0) return [];
-  const linhas = validos.map((l, i) => ({ evento_id: eventoId, rotulo: l.rotulo?.trim() || null, endereco: l.endereco.trim(), ...(() => { const c = cidadeEUf(l.endereco); return { cidade: l.cidade?.trim() || c.cidade, estado: l.estado ? l.estado.toUpperCase() : c.estado }; })(), posicao: primeiraPosicao + i }));
+  const linhas = validos.map((l, i) => ({ evento_id: eventoId, rotulo: l.rotulo?.trim() || null, endereco: l.endereco.trim(), ...(l.tipo === "origem" ? { tipo: "origem" } : {}), ...(() => { const c = cidadeEUf(l.endereco); return { cidade: l.cidade?.trim() || c.cidade, estado: l.estado ? l.estado.toUpperCase() : c.estado }; })(), posicao: primeiraPosicao + i }));
   const { data, error } = await supabase.from("evento_locais").insert(linhas).select(COLUNAS_LOCAL);
   if (error) throw traduzir(error);
   return (data ?? []) as EventoLocal[];

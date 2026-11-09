@@ -1,6 +1,6 @@
 import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { useVersaoDosDados } from "../../lib/sincronia";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
@@ -22,7 +22,8 @@ import { useContratos } from "../contratos/useContratos";
 import { camposDoTransporte, type ContextoDeTransportes } from "../transportes/camposDeTransportes";
 import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
-import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
+import { JanelaDeEndereco } from "../../components/motor/EditorDeEndereco";
+import { LinhaDeEndereco } from "./LinhaDeEndereco";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import "../veiculos/veiculos.css";
@@ -32,7 +33,7 @@ const ABAS: { id: AbaDoEvento; rotulo: string }[] = [{ id: "dados", rotulo: "Dad
 
 type Props = {
   /** Aba aberta (a tela escolhe onde guardá-la: no endereço ou na memória). */ aba: AbaDoEvento; onAba: (a: AbaDoEvento) => void;
-  evento: Evento; campos: readonly CampoDaTela<Evento>[]; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[];
+  evento: Evento; campos: readonly CampoDaTela<Evento>[]; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; locais: EventoLocal[]; /** origens extras (além da principal) */ origens?: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[];
   tr: ReturnType<typeof useTransportes>; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
@@ -56,7 +57,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const irParaAba = (id: string) => onAba(id as AbaDoEvento);
   const [falha, setFalha] = useState<string | null>(null);
   const [excluindo, setExcluindo] = useState(false);
-  const [novoLocal, setNovoLocal] = useState<EventoLocalNovo[] | null>(null);
+  const [adicionando, setAdicionando] = useState<"origem" | "local" | null>(null);
   const [novoPedido, setNovoPedido] = useState<PedidoDeCarro[] | null>(null);
   const [comentario, setComentario] = useState(evento.comentarios ?? "");
   const [novoContrato, setNovoContrato] = useState(false);
@@ -67,12 +68,18 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   useEffect(() => { setComentario(evento.comentarios ?? ""); }, [evento.id, evento.comentarios]);
 
   const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);
-  const edLocal = useEdicao<EventoLocal>((l) => l.id, p.onEditarLocal);
   const locaisDoEvento = useMemo(() => p.locais.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.locais, evento.id]);
   const camposDeDados = campos.filter((c) => !["comentarios", "locais", "carros", "transporte"].includes(c.id));
   const editaveis = camposDeDados.filter((c) => c.edicao).map((c) => c.id);
   const campoComentarios = campos.find((c) => c.id === "comentarios");
   const campoStatus = campos.find((c) => c.id === "status");
+  const campoOrigem = campos.find((c) => c.id === "origem");
+  const campoEnderecoLocal = camposDoLocal.find((c) => c.id === "endereco")!;
+  const origensExtras = useMemo(() => (p.origens ?? []).filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.origens, evento.id]);
+  const erro = (e: unknown) => setFalha((e as Error).message);
+  /** Salvar um endereço de local ou origem extra: texto novo troca, vazio remove. */
+  const salvarLocal = (l: EventoLocal, v: string | null) => (v ? p.onEditarLocal(l, campoEnderecoLocal, v) : p.onRemoverLocal(l)).catch(erro);
+  const salvarOrigemPrincipal = (v: string | null) => { if (campoOrigem) void p.onEditarEvento(evento, campoOrigem, v).catch(erro); };
 
   async function salvarComentario() {
     if (!campoComentarios || comentario === (evento.comentarios ?? "")) return;
@@ -104,27 +111,23 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {ABAS.map((a) => <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className={cx("mt-aba", aba === a.id && "is-on")} onClick={() => irParaAba(a.id)} data-testid="aba-janela">{a.rotulo}</button>)}
       </div>
       <div className="mt-janela__conteudo">
-        {(edEvento.erro || edLocal.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{edEvento.erro ?? edLocal.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { edEvento.setErro(null); edLocal.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
+        {(edEvento.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{edEvento.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { edEvento.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
 
         {aba === "dados" && (
           <div className="ds-stack">
             <dl className="mt-ficha" data-testid="ficha-dados">
-              {camposDeDados.map((c) => <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div>)}
+              {camposDeDados.map((c) => c.id === "origem" ? (
+                <Fragment key={c.id}>
+                  <LinhaDeEndereco titulo="Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
+                  {origensExtras.map((l, i) => <LinhaDeEndereco key={l.id} titulo={`Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
+                  {locaisDoEvento.length === 0
+                    ? <LinhaDeEndereco titulo="Local do evento" valor={null} onSalvar={(v) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v }]).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
+                    : locaisDoEvento.map((l, i) => <LinhaDeEndereco key={l.id} titulo={i === 0 ? "Local do evento" : `Local ${i + 1}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onAdicionar={i === 0 ? () => setAdicionando("local") : undefined} rotuloAdicionar="Adicionar outro local" onRemover={i === 0 ? undefined : () => void p.onRemoverLocal(l).catch(erro)} testid="linha-local" />)}
+                </Fragment>
+              ) : <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div>)}
             </dl>
-
-            <section className="ds-stack" data-testid="dados-locais">
-              <div className="ds-row" style={{ justifyContent: "space-between" }}>
-                <h3 className="t-h3"><MapPin size={18} style={{ verticalAlign: "-3px" }} /> Local do evento</h3>
-                <Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoLocal([localVazio()])} data-testid="novo-local">Adicionar local</Button>
-              </div>
-              {locaisDoEvento.length === 0 && <p className="t-body-sm t-muted">Nenhum endereço ainda. Se os carros vão para mais de um lugar, adicione um local para cada um.</p>}
-              {locaisDoEvento.map((l) => (
-                <dl key={l.id} className="mt-ficha mt-ficha--local" data-testid="local">
-                  {camposDoLocal.map((c) => <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={l} campo={c} ed={edLocal} navegaveis={camposDoLocal.map((x) => x.id)} /></dd></div>)}
-                  <div className="mt-ficha__linha"><dt /><dd><Button variant="ghost" size="sm" icon={<Trash size={16} />} onClick={() => void p.onRemoverLocal(l).catch((e: Error) => setFalha(e.message))}>Remover local</Button></dd></div>
-                </dl>
-              ))}
-            </section>
+            <JanelaDeEndereco aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
+              onSalvar={(t) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo }]).catch(erro); }} />
 
             <section className="ds-stack">
               <h3 className="t-h3">Comentários</h3>
@@ -158,12 +161,6 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         )}
       </div>
       <NovoContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} eventos={[evento]} eventosComContrato={new Set(k.contratos.map((c) => c.evento_id))} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} onCriar={k.criar} onCriado={(c) => navigate(`/contratos/${c.id}`)} />
-      <Sheet open={!!novoLocal} onClose={() => setNovoLocal(null)} title="Adicionar local">
-        <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoLocal) return; void p.onAdicionarLocais(evento.id, novoLocal).then(() => setNovoLocal(null)).catch((x: Error) => setFalha(x.message)); }}>
-          <FormularioDeLocais locais={novoLocal ?? []} onChange={setNovoLocal} />
-          <Button type="submit" size="lg" block disabled={!novoLocal?.some((l) => l.endereco.trim())} data-testid="salvar-locais">Salvar local</Button>
-        </form>
-      </Sheet>
       <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos" wide>
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido) return; void p.onAdicionarDesejados(evento.id, novoPedido.filter((x) => x.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
           <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />

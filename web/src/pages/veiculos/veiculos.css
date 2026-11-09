@@ -280,3 +280,9 @@
 }
 
 .mt-vde__definir { flex: none; }
+
+/* Linhas de endereço (origem, locais) na ficha de Dados do evento: valor com cara de texto e botões "+" e lixeira no fim da linha */
+.mt-linha-end { display: flex; align-items: center; gap: 8px; }
+.mt-linha-end .mt-campo-endereco { flex: 1; min-width: 0; border-color: transparent; background: transparent; padding: 0 8px; }
+.mt-linha-end .mt-campo-endereco:hover { border-color: var(--color-border-strong); background: var(--color-surface-elevated); }
+.mt-linha-end__acoes { display: inline-flex; gap: 2px; flex: none; }
