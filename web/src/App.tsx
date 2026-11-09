@@ -10,6 +10,7 @@ import { EmBreve } from "./pages/EmBreve";
 import { SemConfig } from "./pages/SemConfig";
 import { Shell } from "./app/Shell";
 import { Veiculos } from "./pages/veiculos/Veiculos";
+import { AtualizarEmMassa } from "./pages/veiculos/AtualizarEmMassa";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { Eventos } from "./pages/eventos/Eventos";
 import { MassaEventos } from "./pages/eventos/MassaEventos";
@@ -43,6 +44,7 @@ function Autenticado() {
           <Route index element={<Home />} />
           <Route path="veiculos/novo" element={<Navigate to="/veiculos?novo=1" replace />} />
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
+          <Route path="veiculos/atualizar" element={<AtualizarEmMassa />} />
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />
           <Route path="eventos/massa" element={<MassaEventos />} />

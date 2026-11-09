@@ -2,7 +2,7 @@ import { useVersaoDosDados } from "../../lib/sincronia";
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { Plus, Table, Car } from "@phosphor-icons/react";
+import { ArrowsClockwise, Plus, Table, Car } from "@phosphor-icons/react";
 import { Button, Card, EmptyState, useToast } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import type { ConfigDeChips } from "../../components/motor/ChipsRapidos";
@@ -152,6 +152,7 @@ function NovoMenu({ aoNovo }: { aoNovo: () => void }) {
       <div ref={ref} popover="auto" role="menu" className="ds-pop" data-testid="novo-menu-lista">
         <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => { setAberto(false); aoNovo(); }}><span>Adicionar novo veículo</span><Plus size={18} /></button>
         <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => ir("/veiculos/massa")}><span>Importar em massa</span><Table size={18} /></button>
+        <button type="button" role="menuitem" className="ds-pop__opcao" style={{ width: "100%", border: 0, background: "transparent", color: "inherit", font: "inherit" }} onClick={() => ir("/veiculos/atualizar")}><span>Atualizar em massa</span><ArrowsClockwise size={18} /></button>
       </div>
     </span>
   );
