@@ -25,6 +25,13 @@ describe("linhas do evento", () => {
     expect(e.origem).toEqual({ valor: "Curitiba", herdado: false });
     expect(e.status).toEqual({ valor: "planejado", herdado: true });
   });
+  it("o carro que já voltou mostra Concluído mesmo com o evento Em uso; status próprio manda", () => {
+    const ev = { status: "em_uso" as const, chegada_prevista: null, retirada_prevista: null };
+    const com = (o: Partial<Reserva>) => ({ key: "r:r1", reserva: r("r1", "v1", o), pedido: null, veiculo: v("v1") });
+    expect(valoresEfetivos(com({ estado: "concluido" }), ev, []).status).toEqual({ valor: "concluido", herdado: true });
+    expect(valoresEfetivos(com({ estado: "reservado" }), ev, []).status.valor).toBe("em_uso");
+    expect(valoresEfetivos(com({ estado: "concluido", status_individual: "retorno_solicitado" }), ev, []).status).toEqual({ valor: "retorno_solicitado", herdado: false });
+  });
   it("tabela do Outlook: títulos + só carros definidos, com HTML escapado", () => {
     const t = tabelaParaOutlook([{ key: "r:1", reserva: r("r1", "v1"), pedido: null, veiculo: v("v1", { modelo: "A<B" }) }, { key: "p:1", reserva: null, pedido: p("p1"), veiculo: null }]);
     expect(t.texto).toBe("Código\tPlaca\tVIN\tModelo\tCor\tMY\nA<B\tABC1D23\tVIN1\tA<B\tBranco\t2027");

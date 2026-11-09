@@ -1,6 +1,6 @@
 import type { Transporte, Sentido, Modalidade } from "../transportes/tipos";
 import type { Veiculo } from "../veiculos/tipos";
-import type { Evento, EventoLocal, ModeloDesejado, ReservaDoEvento } from "./tipos";
+import type { Evento, EventoLocal, ModeloDesejado, ReservaDoEvento, StatusEvento } from "./tipos";
 
 /** Uma linha da tabela de veículos do evento: um carro já definido (reserva) ou um carro PEDIDO ainda sem definição (modelo desejado). */
 export type LinhaDoEvento = { key: string; reserva: ReservaDoEvento | null; pedido: ModeloDesejado | null; veiculo: Veiculo | null };
@@ -23,13 +23,20 @@ export function montarLinhas(eventoId: string, reservas: readonly ReservaDoEvent
 }
 
 /** O que cada campo individual vale: o da reserva, se foi individualizado; senão herda do evento. `herdado` diz de onde veio. */
+/** Sem status próprio, o carro mostra a situação DELE (checklist de saída = Em uso, de retorno = Concluído) e só herda o status do evento enquanto está apenas reservado. */
+export function statusPelaReserva(estado: string | undefined, doEvento: StatusEvento): StatusEvento {
+  if (estado === "concluido") return "concluido";
+  if (estado === "em_retorno") return "solicitar_retorno";
+  if (estado === "em_uso") return "em_uso";
+  return doEvento;
+}
 export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista"> & { origem?: string | null }, locais: readonly EventoLocal[]) {
   const r = l.reserva;
   const principal = [...locais].sort((a, b) => a.posicao - b.posicao)[0];
   const enderecoDoEvento = principal ? principal.endereco : null;   // já é a linha completa (rua, número - cidade/UF - CEP)
   const pega = <T,>(proprio: T | null | undefined, padrao: T | null) => ({ valor: (proprio ?? padrao) as T | null, herdado: proprio == null });
   return {
-    status: pega(r?.status_individual, evento.status),
+    status: pega(r?.status_individual, statusPelaReserva(r?.estado, evento.status)),
     chegada: pega(r?.chegada, evento.chegada_prevista),
     retirada: pega(r?.retirada, evento.retirada_prevista),
     enderecoChegada: pega(r?.endereco_chegada, enderecoDoEvento),
