@@ -1,4 +1,4 @@
-import { useEffect, useRef, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cx } from "../cx";
 
 export function Page({ children, center, wide }: { children: ReactNode; center?: boolean; wide?: boolean }) {
@@ -41,6 +41,12 @@ export function FloatingNav({ items, active, onSelect, fixed = true, className }
 /** Folha que sobe de baixo no celular e vira modal no desktop. Usa <dialog>: foco preso e Esc nativos. */
 export function Sheet({ open, onClose, title, children, wide }: { open: boolean; onClose: () => void; title: string; children: ReactNode; /** Janela larga (formulários de página inteira, como no Notion). */ wide?: boolean }) {
   const ref = useRef<HTMLDialogElement>(null);
+  // Arrastar a barrinha (ou o topo) para baixo fecha a janela, como num "bottom sheet" do celular.
+  const [arrasto, setArrasto] = useState<number | null>(null);
+  const toque = useRef({ y0: 0, dy: 0 });
+  const comecarArrasto = (e: React.PointerEvent<HTMLDivElement>) => { e.currentTarget.setPointerCapture(e.pointerId); toque.current = { y0: e.clientY, dy: 0 }; setArrasto(0); };
+  const moverArrasto = (e: React.PointerEvent<HTMLDivElement>) => { if (arrasto === null) return; toque.current.dy = Math.max(0, e.clientY - toque.current.y0); setArrasto(toque.current.dy); };
+  const soltarArrasto = () => { if (arrasto === null) return; const fechar = toque.current.dy > 110; setArrasto(null); if (fechar) ref.current?.close(); };
   useEffect(() => {
     const d = ref.current;
     if (!d) return;
@@ -61,9 +67,10 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
       // o evento "close" sobe pela árvore do React: sem este filtro, fechar uma janela aninhada fecharia também a de fora
       onClose={(e) => { if (e.target === ref.current) onClose(); }}
       onClick={(e) => { if (e.target === ref.current) onClose(); }}
+      style={arrasto === null ? undefined : { transform: `translateY(${arrasto}px)`, transition: "none" }}
     >
       <div className="ds-sheet__body">
-        <div className="ds-sheet__grip" aria-hidden />
+        <div className="ds-sheet__alca" onPointerDown={comecarArrasto} onPointerMove={moverArrasto} onPointerUp={soltarArrasto} onPointerCancel={soltarArrasto} data-testid="alca-da-janela"><div className="ds-sheet__grip" aria-hidden /></div>
         <h2 className="t-h2">{title}</h2>
         {children}
       </div>

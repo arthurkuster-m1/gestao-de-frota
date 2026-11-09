@@ -16,6 +16,7 @@ import { MassaEventos } from "./pages/eventos/MassaEventos";
 import { Contratos } from "./pages/contratos/Contratos";
 import { Transportes } from "./pages/transportes/Transportes";
 import { Manutencoes } from "./pages/manutencoes/Manutencoes";
+import { ChecklistsPagina } from "./pages/checklists/ChecklistsPagina";
 import { Lancamentos } from "./pages/lancamentos/Lancamentos";
 import { Planejamento } from "./pages/planejamento/Planejamento";
 import { Clientes } from "./pages/clientes/Clientes";
@@ -48,6 +49,7 @@ function Autenticado() {
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />
           <Route path="lancamentos" element={<Lancamentos />} />
+          <Route path="checklists" element={<ChecklistsPagina />} />
           <Route path="eventos/massa" element={<MassaEventos />} />
           <Route path="eventos/:id?" element={<Eventos />} />
           <Route path="manutencoes/:id?" element={<Manutencoes />} />
@@ -56,7 +58,7 @@ function Autenticado() {
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<FormCliente />} />
           <Route path="clientes/:id" element={<FormCliente />} />
-          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento" && d.path !== "/lancamentos").map((d) => (
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento" && d.path !== "/lancamentos" && d.path !== "/checklists").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
