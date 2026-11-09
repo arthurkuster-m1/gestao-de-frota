@@ -108,3 +108,8 @@
 .mt-voltar:hover { color: var(--color-accent); }
 .mt-ficha--local { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
 @media (min-width: 720px) { .mt-evf--5 { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+
+/* Painel do evento expandido: o mesmo painel, na tela cheia */
+.mt-janela--cheia { width: 100vw; border-left: 0; border-radius: 0; }
+.mt-janela--cheia .mt-janela__conteudo { padding: var(--space-5) clamp(16px, 3vw, 48px); }
+.mt-janela__expandir { margin-right: 0; }

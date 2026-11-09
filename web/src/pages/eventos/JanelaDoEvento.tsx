@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { ArrowLeft, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
-import { Button, EmptyState, Page, SeletorPilula, Sheet, Textarea, useToast } from "../../ds";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { ArrowsIn, ArrowsOut, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
+import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
@@ -23,7 +23,6 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { FormularioDeLocais, localVazio } from "./FormularioDeLocais";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
-import { SubpaginasDeEventos } from "./SubpaginasDeEventos";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import "../veiculos/veiculos.css";
 
@@ -45,8 +44,8 @@ type Props = {
  * A página inteira de um evento, com as subpáginas Dados, Veículos, Transportes e Contratos. Local e comentários moram em Dados
  * (como o cliente, logo abaixo do nome). O evento manda: transportes e contratos são os dele.
  */
-export function PaginaDoEvento(p: Props) {
-  const { evento, campos, tr } = p;
+export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: () => void; onFechar: () => void }) {
+  const { evento, campos, tr, cheia, aoAlternarCheia, onFechar } = p;
   const navigate = useNavigate();
   const toast = useToast();
   const [busca, setBusca] = useSearchParams();
@@ -89,20 +88,18 @@ export function PaginaDoEvento(p: Props) {
   const camposC = useMemo(() => camposDoContrato(ctxC), [ctxC]);
 
   return (
-    <Page wide>
-      <div className="ds-stack" data-testid="pagina-do-evento">
-        <div className="mt-cabecalho">
-          <div>
-            <Link to="/eventos" className="mt-voltar"><ArrowLeft size={16} /> Eventos</Link>
-            <h1 className="t-h1" data-testid="titulo-evento">{evento.nome}</h1>
-            {campoStatus && <div className="mt-janela__sub">{formatar(campoStatus, evento)}</div>}
-          </div>
-          <div className="ds-stack" style={{ gap: 8, justifyItems: "end" }}>
-            <SubpaginasDeEventos ativa="eventos" />
-            <SeletorPilula rotulo="Seções do evento" opcoes={ABAS} ativo={aba} aoEscolher={irParaAba} />
-          </div>
+    <div className="mt-janela__corpo" data-testid="janela-evento">
+      <header className="mt-janela__topo">
+        <div><h2 className="t-h2" data-testid="titulo-janela">{evento.nome}</h2>{campoStatus && <div className="mt-janela__sub">{formatar(campoStatus, evento)}</div>}</div>
+        <div className="ds-row" style={{ gap: 8 }}>
+          <button type="button" className="mt-janela__fechar mt-janela__expandir" aria-label={cheia ? "Voltar ao tamanho normal" : "Expandir para a tela cheia"} title={cheia ? "Reduzir" : "Expandir"} onClick={aoAlternarCheia} data-testid="expandir-evento">{cheia ? <ArrowsIn size={20} /> : <ArrowsOut size={20} />}</button>
+          <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>
         </div>
-
+      </header>
+      <div className="mt-abas" role="tablist" aria-label="Seções do evento">
+        {ABAS.map((a) => <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className={cx("mt-aba", aba === a.id && "is-on")} onClick={() => irParaAba(a.id)} data-testid="aba-janela">{a.rotulo}</button>)}
+      </div>
+      <div className="mt-janela__conteudo">
         {(edEvento.erro || edLocal.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{edEvento.erro ?? edLocal.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { edEvento.setErro(null); edLocal.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
 
         {aba === "dados" && (
@@ -157,7 +154,6 @@ export function PaginaDoEvento(p: Props) {
             vazio={<EmptyState icon={<FileText size={30} />} title="Este evento ainda não tem contrato" action={<Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)}>Criar contrato</Button>}>O contrato de comodato nasce deste evento: cliente, vigência e carros vêm das reservas.</EmptyState>} />
         )}
       </div>
-
       <NovoTransporte aberto={novoTransporte} onFechar={() => setNovoTransporte(false)} eventos={[evento]} reservas={p.reservas} veiculos={p.veiculos} onCriar={tr.criarT} onCriado={() => setNovoTransporte(false)} />
       <NovoContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} eventos={[evento]} eventosComContrato={new Set(k.contratos.map((c) => c.evento_id))} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} onCriar={k.criar} onCriado={(c) => navigate(`/contratos/${c.id}`)} />
       <Sheet open={!!novoLocal} onClose={() => setNovoLocal(null)} title="Adicionar local">
@@ -178,6 +174,20 @@ export function PaginaDoEvento(p: Props) {
           <Button variant="danger" size="lg" block onClick={() => void p.onExcluir(evento).then(() => setExcluindo(false)).catch((e: Error) => { setFalha(e.message); setExcluindo(false); })} data-testid="confirmar-excluir">Excluir evento</Button>
         </div>
       </Sheet>
-    </Page>
+    </div>
+  );
+}
+
+/** O evento abre em painel lateral, como sempre; o botão de expandir leva o MESMO painel para a tela cheia. */
+export function JanelaDoEvento({ evento, onFechar, ...resto }: Omit<Props, "evento"> & { evento: Evento | null; onFechar: () => void }) {
+  const ref = useRef<HTMLDialogElement>(null);
+  const [cheia, setCheia] = useState(false);
+  const id = evento?.id;
+  useEffect(() => { const d = ref.current; if (!d) return; if (id && !d.open) d.showModal(); if (!id && d.open) d.close(); }, [id]);
+  return (
+    <dialog ref={ref} className={cx("mt-janela", cheia && "mt-janela--cheia")} aria-label={`Evento ${evento?.nome ?? ""}`}
+      onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
+      {evento && <ConteudoDoEvento evento={evento} {...resto} cheia={cheia} aoAlternarCheia={() => setCheia((c) => !c)} onFechar={onFechar} />}
+    </dialog>
   );
 }
