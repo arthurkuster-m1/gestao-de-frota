@@ -24,8 +24,8 @@ export const ESTADOS_RESERVA = [
 ] as const satisfies readonly { value: string; label: string; tom: Tom }[];
 export type EstadoReserva = (typeof ESTADOS_RESERVA)[number]["value"];
 
-export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string };
-export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null };
+export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string; chegada_prevista: string | null; retirada_prevista: string | null };
+export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null; chegada_prevista?: string | null; retirada_prevista?: string | null };
 export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; chegada: string | null; retirada: string | null; estado: EstadoReserva; comentarios: string | null };
 
 /** Um endereço do evento (digitado em cada evento; um evento pode ter vários). */
@@ -36,3 +36,11 @@ export const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", 
 
 export const rotuloStatusEvento = (v: string) => STATUS_EVENTO.find((s) => s.value === v)?.label ?? v;
 export const rotuloEstadoReserva = (v: string) => ESTADOS_RESERVA.find((s) => s.value === v)?.label ?? v;
+
+/** Um carro PEDIDO para o evento (modelo mãe + versão, cor e MY opcionais). `reserva_id` = atendido; `nao_atendido` = não estava disponível. */
+export type ModeloDesejado = { id: string; evento_id: string; modelo: string; versao: string | null; cor: string | null; my: string | null; reserva_id: string | null; nao_atendido: boolean; nota: string | null; posicao: number };
+export type ModeloDesejadoNovo = { modelo: string; versao?: string | null; cor?: string | null; my?: string | null };
+
+/** Faixa livre na linha do tempo do carro (Produção, Em faturamento, Emplacamento…). */
+export type AnotacaoDoCarro = { id: string; veiculo_id: string; titulo: string; inicio: string; fim: string; comentarios: string | null };
+export type AnotacaoNova = { veiculo_id: string; titulo: string; inicio: string; fim: string; comentarios?: string | null };

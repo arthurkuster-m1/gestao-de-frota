@@ -1,5 +1,5 @@
 import { supabase } from "../supabase";
-import type { EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, Reserva } from "./tipos";
+import type { AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "./tipos";
 
 export class ErroEvento extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroEvento {
@@ -10,7 +10,7 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
   if (e.code === "42501") return new ErroEvento("Sem permissão. Entre de novo na conta.");
   return new ErroEvento(e.message);
 }
-const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at";
+const COLUNAS_EVENTO = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista";
 const COLUNAS_RESERVA = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios";
 const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios";
 const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
@@ -104,5 +104,55 @@ export async function atualizarLocal(id: string, patch: Partial<EventoLocalNovo>
 }
 export async function removerLocal(id: string): Promise<void> {
   const { error } = await supabase.from("evento_locais").delete().eq("id", id);
+  if (error) throw traduzir(error);
+}
+
+// ---------- modelos desejados do evento ----------
+const COLUNAS_DESEJADO = "id, evento_id, modelo, versao, cor, my, reserva_id, nao_atendido, nota, posicao";
+const limpo = (t: string | null | undefined) => { const x = (t ?? "").trim(); return x === "" ? null : x; };
+
+export async function listarDesejados(): Promise<ModeloDesejado[]> {
+  const { data, error } = await supabase.from("evento_modelos_desejados").select(COLUNAS_DESEJADO).order("posicao", { ascending: true }).limit(10000);
+  if (error) throw traduzir(error);
+  return (data ?? []) as ModeloDesejado[];
+}
+/** Cria uma linha por carro pedido (`quantidade` carros iguais viram linhas iguais). */
+export async function criarDesejados(eventoId: string, itens: (ModeloDesejadoNovo & { quantidade?: number })[], primeiraPosicao = 0): Promise<ModeloDesejado[]> {
+  const linhas = itens.filter((i) => limpo(i.modelo)).flatMap((i) => Array.from({ length: Math.max(1, Math.min(50, i.quantidade ?? 1)) }, () => ({ modelo: i.modelo.trim(), versao: limpo(i.versao), cor: limpo(i.cor), my: limpo(i.my) })))
+    .map((l, k) => ({ ...l, evento_id: eventoId, posicao: primeiraPosicao + k }));
+  if (linhas.length === 0) return [];
+  const { data, error } = await supabase.from("evento_modelos_desejados").insert(linhas).select(COLUNAS_DESEJADO);
+  if (error) throw traduzir(error);
+  return (data ?? []) as ModeloDesejado[];
+}
+export async function atualizarDesejado(id: string, patch: Partial<Pick<ModeloDesejado, "reserva_id" | "nao_atendido" | "nota">>): Promise<ModeloDesejado> {
+  const { data, error } = await supabase.from("evento_modelos_desejados").update(patch).eq("id", id).select(COLUNAS_DESEJADO).single();
+  if (error) throw traduzir(error);
+  return data as ModeloDesejado;
+}
+export async function removerDesejado(id: string): Promise<void> {
+  const { error } = await supabase.from("evento_modelos_desejados").delete().eq("id", id);
+  if (error) throw traduzir(error);
+}
+
+// ---------- anotações do carro ----------
+const COLUNAS_ANOTACAO = "id, veiculo_id, titulo, inicio, fim, comentarios";
+export async function listarAnotacoes(): Promise<AnotacaoDoCarro[]> {
+  const { data, error } = await supabase.from("veiculo_anotacoes").select(COLUNAS_ANOTACAO).order("inicio", { ascending: true }).limit(10000);
+  if (error) throw traduzir(error);
+  return (data ?? []) as AnotacaoDoCarro[];
+}
+export async function criarAnotacao(a: AnotacaoNova): Promise<AnotacaoDoCarro> {
+  const { data, error } = await supabase.from("veiculo_anotacoes").insert({ ...a, titulo: a.titulo.trim(), comentarios: limpo(a.comentarios) }).select(COLUNAS_ANOTACAO).single();
+  if (error) throw traduzir(error);
+  return data as AnotacaoDoCarro;
+}
+export async function atualizarAnotacao(id: string, patch: Partial<Pick<AnotacaoDoCarro, "titulo" | "inicio" | "fim" | "comentarios">>): Promise<AnotacaoDoCarro> {
+  const { data, error } = await supabase.from("veiculo_anotacoes").update(patch).eq("id", id).select(COLUNAS_ANOTACAO).single();
+  if (error) throw traduzir(error);
+  return data as AnotacaoDoCarro;
+}
+export async function removerAnotacao(id: string): Promise<void> {
+  const { error } = await supabase.from("veiculo_anotacoes").delete().eq("id", id);
   if (error) throw traduzir(error);
 }

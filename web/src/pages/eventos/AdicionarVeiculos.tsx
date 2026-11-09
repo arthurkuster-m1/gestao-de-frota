@@ -4,23 +4,28 @@ import { Button, DateField, Field, Input, Sheet } from "../../ds";
 import { Tag } from "../../components/motor/Tag";
 import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { periodoDaReserva } from "../../lib/eventos/barras";
-import type { Evento, Reserva } from "../../lib/eventos/tipos";
+import { cabeNosPedidos } from "../../lib/eventos/desejados";
+import type { Evento, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
+import { PedidosDoEvento } from "./PedidosDoEvento";
 import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
 /** Escolher carros para o evento: período, busca e, para cada carro, o status de uso e o AVISO de conflito com outras reservas. */
-export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], onReservar }: {
+export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas, eventos, manutencoes = [], pedidos = [], onNaoAtendido, onReservar }: {
   aberto: boolean; onFechar: () => void; evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; eventos: Evento[]; manutencoes?: Manutencao[];
+  /** O que o evento pediu (modelos desejados): filtra os carros e mostra o cadeado. */ pedidos?: ModeloDesejado[]; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>;
   onReservar: (veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }) => Promise<void>;
 }) {
-  const [chegada, setChegada] = useState(somarDias(hojeLocal(), 2));
-  const [retirada, setRetirada] = useState(somarDias(hojeLocal(), 4));
+  const [chegada, setChegada] = useState(evento.chegada_prevista ?? somarDias(hojeLocal(), 2));
+  const [retirada, setRetirada] = useState(evento.retirada_prevista ?? somarDias(hojeLocal(), 4));
   const [diasIda, setDiasIda] = useState("0");
   const [diasVolta, setDiasVolta] = useState("0");
   const [busca, setBusca] = useState("");
   const [marcados, setMarcados] = useState<Set<string>>(new Set());
+  const [soPedido, setSoPedido] = useState(true);
+  const [soLivres, setSoLivres] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
 
@@ -31,10 +36,14 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const periodoOk = !!chegada && !!retirada && retirada >= chegada;
   const { inicio, fim } = periodoOk ? periodoDaReserva(chegada, retirada, Number(diasIda) || 0, Number(diasVolta) || 0) : { inicio: chegada, fim: retirada };
 
+  const pedidosDoEvento = useMemo(() => pedidos.filter((p) => p.evento_id === evento.id), [pedidos, evento.id]);
+  const temPedidoAberto = pedidosDoEvento.some((p) => !p.reserva_id && !p.nao_atendido);
+  const codigoDaReserva = (reservaId: string) => { const r = reservas.find((x) => x.id === reservaId); const v = r && veiculos.find((x) => x.id === r.veiculo_id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : null; };
   const linhas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return veiculos
       .filter((v) => v.status_ciclo !== "devolvido" && !jaNoEvento.has(v.id))
+      .filter((v) => !soPedido || cabeNosPedidos(v, pedidosDoEvento))
       .filter((v) => !q || `${v.codigo ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""}`.toLowerCase().includes(q))
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
@@ -42,8 +51,9 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         const noConserto = periodoOk ? manutencoesQueBloqueiam({ inicio, fim }, oficina.get(v.id) ?? []) : [];
         return { v, uso: statusDeUso(r, oficina.get(v.id) ?? [], hojeLocal()), choques, noConserto };
       })
+      .filter((l) => !soLivres || (l.choques.length === 0 && l.noConserto.length === 0))
       .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0) - Number(b.choques.length + b.noConserto.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
-  }, [veiculos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id]);
+  }, [veiculos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id, soPedido, soLivres, pedidosDoEvento]);
 
   const alterna = (id: string) => setMarcados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
   const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0)).length;
@@ -66,9 +76,14 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
           <Field label="Dias de logística (volta)"><Input type="number" inputMode="numeric" min={0} value={diasVolta} onChange={(e) => setDiasVolta(e.target.value)} /></Field>
         </div>
         {periodoOk && <p className="t-body-sm" data-testid="periodo-reserva">Reserva do carro: <b>{formatarDiaBr(inicio)} a {formatarDiaBr(fim)}</b>, já contando a logística.</p>}
+        {onNaoAtendido && <PedidosDoEvento pedidos={pedidosDoEvento} codigoDoCarro={codigoDaReserva} onNaoAtendido={onNaoAtendido} onErro={setErro} />}
+        <div className="ds-row" style={{ flexWrap: "wrap", gap: 16 }}>
+          {temPedidoAberto && <label className="ds-row" style={{ gap: 6 }}><input type="checkbox" checked={soPedido} onChange={(e) => setSoPedido(e.target.checked)} data-testid="so-pedido" /><span className="t-body-sm">Só os que cabem no pedido</span></label>}
+          <label className="ds-row" style={{ gap: 6 }}><input type="checkbox" checked={soLivres} onChange={(e) => setSoLivres(e.target.checked)} data-testid="so-livres" /><span className="t-body-sm">Só disponíveis no período</span></label>
+        </div>
         <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor)…" aria-label="Buscar carro para reservar" />
         <ul className="mt-escolha" role="list">
-          {linhas.length === 0 && <li className="t-body t-muted">Nenhum carro disponível para escolher.</li>}
+          {linhas.length === 0 && <li className="t-body t-muted">Nenhum carro disponível para escolher. {(soPedido && temPedidoAberto) || soLivres ? "Tire um filtro acima ou marque o pedido como “Não estava disponível”." : ""}</li>}
           {linhas.map(({ v, uso, choques, noConserto }) => {
             const u = STATUS_DE_USO.find((x) => x.value === uso)!;
             return (

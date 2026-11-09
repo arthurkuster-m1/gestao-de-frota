@@ -62,3 +62,13 @@
 /* Checklists de saída e retorno dentro do cartão da reserva */
 .mt-checklists { display: grid; gap: 8px; border-top: 1px solid var(--color-border); padding-top: 10px; }
 .mt-checklist { display: grid; gap: 4px; }
+
+/* Modelos desejados do evento */
+.mt-pedido { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
+@media (min-width: 640px) { .mt-pedido { grid-template-columns: 1fr 1.4fr 1fr 80px 70px auto; } }
+.mt-pedidos-lista { display: grid; gap: 6px; }
+.mt-pedido-chip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.mt-pedido-chip.is-ok { background: var(--color-success-bg); }
+.mt-pedido-chip.is-falta { background: var(--color-error-bg); }
+.mt-pedido-chip__rotulo { font-weight: 600; font-size: 13px; flex: 1 1 160px; min-width: 0; }
+.mt-pedido-chip svg { flex: none; }

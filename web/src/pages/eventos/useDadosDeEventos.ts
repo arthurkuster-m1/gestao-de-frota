@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
-import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos } from "../../lib/eventos/dados";
+import { atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
+import { pedidoQueAtende } from "../../lib/eventos/desejados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
 import { useTransportes } from "../transportes/useTransportes";
 import { useChecklists } from "../checklists/useChecklists";
-import type { Evento, EventoLocal, EventoLocalNovo, EventoNovo, Reserva } from "../../lib/eventos/tipos";
+import type { AnotacaoDoCarro, AnotacaoNova, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "../../lib/eventos/tipos";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoEvento, type ContextoDeEventos, type ReservaLinha } from "./camposDoEvento";
@@ -18,6 +19,8 @@ export function useDadosDeEventos() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [locais, setLocais] = useState<EventoLocal[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [desejados, setDesejados] = useState<ModeloDesejado[]>([]);
+  const [anotacoes, setAnotacoes] = useState<AnotacaoDoCarro[]>([]);
   const man = useManutencoes();
   const tr = useTransportes();
   const ck = useChecklists((id, estado) => setReservas((l) => l.map((r) => (r.id === id ? { ...r, estado } : r))), (id) => reservas.find((r) => r.id === id)?.estado);
@@ -25,6 +28,8 @@ export function useDadosDeEventos() {
 
   useEffect(() => {
     Promise.all([listarEventos(), listarReservas(), listarVeiculos()]).then(([e, r, v]) => { setEventos(e); setReservas(r); setVeiculos(v); }, (e: Error) => setErro(e.message));
+    listarDesejados().then(setDesejados, () => setDesejados([]));
+    listarAnotacoes().then(setAnotacoes, () => setAnotacoes([]));
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
   }, []);
 
@@ -48,10 +53,17 @@ export function useDadosDeEventos() {
   const reservar = async (eventoId: string, ids: string[], ini: string, fim: string, janela: { chegada: string; retirada: string }) => {
     const novas = await reservarVeiculos(eventoId, ids, ini, fim, "reservado", janela);
     setReservas((l) => [...l, ...novas]);
+    // liga cada carro ao pedido (modelo desejado) que ele atende; carro de outro modelo entra como substituição, sem pedido
+    let abertos = desejados.filter((p) => p.evento_id === eventoId);
+    for (const r of novas) {
+      const v = veiculos.find((x) => x.id === r.veiculo_id); const p = v && pedidoQueAtende(v, abertos); if (!p) continue;
+      abertos = abertos.map((x) => (x.id === p.id ? { ...x, reserva_id: r.id } : x));
+      try { const salvo = await atualizarDesejado(p.id, { reserva_id: r.id }); setDesejados((l) => l.map((x) => (x.id === salvo.id ? salvo : x))); } catch { /* o carro foi reservado; o vínculo com o pedido pode ser refeito */ }
+    }
     toast(`${novas.length} carro${novas.length === 1 ? "" : "s"} reservado${novas.length === 1 ? "" : "s"}`);
   };
-  const remover = async (r: Reserva) => { await removerReserva(r.id); setReservas((l) => l.filter((x) => x.id !== r.id)); toast("Carro removido do evento"); };
-  const excluir = async (e: Evento) => { await excluirEvento(e.id); setEventos((l) => (l ?? []).filter((x) => x.id !== e.id)); setReservas((l) => l.filter((x) => x.evento_id !== e.id)); setLocais((l) => l.filter((x) => x.evento_id !== e.id)); toast("Evento excluído"); };
+  const remover = async (r: Reserva) => { await removerReserva(r.id); setReservas((l) => l.filter((x) => x.id !== r.id)); setDesejados((l) => l.map((x) => (x.reserva_id === r.id ? { ...x, reserva_id: null } : x))); toast("Carro removido do evento"); };
+  const excluir = async (e: Evento) => { await excluirEvento(e.id); setEventos((l) => (l ?? []).filter((x) => x.id !== e.id)); setDesejados((l) => l.filter((x) => x.evento_id !== e.id)); setReservas((l) => l.filter((x) => x.evento_id !== e.id)); setLocais((l) => l.filter((x) => x.evento_id !== e.id)); toast("Evento excluído"); };
   const editarLocal: OnEditar<EventoLocal> = async (linha, campo, valor) => {
     const novo = await atualizarLocal(linha.id, { [campo.edicao!.coluna]: valor } as Partial<EventoLocalNovo>);
     setLocais((l) => l.map((x) => (x.id === linha.id ? novo : x)));
@@ -69,12 +81,24 @@ export function useDadosDeEventos() {
     setReservas((l) => l.map((x) => salvas.find((s) => s.id === x.id) ?? x));
   };
   /** Cria o evento e os locais digitados. Se os locais falharem, o evento fica (e o aviso diz o que faltou). */
-  const criar = async (e: EventoNovo, novosLocais: EventoLocalNovo[]): Promise<Evento> => {
+  const criar = async (e: EventoNovo, novosLocais: EventoLocalNovo[], pedidos: (ModeloDesejadoNovo & { quantidade?: number })[] = []): Promise<Evento> => {
     const criado = await criarEvento(e);
     setEventos((l) => [criado, ...(l ?? [])]);
     try { const feitos = await criarLocais(criado.id, novosLocais); setLocais((l) => [...l, ...feitos]); } catch (x) { toast(`Evento criado, mas os locais não foram salvos: ${(x as Error).message}`); }
+    if (pedidos.length) { try { const feitos = await criarDesejados(criado.id, pedidos); setDesejados((l) => [...l, ...feitos]); } catch (x) { toast(`Evento criado, mas os modelos desejados não foram salvos: ${(x as Error).message}`); } }
     return criado;
   };
+  const adicionarDesejados = async (eventoId: string, pedidos: (ModeloDesejadoNovo & { quantidade?: number })[]) => {
+    const feitos = await criarDesejados(eventoId, pedidos, desejados.filter((d) => d.evento_id === eventoId).length);
+    setDesejados((l) => [...l, ...feitos]); toast(`${feitos.length} carro${feitos.length === 1 ? "" : "s"} pedido${feitos.length === 1 ? "" : "s"}`);
+  };
+  /** "Veículo não estava disponível": fica registrado que o pedido não foi atendido (desfazer = false). */
+  const marcarNaoAtendido = async (id: string, naoAtendido: boolean) => {
+    const salvo = await atualizarDesejado(id, { nao_atendido: naoAtendido }); setDesejados((l) => l.map((x) => (x.id === id ? salvo : x)));
+  };
+  const criarNota = async (a: AnotacaoNova) => { const n = await criarAnotacao(a); setAnotacoes((l) => [...l, n]); toast("Anotação criada"); return n; };
+  const moverNota = async (id: string, inicio: string, fim: string) => { const n = await atualizarAnotacao(id, { inicio, fim }); setAnotacoes((l) => l.map((x) => (x.id === id ? n : x))); };
+  const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }
