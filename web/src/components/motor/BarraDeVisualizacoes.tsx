@@ -1,5 +1,5 @@
 import { useRef, useState, type ReactNode } from "react";
-import { ChartBarHorizontal, Copy, Plus, Rows, SlidersHorizontal, SquaresFour, Trash } from "@phosphor-icons/react";
+import { CaretDown, ChartBarHorizontal, Copy, Plus, Rows, SlidersHorizontal, SquaresFour, Trash } from "@phosphor-icons/react";
 import { Button, Field, Input, Sheet, cx } from "../../ds";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { MAXIMO_DE_VISUALIZACOES, ROTULO_DO_TIPO, type TipoDeVisualizacao, type VisaoSalva } from "../../lib/motor/visoes";
@@ -66,6 +66,20 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
           </Painel>
         </div>
         <div className="mt-vbar__dir">
+          {alterada && (
+            <div className="mt-alterada" role="status" data-testid="barra-alterada" title={ativa ? "Alterações não salvas nesta visualização" : "Alterações não salvas em Todas"}>
+              <span className="mt-alterada__ponto" aria-hidden />
+              <button type="button" className="mt-alterada__txt" onClick={onDescartar} data-testid={ativa ? "descartar-visao" : "restaurar-todas"}>{ativa ? "Descartar" : "Redefinir"}</button>
+              <span className="mt-alterada__salvar">
+                <button type="button" className="mt-alterada__ok" disabled={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">{ativa ? "Salvar" : "Salvar em Todas"}</button>
+                {!ativa && (
+                  <Painel soIcone rotulo="Mais opções de salvar" icone={<CaretDown size={14} weight="bold" />} largura={240} testid="salvar-mais">
+                    <div className="mt-painel__corpo"><button type="button" className="mt-item" data-testid="salvar-como" onClick={() => { setNome(""); setFalha(null); setSalvandoComo(true); }}><Copy size={18} />Salvar como visualização</button></div>
+                  </Painel>
+                )}
+              </span>
+            </div>
+          )}
           {ferramentas}
           <Painel soIcone rotulo="Configurações da visualização" icone={<SlidersHorizontal size={18} />} largura={440} testid="painel-propriedades" gatilhoRef={engrenagem}>
             <div className="mt-painel__corpo" data-testid="configuracao-da-visao">
@@ -95,15 +109,6 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
         </div>
       </div>
 
-      {alterada && (
-        <div className="mt-alterada" role="status" data-testid="barra-alterada">
-          <span className="t-body-sm">{ativa ? "Alterações não salvas nesta visualização." : "Alterações não salvas em Todas."}</span>
-          <div className="ds-row">
-            {ativa ? (<><Button size="sm" variant="secondary" onClick={onDescartar}>Descartar</Button><Button size="sm" loading={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">Salvar</Button></>)
-              : (<><Button size="sm" variant="ghost" onClick={onDescartar} data-testid="restaurar-todas">Descartar</Button><Button size="sm" variant="secondary" onClick={() => { setNome(""); setFalha(null); setSalvandoComo(true); }} data-testid="salvar-como">Salvar como visualização</Button><Button size="sm" loading={ocupado} onClick={() => void onSalvar()} data-testid="salvar-visao">Salvar em Todas</Button></>)}
-          </div>
-        </div>
-      )}
       {erro && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
 
       <Sheet open={salvandoComo} onClose={() => setSalvandoComo(false)} title="Nova visualização">
