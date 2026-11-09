@@ -260,13 +260,13 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const linhasSemSaida = definidas.filter((l) => semSaida.has(l.reserva!.id));
   const definidos = definidas.length;
   const pedidoAlvo = escolhendo?.pedido ?? null;
-  const nCols = 4 + colunasInfo.length + ordenadas.length;
+  const nCols = 3 + colunasInfo.length + ordenadas.length;
 
   return (
     <div className="mt-vde" data-testid="veiculos-do-evento">
       <div className="mt-vde__barra">
-        <div><h3 className="t-h3">Carros deste evento</h3><span className="t-body-sm t-muted">{definidos} definido{definidos === 1 ? "" : "s"} · {linhas.length - definidos} a definir</span></div>
-        <div className="ds-row" style={{ flexWrap: "wrap", gap: 12 }}>
+        <div className="mt-vde__titulo"><h3 className="t-h3">Carros</h3><span className="mt-vde__contagem" title="Carros já escolhidos / pedidos ainda sem carro">{definidos} definido{definidos === 1 ? "" : "s"}{linhas.length - definidos > 0 ? ` · ${linhas.length - definidos} a definir` : ""}</span></div>
+        <div className="mt-vde__ferramentas">
           <span title="Liga a edição de status, transporte, origem, datas e endereço de cada carro"><Switch checked={individual} onChange={setIndividual} label="Edição individual" /></span>
           <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={ordenadas.length} largura={280} testid="colunas-do-evento">
             <div className="mt-painel__corpo">
@@ -274,8 +274,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
             </div>
           </Painel>
-          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button variant="secondary" icon={<ListChecks size={18} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos">Checklist de envio de todos ({linhasSemSaida.length})</Button>}
-          <Button icon={<Plus size={18} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
+          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos" title="Checklist de envio de todos os carros que ainda não têm">Checklist de envio ({linhasSemSaida.length})</Button>}
+          <Button size="sm" icon={<Plus size={16} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
         </div>
       </div>
 
@@ -307,7 +307,6 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               <SortableContext items={ordenadas} strategy={horizontalListSortingStrategy}>
                 <tr>
                   <th className="mt-vde__sel"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(definidas.map((l) => l.key)))} aria-label="Marcar todos os carros" disabled={definidas.length === 0} data-testid="marcar-todos" /></th>
-                  <th className="mt-vde__def">Definido</th>
                   <th><span className="mt-vde__cod">Código
                     <button type="button" className="mt-btn mt-btn--icone" aria-label={prefs.info ? "Esconder placa, VIN, modelo, cor e MY" : "Mostrar placa, VIN, modelo, cor e MY"} aria-expanded={prefs.info} onClick={() => muda({ ...prefs, info: !prefs.info })} data-testid="toggle-info">{prefs.info ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button>
                     <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiarOutlook()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span></th>
@@ -326,14 +325,11 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               return (
                 <tr key={l.key} className={cx(!r && "is-aberta", l.pedido?.nao_atendido && "is-falta", marcados.has(l.key) && "is-marcada")} data-testid="linha-veiculo">
                   <td className="mt-vde__sel">{r && <input type="checkbox" checked={marcados.has(l.key)} onChange={() => alternar(l.key)} aria-label={`Marcar ${codigoDaLinha(l)}`} />}</td>
-                  <td className="mt-vde__def">
-                    <input type="checkbox" checked={!!r} readOnly disabled={!!r} aria-label={r ? "Veículo definido" : "Definir veículo"} title={r ? "Veículo definido" : "Escolher o veículo"} data-testid="check-definido"
-                      onClick={() => { if (!r) setEscolhendo({ pedido: l.pedido }); }} onChange={() => undefined} style={{ cursor: r ? "default" : "pointer" }} />
-                  </td>
                   <td>
                     <span className="mt-vde__codigo">
                       {!r && <Lock size={14} weight="fill" aria-label="Pedido do evento" />}
                       {v ? <LinkNoLugar to={`/veiculos/${v.id}`} className="mt-reserva__evento">{codigoDaLinha(l)}</LinkNoLugar> : <span className="mt-vde__pedido">{codigoDaLinha(l)}</span>}
+                      {!r && <button type="button" className="mt-vde__definir" onClick={() => setEscolhendo({ pedido: l.pedido })} data-testid="check-definido" title="Escolher o veículo deste pedido">Definir carro</button>}
                       {r && !r.reserva_inicio && <span className="mt-sem-data" title="Este carro está no evento, mas sem data: defina a chegada e a retirada" data-testid="sem-data">sem data</span>}
                       {l.pedido?.nao_atendido && <span className="t-body-sm" style={{ color: "var(--color-error-fg)" }}>Veículo não estava disponível</span>}
                       {choques.length > 0 && <span title={`Também está em: ${agendaTexto(choques, (x) => nomes.get(x) ?? "?", hojeLocal())}`} data-testid="aviso-conflito"><Warning size={16} weight="fill" /></span>}
@@ -353,7 +349,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
           </tbody>
         </table>
       </div>
-      <p className="t-body-sm mt-vde__total" data-testid="custo-do-evento">Transportes do evento: <b>{custo.quantidade}</b> · custo planejado <b>{reais(custo.total)}</b> · arraste para selecionar células (Ctrl + C copia, Ctrl + V cola, Ctrl + D duplica para baixo)</p>
+      <p className="t-body-sm mt-vde__total" data-testid="custo-do-evento">Transportes do evento: <b>{custo.quantidade}</b> · custo planejado <b>{reais(custo.total)}</b> <span title="Arraste para selecionar células: Ctrl + C copia, Ctrl + V cola, Ctrl + D duplica para baixo">· dica: selecione células e use Ctrl + C / V / D</span></p>
       {ed.erro && <p className="mt-erro" role="alert"><span>{ed.erro}</span></p>}
 
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
