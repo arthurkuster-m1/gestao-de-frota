@@ -207,7 +207,7 @@
 
 /* Eventos do veículo: filtros que cabem na largura (celular incluso) em vez de empurrar o painel para o lado */
 .mt-janela__conteudo { grid-template-columns: minmax(0, 1fr); }
-.mt-janela .ds-stack > * { min-width: 0; max-width: 100%; }
+.mt-janela .ds-stack > :not(dialog) { min-width: 0; max-width: 100%; }
 .mt-evv__filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; align-items: center; }
 .mt-evv__filtros > * { min-width: 0; }
 .mt-evv__busca { grid-column: 1 / -1; flex: none; }
@@ -286,3 +286,6 @@
 .mt-linha-end .mt-campo-endereco { flex: 1; min-width: 0; border-color: transparent; background: transparent; padding: 0 8px; }
 .mt-linha-end .mt-campo-endereco:hover { border-color: var(--color-border-strong); background: var(--color-surface-elevated); }
 .mt-linha-end__acoes { display: inline-flex; gap: 2px; flex: none; }
+/* janelas (Sheet) abertas de dentro do painel mantêm a largura delas: estreitas, como em qualquer outra tela */
+.mt-janela dialog.ds-sheet:not(.ds-sheet--wide) { max-width: 440px; }
+@media (max-width: 639px) { .mt-janela dialog.ds-sheet:not(.ds-sheet--wide) { max-width: 100%; } }
