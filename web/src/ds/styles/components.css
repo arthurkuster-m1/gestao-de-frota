@@ -1203,11 +1203,9 @@ html:root.tr-sam { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
 .ds-atalhos__item { flex: 1; display: grid; justify-items: center; gap: 2px; padding: 6px 4px; min-height: 52px; border-radius: 14px; color: var(--color-text-muted); font-size: 12px; font-weight: 600; text-decoration: none; -webkit-tap-highlight-color: transparent; }
 .ds-atalhos__item[aria-current="page"] { color: var(--color-accent); }
 .ds-atalhos__item:active { background: var(--color-accent-soft); }
-.ds-nav--mobile { bottom: calc(80px + var(--safe-bottom)); }
 @media (max-width: 899px) {
-  .ds-page { padding-bottom: calc(176px + var(--safe-bottom)); }
-  .tr-barra-salvar { bottom: 148px; }
-  .tr-sam .ds-page { padding-bottom: calc(176px + var(--safe-bottom)); }
+  .ds-page { padding-bottom: calc(104px + var(--safe-bottom)); }
+  .tr-sam .ds-page { padding-bottom: calc(150px + var(--safe-bottom)); }
 }
 @media (min-width: 900px) { .ds-atalhos { display: none; } }
 
