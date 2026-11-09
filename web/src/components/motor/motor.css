@@ -105,7 +105,6 @@ button.mt-card__titulo:hover { color: var(--color-accent); }
 
 .mt-valor .ds-badge { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 
-@media (max-width: 720px) { 
 /* opções como tags */
 .mt-tag { display: inline-flex; align-items: center; gap: 4px; border: 0; font: inherit; font-size: 12px; line-height: 20px; max-width: 100%; white-space: normal; text-align: left; }
 button.mt-tag { cursor: pointer; padding: 3px 12px; }
