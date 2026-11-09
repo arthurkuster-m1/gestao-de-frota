@@ -72,9 +72,9 @@
 .mt-ed-limpar { display: grid; place-items: center; width: 32px; height: 32px; flex: none; margin-right: 4px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); }
 .mt-ed-limpar:hover { background: var(--color-surface-elevated); }
 .mt-lista { padding: 6px; }
-.mt-primeira { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
-.mt-primeira__txt { overflow: hidden; text-overflow: ellipsis; }
-.mt-abrir { display: grid; place-items: center; flex: none; width: 28px; height: 28px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); opacity: 0; }
+.mt-primeira { position: relative; display: block; min-width: 0; width: 100%; }
+.mt-primeira__txt { display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-abrir { position: absolute; right: -8px; top: 50%; transform: translateY(-50%); display: grid; place-items: center; width: 28px; height: 28px; border: 0; border-radius: var(--radius-md); background: var(--color-surface-elevated); box-shadow: -10px 0 8px -2px var(--color-surface-elevated); z-index: 1; color: var(--color-text-subtle); opacity: 0; }
 .mt-tabela tr:hover .mt-abrir, .mt-abrir:focus-visible { opacity: 1; }
 @media (hover: none) { .mt-abrir { opacity: 1; } }
 .mt-erro { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); margin: 0; padding: 8px 14px; border-radius: var(--radius-lg); background: var(--color-error-bg); color: var(--color-error-fg); font-size: 13px; }
