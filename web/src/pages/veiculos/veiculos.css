@@ -216,3 +216,13 @@
 .mt-evv__filtros > button { justify-self: start; }
 .mt-evv__datas .ds-datefield input { min-width: 0; width: 100%; }
 .mt-chk-carros { display: flex; flex-wrap: wrap; gap: 6px; max-height: 120px; overflow: auto; }
+
+/* Lançamentos */
+.mt-lanc__grupo { display: grid; gap: 6px; }
+.mt-lanc__titulo { font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.mt-lanc__params { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-3); align-items: end; }
+.mt-opcao-cel { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 100%; padding: 0 10px; cursor: pointer; }
+.mt-opcao-cel > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-opcao-cel > svg { flex: none; color: var(--color-text-subtle); }
+.mt-opcao-sel { width: 100%; height: 100%; border: 0; background: var(--color-surface); color: inherit; font: inherit; padding: 0 8px; }
+.mt-extra-checklist summary { cursor: pointer; }

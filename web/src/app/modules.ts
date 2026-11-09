@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { House, CalendarBlank, Car, CalendarCheck, Users, FileText, Truck, Wrench, Warning, ArrowUUpLeft, ChartLineUp, GearSix } from "@phosphor-icons/react";
+import { ListPlus, House, CalendarBlank, Car, CalendarCheck, Users, FileText, Truck, Wrench, Warning, ArrowUUpLeft, ChartLineUp, GearSix } from "@phosphor-icons/react";
 
 export type Destino = {
   path: string; label: string; Icon: Icon;
@@ -20,6 +20,7 @@ export const DESTINOS: Destino[] = [
   { path: "/planejamento", label: "Planejamento", Icon: CalendarBlank, principal: true, pronto: true, desc: "Veículos e eventos numa linha do tempo só", itens: ["Tabela de veículos com filtros e visões", "Tabela de eventos com filtros e visões", "Linha do tempo infinita com reservas, manutenções e prazos de logística", "Criar evento e manutenção e escolher os carros por aqui"] },
   { path: "/veiculos", label: "Veículos", Icon: Car, principal: true, pronto: true, desc: "Todos os carros, do pedido à devolução", itens: ["Tabela, cards e linha do tempo com visões salvas e colunas congeladas", "Cadastro individual e em massa", "Ciclo de Vida e Status de Uso", "Ficha com atividade, manutenções, eventos, multas, agenda e comentários"] },
   { path: "/eventos", label: "Eventos", Icon: CalendarCheck, principal: true, pronto: true, desc: "Solicitações de uso, reservas e transportes", itens: ["Formulário e cadastro em massa", "Carros por evento, com locais e datas por carro ou para todos", "Status do evento e do contrato"] },
+  { path: "/lancamentos", label: "Lançamentos", Icon: ListPlus, pronto: true, desc: "Lançar em massa qualquer coisa do app", itens: ["Faturamento, emplacamento, liberação e devolução de vários veículos", "Novos veículos, eventos e manutenções em tabela", "Checklist de saída e retorno em massa"] },
   { path: "/manutencoes", label: "Manutenções", Icon: Wrench, pronto: true, desc: "Manutenções e sinistros", itens: ["Tipo, status e DA solicitada", "Se o carro ainda pode ir a evento", "Evento responsável preenchido sozinho"] },
   { path: "/multas", label: "Multas", Icon: Warning, desc: "AIT, quem estava com o carro e a cobrança", itens: ["Evento descoberto pela data e hora da infração", "Notificação recebida, pagamento, boleto e cobrança do cliente"] },
   { path: "/devolucoes", label: "Devoluções", Icon: ArrowUUpLeft, desc: "Planejar quais carros saem da frota", itens: ["Sugestões: mais velhos, parados, sem uso", "Devolver ou manter, com data", "Trocas planejadas e meta de 200 carros"] },

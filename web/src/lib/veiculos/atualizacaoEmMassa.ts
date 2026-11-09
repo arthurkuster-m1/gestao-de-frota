@@ -4,11 +4,13 @@
  */
 import { CICLO, normalizarPlaca, normalizarVin, placaValida, type Veiculo } from "./tipos";
 import { planoDoRegistro, type Plano } from "./registros";
+import { lerData } from "../eventos/importacao";
 
 export type AcaoEmMassa = "liberacao" | "chegada" | "faturamento" | "emplacamento" | "devolucaoCvo" | "devolucao" | "saida" | "retorno" | "reserva";
-export type LinhaDaLista = { ref?: string; placa?: string };
+/** `data` (dd/mm/aaaa), `hora` (hh:mm) e `evento` (id) são opcionais por linha; vazios, valem os padrões da ação. */
+export type LinhaDaLista = { ref?: string; placa?: string; data?: string; hora?: string; evento?: string };
 export type Tom = "ok" | "erro" | "dup" | "ign";
-export type Resultado = { tom: Tom; texto: string; veiculo?: Veiculo; plano?: Plano; /** saída/retorno: a reserva que ganha o checklist */ reservaId?: string };
+export type Resultado = { tom: Tom; texto: string; veiculo?: Veiculo; plano?: Plano; /** saída/retorno: a reserva que ganha o checklist */ reservaId?: string; /** data (aaaa-mm-dd) e hora que valem para a linha */ dataIso?: string; hora?: string; /** reserva: o evento da linha */ eventoId?: string };
 export type CampoDeBusca = "vin" | "codigo" | "placa" | "pedido";
 
 export type DefinicaoDaAcao = { id: AcaoEmMassa; rotulo: string; descricao: string; referencia: string; campos: CampoDeBusca[]; comPlaca?: boolean; comData: boolean; /** saída e retorno: checklist com hora e dados opcionais */ comChecklist?: boolean };
@@ -46,7 +48,7 @@ export function acharVeiculo(veiculos: readonly Veiculo[], ref: string, campos: 
 
 export type ReservaResumida = { id: string; veiculo_id: string; evento_id: string; estado: string };
 export type ContextoDaAcao = {
-  veiculos: readonly Veiculo[]; data: string; /** carros que já estão no evento escolhido (reserva) */ jaNoEvento?: ReadonlySet<string>;
+  veiculos: readonly Veiculo[]; data: string; /** carros que já estão no evento escolhido (reserva) */ jaNoEvento?: ReadonlySet<string>; /** reserva: se o carro já está no evento (por linha) */ noEvento?: (eventoId: string, veiculoId: string) => boolean;
   /** saída/retorno: as reservas, os checklists já feitos ("reservaId:saida") e o evento escolhido ("" = achar pelo carro) */
   reservas?: readonly ReservaResumida[]; checklistsFeitos?: ReadonlySet<string>; eventoId?: string; nomeDoEvento?: (id: string) => string;
 };
@@ -55,6 +57,11 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
   const def = acaoDe(acao); const vistos = new Set<string>(); const placasNovas = new Map<string, string>();
   return linhas.map((l): Resultado => {
     if (!(l.ref ?? "").trim() && !(l.placa ?? "").trim()) return { tom: "ign", texto: "Linha vazia" };
+    const lida = (l.data ?? "").trim() ? lerData(l.data) : null;
+    if (lida === "x") return { tom: "erro", texto: `Data inválida: "${l.data}" (use dd/mm/aaaa)` };
+    const dataDaLinha = lida ?? ctx.data;
+    const horaDaLinha = (l.hora ?? "").trim() || undefined;
+    if (horaDaLinha && !/^([01]\d|2[0-3]):[0-5]\d$/.test(horaDaLinha)) return { tom: "erro", texto: `Hora inválida: "${l.hora}" (use hh:mm)` };
     const r = acharVeiculo(ctx.veiculos, l.ref ?? "", def.campos);
     if ("erro" in r) return { tom: "erro", texto: r.erro };
     const v = r.veiculo; const nome = v.codigo ?? v.modelo.toUpperCase();
@@ -62,34 +69,39 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     vistos.add(v.id);
     if (acao === "saida" || acao === "retorno") {
       const momento = acao === "saida" ? "saida" : "retorno";
-      const abertas = (ctx.reservas ?? []).filter((x) => x.veiculo_id === v.id && (!ctx.eventoId || x.evento_id === ctx.eventoId)
+      const abertas = (ctx.reservas ?? []).filter((x) => x.veiculo_id === v.id && (!(l.evento || ctx.eventoId) || x.evento_id === (l.evento || ctx.eventoId))
         && (acao === "saida" ? x.estado === "reservado" || x.estado === "em_uso" : ["reservado", "em_uso", "em_retorno"].includes(x.estado)));
-      if (abertas.length === 0) return { tom: "erro", texto: `${nome} não tem reserva aberta${ctx.eventoId ? " neste evento" : ""}` };
+      if (abertas.length === 0) return { tom: "erro", texto: `${nome} não tem reserva aberta${l.evento || ctx.eventoId ? " neste evento" : ""}` };
       const pendentes = abertas.filter((x) => !ctx.checklistsFeitos?.has(`${x.id}:${momento}`));
       if (pendentes.length === 0) return { tom: "dup", texto: `${nome} já tem o checklist de ${momento === "saida" ? "saída" : "retorno"}: será ignorado`, veiculo: v };
       if (pendentes.length > 1) return { tom: "erro", texto: `${nome} está em ${pendentes.length} eventos: escolha o evento acima` };
       const r = pendentes[0]!; const ev = ctx.nomeDoEvento?.(r.evento_id);
-      return { tom: "ok", texto: `${nome}: checklist de ${momento === "saida" ? "saída" : "retorno"}${ev ? ` em ${ev}` : ""} → ${momento === "saida" ? "Em uso" : "Concluído"}`, veiculo: v, reservaId: r.id };
+      return { tom: "ok", texto: `${nome}: checklist de ${momento === "saida" ? "saída" : "retorno"}${ev ? ` em ${ev}` : ""} → ${momento === "saida" ? "Em uso" : "Concluído"}`, veiculo: v, reservaId: r.id, dataIso: dataDaLinha, hora: horaDaLinha };
     }
     if (acao !== "reserva" && v.status_ciclo === "devolvido") return { tom: acao === "devolucao" ? "dup" : "erro", texto: acao === "devolucao" ? `${nome} já foi devolvido: será ignorado` : `${nome} já foi devolvido` };
-    if (acao === "reserva") return ctx.jaNoEvento?.has(v.id) ? { tom: "dup", texto: `${nome} já está neste evento: será ignorado`, veiculo: v } : { tom: "ok", texto: `${nome}: será reservado`, veiculo: v };
+    if (acao === "reserva") {
+      const ev = l.evento || ctx.eventoId;
+      if (!ev) return { tom: "erro", texto: `${nome}: falta o evento` };
+      const ja = ctx.noEvento ? ctx.noEvento(ev, v.id) : ctx.jaNoEvento?.has(v.id);
+      return ja ? { tom: "dup", texto: `${nome} já está neste evento: será ignorado`, veiculo: v, eventoId: ev } : { tom: "ok", texto: `${nome}: será reservado${ctx.nomeDoEvento ? ` em ${ctx.nomeDoEvento(ev)}` : ""}`, veiculo: v, eventoId: ev };
+    }
     if (acao === "liberacao") {
       if (v.data_liberacao) return { tom: "dup", texto: `${nome} já foi liberado em ${v.data_liberacao.split("-").reverse().join("/")}: será ignorado`, veiculo: v };
-      const plano = planoDoRegistro("liberacao", v, { data: ctx.data }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
+      const plano = planoDoRegistro("liberacao", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
     if (acao === "chegada") {
       if (pos(v.status_ciclo) < pos("liberado")) return { tom: "erro", texto: `${nome} ainda não foi liberado da produção` };
       if (pos(v.status_ciclo) >= pos("disponivel_sem_faturamento")) return { tom: "dup", texto: `${nome} já passou desta etapa: será ignorado`, veiculo: v };
-      const plano = planoDoRegistro("chegada", v, { data: ctx.data }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
+      const plano = planoDoRegistro("chegada", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
     if (acao === "devolucaoCvo") {
       if (v.status_ciclo === "em_devolucao") return { tom: "dup", texto: `${nome} já está em devolução: será ignorado`, veiculo: v };
-      const plano = planoDoRegistro("devolucaoCvo", v, { data: ctx.data }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
+      const plano = planoDoRegistro("devolucaoCvo", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
-    if (acao === "devolucao") { const plano = planoDoRegistro("devolucao", v, { data: ctx.data }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano }; }
+    if (acao === "devolucao") { const plano = planoDoRegistro("devolucao", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano }; }
     if (acao === "faturamento") {
       if (v.data_faturamento) return { tom: "dup", texto: `${nome} já foi faturado em ${v.data_faturamento.split("-").reverse().join("/")}: será ignorado`, veiculo: v };
-      const plano = planoDoRegistro("faturamento", v, { data: ctx.data }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
+      const plano = planoDoRegistro("faturamento", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
     // emplacamento
     const placa = normalizarPlaca(l.placa ?? "");
@@ -102,7 +114,7 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     const usada = placasNovas.get(placa);
     if (usada) return { tom: "erro", texto: `A placa ${placa} repete na lista (${usada})` };
     placasNovas.set(placa, nome);
-    const plano = planoDoRegistro("emplacamento", v, { data: ctx.data, placa }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
+    const plano = planoDoRegistro("emplacamento", v, { data: dataDaLinha, placa }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
   });
 }
 

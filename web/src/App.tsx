@@ -10,13 +10,13 @@ import { EmBreve } from "./pages/EmBreve";
 import { SemConfig } from "./pages/SemConfig";
 import { Shell } from "./app/Shell";
 import { Veiculos } from "./pages/veiculos/Veiculos";
-import { AtualizarEmMassa } from "./pages/veiculos/AtualizarEmMassa";
 import { Massa as MassaVeiculos } from "./pages/veiculos/Massa";
 import { Eventos } from "./pages/eventos/Eventos";
 import { MassaEventos } from "./pages/eventos/MassaEventos";
 import { Contratos } from "./pages/contratos/Contratos";
 import { Transportes } from "./pages/transportes/Transportes";
 import { Manutencoes } from "./pages/manutencoes/Manutencoes";
+import { Lancamentos } from "./pages/lancamentos/Lancamentos";
 import { Planejamento } from "./pages/planejamento/Planejamento";
 import { Clientes } from "./pages/clientes/Clientes";
 import { FormCliente } from "./pages/clientes/FormCliente";
@@ -44,9 +44,10 @@ function Autenticado() {
           <Route index element={<Home />} />
           <Route path="veiculos/novo" element={<Navigate to="/veiculos?novo=1" replace />} />
           <Route path="veiculos/massa" element={<MassaVeiculos />} />
-          <Route path="veiculos/atualizar" element={<AtualizarEmMassa />} />
+          <Route path="veiculos/atualizar" element={<Navigate to="/lancamentos?acao=faturamento" replace />} />
           <Route path="veiculos/:id?" element={<Veiculos />} />
           <Route path="planejamento" element={<Planejamento />} />
+          <Route path="lancamentos" element={<Lancamentos />} />
           <Route path="eventos/massa" element={<MassaEventos />} />
           <Route path="eventos/:id?" element={<Eventos />} />
           <Route path="manutencoes/:id?" element={<Manutencoes />} />
@@ -55,7 +56,7 @@ function Autenticado() {
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<FormCliente />} />
           <Route path="clientes/:id" element={<FormCliente />} />
-          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento").map((d) => (
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento" && d.path !== "/lancamentos").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />
