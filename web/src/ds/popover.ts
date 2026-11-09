@@ -58,7 +58,11 @@ export function usePopover(gatilho: RefObject<HTMLElement | null>, opcoes: { lar
     window.addEventListener("resize", f);
     window.addEventListener("scroll", aoRolar, true);
     window.visualViewport?.addEventListener("resize", f);
-    return () => { window.removeEventListener("resize", f); window.removeEventListener("scroll", aoRolar, true); window.visualViewport?.removeEventListener("resize", f); };
+    // conteúdo que cresce/encolhe com o painel aberto (ex.: adicionar uma ordenação) recalcula a altura, senão a caixa corta o que entrou
+    const el = ref.current;
+    const obs = el ? new MutationObserver(() => posicionar()) : null;
+    if (el && obs) obs.observe(el, { childList: true, subtree: true });
+    return () => { obs?.disconnect(); window.removeEventListener("resize", f); window.removeEventListener("scroll", aoRolar, true); window.visualViewport?.removeEventListener("resize", f); };
   }, [aberto, posicionar]);
 
   return { ref, aberto, setAberto };

@@ -1,12 +1,13 @@
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { ArrowSquareOut, CaretDown, CaretRight, CaretUp, X } from "@phosphor-icons/react";
-import { cx } from "../../ds";
+import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { proximaOrdenacao } from "../../lib/motor/ordenar-por-coluna";
 import { EditorDeCelula } from "./EditorDeCelula";
-import { valorParaEditor } from "./edicao";
+import { prepararEdicao, valorParaEditor } from "./edicao";
+import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, textoDaCelula, type Ponto } from "./selecao";
 import { formatar } from "./formatar";
 import { useEdicao, type OnEditar } from "./useEdicao";
 import type { CampoDaTela } from "./tipos";
@@ -29,6 +30,63 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const [fechados, setFechados] = useState<Set<string>>(new Set());
   const [arrastando, setArrastando] = useState<{ id: string; largura: number } | null>(null);
   const campoPorId = useMemo(() => new Map(campos.map((c) => [c.id, c])), [campos]);
+  const toast = useToast();
+
+  // Seleção de células (clicar e arrastar, como no Excel/Notion): copiar e colar usam texto tabulado.
+  const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);
+  const arrastandoSel = useRef(false);
+  const visiveis = useMemo(() => (resultado.grupos ? resultado.grupos.filter((g) => !fechados.has(g.chave)).flatMap((g) => g.linhas) : resultado.linhas), [resultado, fechados]);
+  const indiceDe = useMemo(() => new Map(visiveis.map((l, k) => [idDe(l), k])), [visiveis, idDe]);
+  const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
+  const refs = useRef({ faixa, visiveis, colunas, onEditar });
+  refs.current = { faixa, visiveis, colunas, onEditar };
+  useEffect(() => {
+    const solta = () => { arrastandoSel.current = false; };
+    const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-tabela")) setSel(null); };
+    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null); };
+    const copiar = (e: ClipboardEvent) => {
+      const { faixa: f, visiveis: vs, colunas: cs } = refs.current;
+      if (!f || (!multiplas(f) && window.getSelection()?.toString())) return;
+      const m: string[][] = [];
+      for (let r = f.l0; r <= f.l1; r++) { const l = vs[r]; if (!l) continue; m.push(cs.slice(f.c0, f.c1 + 1).map((c) => { const cp = campoPorId.get(c.id); return cp ? textoDaCelula(cp, l) : ""; })); }
+      e.clipboardData?.setData("text/plain", paraTsv(m)); e.preventDefault();
+      toast(multiplas(f) ? `${m.length * (f.c1 - f.c0 + 1)} células copiadas` : "Célula copiada");
+    };
+    const colar = (e: ClipboardEvent) => {
+      const { faixa: f, visiveis: vs, colunas: cs, onEditar: grava } = refs.current;
+      const alvo = e.target as HTMLElement | null;
+      if (!f || !grava || alvo?.closest("input, textarea, select, [contenteditable]")) return;
+      const texto = e.clipboardData?.getData("text/plain"); if (!texto) return;
+      e.preventDefault();
+      const m = deTsv(texto);
+      const encher = m.length === 1 && m[0]!.length === 1 && multiplas(f); // 1 valor sobre vários campos: preenche todos
+      const nl = encher ? f.l1 - f.l0 + 1 : m.length;
+      void (async () => {
+        let ok = 0, pulados = 0, erro: string | null = null;
+        for (let dr = 0; dr < nl; dr++) {
+          const l = vs[f.l0 + dr]; if (!l) break;
+          const linhaM = encher ? m[0]! : m[dr]!;
+          const nc = encher ? f.c1 - f.c0 + 1 : linhaM.length;
+          for (let dc = 0; dc < nc; dc++) {
+            const col = cs[f.c0 + dc]; const cp = col && campoPorId.get(col.id);
+            if (!cp || !cp.edicao) { pulados++; continue; }
+            const bruto = converterColado(cp, encher ? m[0]![0]! : linhaM[dc]!);
+            if (bruto === undefined) { pulados++; continue; }
+            const prep = prepararEdicao(cp.tipo, cp.edicao, bruto);
+            if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
+            if (prep.valor === valorParaEditor(cp.tipo, cp.valorDe(l))) continue;
+            try { await grava(l, cp, prep.valor); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; }
+          }
+        }
+        if (erro) ed.setErro(erro);
+        toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
+      })();
+    };
+    window.addEventListener("mouseup", solta); document.addEventListener("mousedown", fora); document.addEventListener("keydown", tecla);
+    document.addEventListener("copy", copiar); document.addEventListener("paste", colar);
+    return () => { window.removeEventListener("mouseup", solta); document.removeEventListener("mousedown", fora); document.removeEventListener("keydown", tecla); document.removeEventListener("copy", copiar); document.removeEventListener("paste", colar); };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campoPorId]);
 
   const larguraBruta = (c: { id: string; largura: number }) => (arrastando?.id === c.id ? arrastando.largura : c.largura);
   // Largura disponível: no celular, congelar colunas demais esconderia o resto. Congela só enquanto couber em ~55% da tela
@@ -62,7 +120,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const editaveis = colunas.filter((c) => campoPorId.get(c.id)?.edicao).map((c) => c.id);
   const celulaStyle = (i: number) => (i < congeladas ? { position: "sticky" as const, left: esquerda[i] } : undefined);
   const classeCongelada = (i: number) => cx(i < congeladas && "mt-cong", i === congeladas - 1 && "mt-cong--ultima");
-  const celula = (l: T, c: { id: string }, i: number) => {
+  const celula = (l: T, c: { id: string }, i: number, r: number) => {
     const campo = campoPorId.get(c.id)!;
     const editavel = !!(onEditar && campo.edicao);
     if (ed.estaAberto(l, c.id) && campo.edicao) {
@@ -76,15 +134,24 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     const clique = editavel
       ? (e: React.MouseEvent) => { e.stopPropagation(); if (campo.tipo === "caixa") void ed.confirmar(l, campo, !(campo.valorDe(l) === true), undefined, editaveis); else ed.abrir(l, campo); }
       : onAbrir ? () => onAbrir(l) : undefined;
+    const dentro = !!faixa && multiplas(faixa) && r >= faixa.l0 && r <= faixa.l1 && i >= faixa.c0 && i <= faixa.c1;
+    const bordas = dentro && faixa ? cx("mt-sel", r === faixa.l0 && "mt-sel-t", r === faixa.l1 && "mt-sel-b", i === faixa.c0 && "mt-sel-l", i === faixa.c1 && "mt-sel-r") : "";
+    const aoPressionar = (e: React.MouseEvent) => {
+      if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, textarea, select, a")) return;
+      const p = { l: r, c: i };
+      if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); }
+      else setSel({ a: p, b: p });
+      arrastandoSel.current = true;
+    };
     return (
-      <td key={c.id} style={celulaStyle(i)} className={cx(classeCongelada(i), editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
+      <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
         {i === 0 && onAbrir ? <span className="mt-primeira"><span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={16} /></button></span> : formatar(campo, l)}
       </td>
     );
   };
   const linha = (l: T) => (
     <tr key={idDe(l)} data-testid="linha-motor">
-      {colunas.map((c, i) => celula(l, c, i))}
+      {colunas.map((c, i) => celula(l, c, i, indiceDe.get(idDe(l)) ?? 0))}
     </tr>
   );
   const semLinhas = resultado.linhas.length === 0;
@@ -93,7 +160,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     <div className="mt-tabela-wrap">
       {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
-        <div className="mt-tabela" data-testid="tabela-motor" ref={caixa}>
+        <div className={cx("mt-tabela", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
           <table style={{ width: total, tableLayout: "fixed" }}>
             <colgroup>{colunas.map((c) => <col key={c.id} style={{ width: larguraDe(c) }} />)}</colgroup>
             <thead>
