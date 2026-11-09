@@ -86,6 +86,7 @@ export function Veiculos() {
   const eventos = d.eventos ?? [];
   const erroUso = d.erro;
   const man = { doCarro: d.manutencoesDoCarro, mover: d.moverManutencao, criar: d.criarDeManutencao, erro: null as string | null };
+  const clientesPorId = useMemo(() => new Map(d.clientes.map((c) => [c.id, c.nome])), [d.clientes]);
   const notasPorCarro = useMemo(() => anotacoesPorVeiculo(d.anotacoes), [d.anotacoes]);
 
   const versao = useVersaoDosDados();
@@ -127,7 +128,7 @@ export function Veiculos() {
         onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } abrirNoLugar(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Button icon={<Plus size={20} />} onClick={() => setNovo(true)}>Cadastrar o primeiro</Button>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
-      filhos={<JanelaDoVeiculo veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
+      filhos={<JanelaDoVeiculo clientes={clientesPorId} locais={d.locais} veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
     {criacao.dialogos}
     <NovoVeiculo aberto={novo} onFechar={() => setNovo(false)} onCriado={(v) => setLista((l) => [v, ...(l ?? [])])} />
     </>

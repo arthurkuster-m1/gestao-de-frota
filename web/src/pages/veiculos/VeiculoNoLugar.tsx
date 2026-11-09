@@ -29,6 +29,6 @@ export function VeiculoNoLugar({ id, onFechar }: { id: string; onFechar: () => v
     const aviso = avisoDoCicloAutomatico(linha, novo, campo.edicao!.coluna);
     if (aviso) toast(aviso);
   };
-  return <JanelaDoVeiculo veiculo={veiculo} campos={campos} onEditar={editar} onFechar={onFechar} reservas={veiculo ? (ctx.reservas.get(veiculo.id) ?? []) : []} eventos={d.eventos ?? []} usoCarregado={ctx.carregado}
+  return <JanelaDoVeiculo clientes={new Map(d.clientes.map((c) => [c.id, c.nome]))} locais={d.locais} veiculo={veiculo} campos={campos} onEditar={editar} onFechar={onFechar} reservas={veiculo ? (ctx.reservas.get(veiculo.id) ?? []) : []} eventos={d.eventos ?? []} usoCarregado={ctx.carregado}
     manutencoes={veiculo ? (d.manutencoesDoCarro.get(veiculo.id) ?? []) : []} manutencoesErro={null} onCriarManutencao={d.criarDeManutencao} />;
 }

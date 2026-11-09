@@ -172,3 +172,28 @@
 .mt-janela .mt-agenda-tags, .mt-ficha .mt-agenda-tags { flex-direction: column; align-items: flex-start; flex-wrap: wrap; }
 .mt-ficha__divisor { margin: var(--space-4) 0 var(--space-1); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-subtle); }
 .mt-ficha__divisor:first-child { margin-top: 0; }
+
+/* Histórico: botões de registrar */
+.mt-registrar { display: flex; flex-wrap: wrap; gap: 8px; }
+.mt-registrar__resumo { padding: 10px 12px; border-radius: var(--radius-lg); background: var(--color-surface-elevated); }
+.mt-registrar__resumo ul { margin: 4px 0 0; padding-left: 18px; font-size: 14px; }
+/* Eventos do veículo */
+.mt-evv__filtros { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.mt-evv__busca { position: relative; flex: 1 1 260px; display: flex; align-items: center; }
+.mt-evv__busca > svg { position: absolute; left: 12px; color: var(--color-text-subtle); pointer-events: none; }
+.mt-evv__busca input { padding-left: 34px; width: 100%; }
+.mt-evv__datas { display: flex; align-items: center; gap: 6px; }
+.mt-evv__datas > * { min-width: 0; }
+.mt-evv__grupo { display: grid; gap: 6px; }
+.mt-evv__grupo-cab { display: inline-flex; align-items: center; gap: 8px; width: fit-content; border: 0; background: transparent; color: inherit; font: inherit; cursor: pointer; padding: 4px 0; }
+.mt-evv__rolar { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-width: 100%; }
+.mt-evv__tabela { border-collapse: collapse; width: 100%; font-size: 14px; }
+.mt-evv__tabela th, .mt-evv__tabela td { padding: 8px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
+.mt-evv__tabela th { font-size: 12.5px; font-weight: 700; color: var(--color-text-muted); background: var(--color-surface-elevated); }
+.mt-evv__tabela tr.is-sel td { background: var(--color-accent-soft); }
+.mt-evv__chk { width: 36px; }
+/* A tag da agenda no painel do carro: quebra de linha em vez de cortar (celular) */
+.mt-ficha .mt-agenda-tags, .mt-agenda .mt-agenda-tags { max-width: 100%; min-width: 0; }
+.mt-ficha .mt-agenda-link, .mt-agenda .mt-agenda-link { max-width: 100%; min-width: 0; flex: 0 1 auto; }
+.mt-ficha .mt-agenda-tags .mt-tag, .mt-agenda .mt-agenda-tags .mt-tag { white-space: normal; max-width: 100%; text-align: left; flex: 0 1 auto; }
+.mt-ficha__linha dd { overflow-wrap: anywhere; }

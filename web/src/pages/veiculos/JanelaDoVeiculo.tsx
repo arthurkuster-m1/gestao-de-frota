@@ -11,12 +11,14 @@ import { formatar } from "../../components/motor/formatar";
 import { listarAtividades, type Atividade } from "../../lib/veiculos/dados";
 import { quando, textoAtividade } from "../../lib/veiculos/atividade";
 import type { Veiculo } from "../../lib/veiculos/tipos";
-import { ESTADOS_RESERVA, type Evento, type Reserva } from "../../lib/eventos/tipos";
+import { ESTADOS_RESERVA, type Evento, type EventoLocal, type Reserva } from "../../lib/eventos/tipos";
 import { STATUS_DE_USO, agendaItens, rotuloDoUso, statusDeUso } from "../../lib/eventos/uso";
 import { barrasDoVeiculo } from "../../lib/eventos/barras";
 import { barrasDeManutencao } from "../../lib/manutencoes/barras";
 import { AgendaDoCarro, type ItemDaAgenda } from "./AgendaDoCarro";
 import { AgendaEmTags } from "./AgendaEmTags";
+import { EventosDoVeiculo } from "./EventosDoVeiculo";
+import { RegistrarAcoes } from "./RegistrarAcoes";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
 import { Tag } from "../../components/motor/Tag";
 import { Button } from "../../ds";
@@ -58,7 +60,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: Reserva[]; nome:
   );
 }
 
-export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
+export function JanelaDoVeiculo({ clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
@@ -145,7 +147,7 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
                 )}
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
-            {aba === "eventos" && (usoCarregado ? <ListaDeReservas reservas={[...reservas].sort((a, b) => b.reserva_inicio.localeCompare(a.reserva_inicio))} nome={nomeDoEvento} vazio="Este carro ainda não foi reservado para nenhum evento." />
+            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo reservas={reservas} eventos={eventos} clientes={clientes} locais={locais} />
               : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "manutencoes" && (manutencoesErro ? <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">{manutencoesErro}</EmBreve> : (
               <div className="mt-reservas-ed" data-testid="aba-manutencoes">
@@ -168,6 +170,7 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
               </div>
             ))}
             {aba === "multas" && <EmBreve icone={<Warning size={32} />} titulo="Multas">Multas do carro, com o evento e o cliente que estavam com ele na hora. Entra com a tela de Multas.</EmBreve>}
+            {aba === "historico" && <RegistrarAcoes veiculo={veiculo} />}
             {aba === "historico" && (hist === null ? <Skeleton h={20} /> : hist.length === 0 ? <p className="t-body t-muted">Sem atividade registrada.</p>
               : <ul className="vei-hist" data-testid="historico">{hist.map((a) => <li key={a.id}><span className="t-body">{textoAtividade(a.descricao)}</span><span className="t-body-sm t-muted">{quando(a.ocorreu_em)}</span></li>)}</ul>)}
           </div>
