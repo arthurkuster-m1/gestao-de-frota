@@ -1,5 +1,6 @@
 import { useCallback, useState, type ReactNode } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
+import { AvisoDeChecklistEmMassa } from "../pages/checklists/AvisoDeChecklistEmMassa";
 import { JanelaDoEventoLigada } from "../pages/eventos/JanelaDoEventoLigada";
 import type { AbaDoEvento } from "../pages/eventos/JanelaDoEvento";
 import { useDadosDeEventos } from "../pages/eventos/useDadosDeEventos";
@@ -11,7 +12,7 @@ const ABAS: AbaDoEvento[] = ["dados", "veiculos", "transportes", "contratos"];
 
 function EventoNoLugar({ item, onAba, onFechar }: { item: Aberto; onAba: (a: AbaDoEvento) => void; onFechar: () => void }) {
   const d = useDadosDeEventos();
-  return <JanelaDoEventoLigada d={d} id={item.id} aba={item.aba} onAba={onAba} onFechar={onFechar} onExcluido={onFechar} />;
+  return <><JanelaDoEventoLigada d={d} id={item.id} aba={item.aba} onAba={onAba} onFechar={onFechar} onExcluido={onFechar} /><AvisoDeChecklistEmMassa d={d} /></>;
 }
 
 /**

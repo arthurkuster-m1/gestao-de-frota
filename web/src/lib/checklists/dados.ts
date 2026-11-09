@@ -28,3 +28,11 @@ export async function atualizarChecklist(id: string, patch: Partial<Omit<Checkli
   if (error) throw traduzir(error);
   return data as Checklist;
 }
+
+/** Um checklist por reserva, todos de uma vez (a saída em massa de um evento). Tudo ou nada. */
+export async function criarChecklistsEmMassa(reservaIds: string[], momento: ChecklistNovo["momento"], dados: Omit<ChecklistNovo, "reserva_id" | "momento" | "km">): Promise<Checklist[]> {
+  if (reservaIds.length === 0) return [];
+  const { data, error } = await supabase.from("checklists").insert(reservaIds.map((reserva_id) => ({ ...dados, km: null, reserva_id, momento })) as never).select(COLUNAS);
+  if (error) throw traduzir(error);
+  return (data ?? []) as Checklist[];
+}

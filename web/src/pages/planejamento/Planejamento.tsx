@@ -13,6 +13,7 @@ import { aplicarArrasto } from "../../lib/linhaDoTempo/arrasto";
 import { conflitos } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import { PedidosDoEvento } from "../eventos/PedidosDoEvento";
+import { AvisoDeChecklistEmMassa } from "../checklists/AvisoDeChecklistEmMassa";
 import { useCriacaoNaLinha } from "./useCriacaoNaLinha";
 import { AcoesDosVeiculosSelecionados } from "../veiculos/AcoesDosVeiculosSelecionados";
 import type { AnotacaoDoCarro } from "../../lib/eventos/tipos";
@@ -153,6 +154,7 @@ export function Planejamento() {
         onReservar={(ids, ini, fim, janela) => d.reservar(selecionado.id, ids, ini, fim, janela)} />}
       <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => { setObjetivo("evento"); setSelecionadoId(e.id); setReservando(true); }} />
       {criacao.dialogos}
+      <AvisoDeChecklistEmMassa d={d} />
     </div>
   );
 }

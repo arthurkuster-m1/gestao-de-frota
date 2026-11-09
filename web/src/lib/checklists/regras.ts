@@ -14,3 +14,9 @@ export const diaDe = (iso: string) => new Intl.DateTimeFormat("sv-SE", { timeZon
 export const horaDe = (iso: string) => new Intl.DateTimeFormat("sv-SE", { timeZone: FUSO, hour: "2-digit", minute: "2-digit", hour12: false }).format(new Date(iso));
 export const quandoFoi = (iso: string) => `${diaDe(iso).split("-").reverse().join("/")} ${horaDe(iso)}`;
 export const kmTexto = (km: number | null) => (km === null ? null : `${km.toLocaleString("pt-BR")} km`);
+
+/** As reservas (ids) que ainda NÃO têm checklist daquele momento (cancelada e concluída não contam). */
+export function reservasSemChecklist(reservas: readonly { id: string; estado: EstadoReserva }[], checklists: readonly { reserva_id: string; momento: Momento }[], momento: Momento): string[] {
+  const tem = new Set(checklists.filter((c) => c.momento === momento).map((c) => c.reserva_id));
+  return reservas.filter((r) => r.estado !== "cancelado" && r.estado !== "concluido" && !tem.has(r.id)).map((r) => r.id);
+}

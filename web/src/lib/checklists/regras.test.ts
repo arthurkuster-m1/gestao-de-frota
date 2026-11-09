@@ -21,3 +21,12 @@ describe("data e hora de São Paulo", () => {
   });
   it("km em texto", () => { expect(kmTexto(12340)).toBe("12.340 km"); expect(kmTexto(null)).toBeNull(); });
 });
+
+import { reservasSemChecklist } from "./regras";
+describe("checklist em massa", () => {
+  it("só as reservas ativas que ainda não têm o checklist do momento", () => {
+    const rs = [{ id: "a", estado: "reservado" as const }, { id: "b", estado: "reservado" as const }, { id: "c", estado: "cancelado" as const }, { id: "d", estado: "concluido" as const }];
+    expect(reservasSemChecklist(rs, [{ reserva_id: "a", momento: "saida" }], "saida")).toEqual(["b"]);
+    expect(reservasSemChecklist(rs, [{ reserva_id: "a", momento: "retorno" }], "saida")).toEqual(["a", "b"]);
+  });
+});

@@ -23,6 +23,8 @@ import type { Sentido, Transporte } from "../../lib/transportes/tipos";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
+import { ChecklistEmMassaSheet, type DadosEmMassa } from "../checklists/ChecklistEmMassaSheet";
+import { reservasSemChecklist } from "../../lib/checklists/regras";
 import { ChecklistsDaReserva } from "../checklists/ChecklistsDaReserva";
 import type { useTransportes } from "../transportes/useTransportes";
 import { AdicionarVeiculos } from "./AdicionarVeiculos";
@@ -52,6 +54,8 @@ type Props = {
   onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
   onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
+  /** Checklist (saída) do mesmo jeito para vários carros: ids das reservas e os dados comuns. */
+  onChecklistEmMassa?: (reservaIds: string[], dados: DadosEmMassa) => Promise<void>;
 };
 
 /**
@@ -60,7 +64,7 @@ type Props = {
  * arrastar o título para mudar a ordem, selecionar células (arrastando), copiar, colar, duplicar para baixo e marcar vários carros
  * para aplicar o MESMO transporte de uma vez.
  */
-export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro }: Props) {
+export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro, onChecklistEmMassa }: Props) {
   const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs>(lerPrefs);
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
@@ -68,6 +72,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const [escolhendo, setEscolhendo] = useState<{ pedido: ModeloDesejado | null } | null>(null);
   const [transporte, setTransporte] = useState<{ reservaIds: string[]; sentido: Sentido; rotulo: string; atual: Transporte | null } | null>(null);
   const [checklist, setChecklist] = useState<LinhaDoEvento | null>(null);
+  const [loteDeChecklist, setLoteDeChecklist] = useState<LinhaDoEvento[] | null>(null);
   const [marcados, setMarcados] = useState<Set<string>>(new Set());          // carros marcados (caixinha) para ações em massa
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);      // bloco de células selecionado
   const arrastandoSel = useRef(false);
@@ -250,6 +255,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const marcadas = definidas.filter((l) => marcados.has(l.key));
   const emMassa = (s: Sentido) => { const ids = marcadas.map((l) => l.reserva!.id); const primeiro = transporteDe(marcadas[0]!, s); setTransporte({ reservaIds: ids, sentido: s, rotulo: `${ids.length} carros`, atual: marcadas.every((l) => transporteDe(l, s)?.id === primeiro?.id) ? primeiro : null }); };
 
+  const semSaida = new Set(reservasSemChecklist(definidas.map((l) => l.reserva!), checklists, "saida"));
+  const linhasSemSaida = definidas.filter((l) => semSaida.has(l.reserva!.id));
   const definidos = definidas.length;
   const pedidoAlvo = escolhendo?.pedido ?? null;
   const nCols = 4 + colunasInfo.length + ordenadas.length;
@@ -266,6 +273,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
             </div>
           </Painel>
+          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button variant="secondary" icon={<ListChecks size={18} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos">Checklist de saída de todos ({linhasSemSaida.length})</Button>}
           <Button icon={<Plus size={18} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar carros</Button>
         </div>
       </div>
@@ -284,6 +292,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
             <b>{marcadas.length} carro{marcadas.length === 1 ? "" : "s"} marcado{marcadas.length === 1 ? "" : "s"}</b>
             <Button size="sm" variant="secondary" onClick={() => emMassa("ida")} data-testid="massa-ida">Transporte de ida…</Button>
             <Button size="sm" variant="secondary" onClick={() => emMassa("volta")} data-testid="massa-volta">Transporte de volta…</Button>
+            {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => setLoteDeChecklist(marcadas.filter((l) => semSaida.has(l.reserva!.id)))} data-testid="massa-checklist">Checklist de saída…</Button>}
             <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setMarcados(new Set())}>Limpar</Button>
           </>}
           {faixa && multiplas(faixa) && <Button size="sm" variant="secondary" icon={<CopySimple size={16} />} onClick={() => fazer.current.duplicar()} data-testid="duplicar-para-baixo" title="Ctrl + D">Duplicar para baixo</Button>}
@@ -351,6 +360,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
         onReservarSemData={onReservarSemData ? (ids) => onReservarSemData(evento.id, ids, pedidoAlvo?.id) : undefined} />
       <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => { setTransporte(null); setMarcados(new Set()); }} tr={tr} eventoId={evento.id} reservaIds={transporte?.reservaIds ?? []}
         carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null} />
+      {onChecklistEmMassa && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento="saida" carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={onChecklistEmMassa} />}
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}
       </Sheet>

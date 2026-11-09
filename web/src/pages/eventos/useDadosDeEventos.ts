@@ -4,6 +4,7 @@ import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { listarReservasSemData, reservarSemData, atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
 import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
+import { reservasSemChecklist } from "../../lib/checklists/regras";
 import { pedidoQueAtende } from "../../lib/eventos/desejados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
@@ -52,11 +53,17 @@ export function useDadosDeEventos() {
   }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
+  /** Evento colocado em uso à mão: se há carros sem checklist de saída, o app oferece fazer o de todos. */
+  const [pendenciaDeChecklist, setPendenciaDeChecklist] = useState<string | null>(null);
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
     // as datas do evento SÃO as das reservas dos carros: com carros reservados, mudam arrastando na linha do tempo ou na aba Veículos
     if ((campo.id === "inicio" || campo.id === "fim") && reservas.some((r) => r.evento_id === linha.id && r.estado !== "cancelado")) throw new Error("As datas seguem as reservas dos carros: ajuste na aba Veículos ou arraste a barra na linha do tempo.");
     const atualizado = await atualizarEvento(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Evento>);
     setEventos((l) => (l ?? []).map((x) => (x.id === linha.id ? atualizado : x)));
+    if (campo.id === "status" && valor === "em_uso") {
+      const doEvento = [...reservas, ...reservasSemData].filter((r) => r.evento_id === linha.id);
+      if (reservasSemChecklist(doEvento, ck.checklists, "saida").length > 0) setPendenciaDeChecklist(linha.id);
+    }
   };
   const editarReserva: OnEditar<ReservaLinha> = async (linha, campo, valor) => {
     const atualizada = await atualizarReserva(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Reserva>);
@@ -140,5 +147,5 @@ export function useDadosDeEventos() {
   const moverNota = (id: string, inicio: string, fim: string) => editarNota(id, { inicio, fim });
   const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

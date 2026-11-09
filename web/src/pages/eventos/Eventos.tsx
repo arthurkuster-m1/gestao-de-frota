@@ -6,6 +6,7 @@ import { usePopover } from "../../ds/popover";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { barraDoEvento } from "../../lib/eventos/barras";
 import type { Evento } from "../../lib/eventos/tipos";
+import { AvisoDeChecklistEmMassa } from "../checklists/AvisoDeChecklistEmMassa";
 import { SubpaginasDeEventos } from "./SubpaginasDeEventos";
 import { NovoEvento } from "./NovoEvento";
 import { JanelaDoEventoLigada } from "./JanelaDoEventoLigada";
@@ -33,6 +34,7 @@ export function Eventos() {
         rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento, tipo, solicitante…"
         vazio={<EmptyState icon={<CalendarCheck size={30} />} title="Nenhum evento ainda" action={<Button icon={<Plus size={20} />} onClick={() => setCriando(true)}>Criar o primeiro</Button>}>Crie o evento e depois escolha os carros. O Status de uso e a Agenda de cada carro se atualizam sozinhos.</EmptyState>}
         filhos={<JanelaDoEventoLigada d={d} id={aberto?.id ?? null} aba={aba} onAba={(a) => setBusca(a === "dados" ? {} : { aba: a }, { replace: true })} onFechar={() => navigate("/eventos")} onExcluido={() => navigate("/eventos")} />} />
+      <AvisoDeChecklistEmMassa d={d} />
       <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => navigate(`/eventos/${e.id}?aba=veiculos`)} />
     </>
   );
