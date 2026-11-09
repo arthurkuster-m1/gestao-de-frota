@@ -204,3 +204,14 @@
 /* Divisores da ficha (Uso, Dados, Datas): mais destaque e respiro em volta */
 .mt-ficha__divisor { margin: var(--space-8, 32px) 0 var(--space-2, 8px); padding-left: 10px; border-left: 3px solid var(--color-accent); font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
 .mt-ficha__divisor:first-child, .mt-ficha > div:first-child > .mt-ficha__divisor { margin-top: var(--space-2, 8px); }
+
+/* Eventos do veículo: filtros que cabem na largura (celular incluso) em vez de empurrar o painel para o lado */
+.mt-janela__conteudo { grid-template-columns: minmax(0, 1fr); }
+.mt-janela .ds-stack > * { min-width: 0; max-width: 100%; }
+.mt-evv__filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 8px; align-items: center; }
+.mt-evv__filtros > * { min-width: 0; }
+.mt-evv__busca { grid-column: 1 / -1; flex: none; }
+.mt-evv__datas { display: grid; grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr); gap: 6px; align-items: center; grid-column: 1 / -1; }
+.mt-evv__datas .ds-datefield, .mt-evv__datas > div { min-width: 0; width: 100%; }
+.mt-evv__filtros > button { justify-self: start; }
+.mt-evv__datas .ds-datefield input { min-width: 0; width: 100%; }
