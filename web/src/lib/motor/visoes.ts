@@ -7,6 +7,8 @@ export type TipoDeVisualizacao = (typeof TIPOS_DE_VISUALIZACAO)[number];
 export const ROTULO_DO_TIPO: Record<TipoDeVisualizacao, string> = { tabela: "Tabela", kanban: "Quadro", calendario: "Calendário", timeline: "Linha do tempo", galeria: "Cards" };
 
 export const MAXIMO_DE_VISUALIZACOES = 30;
+/** Nome reservado da linha que guarda a visualização "Todas" (escondida das abas). */
+export const NOME_DA_VISAO_PADRAO = "__todas__";
 
 /** Uma linha de `visoes_salvas`, já com a config validada. */
 export type VisaoSalva = { id: string; tela: string; nome: string; tipo: TipoDeVisualizacao; config: PreferenciasDaTabela; posicao: number };

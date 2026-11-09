@@ -4,9 +4,9 @@ import { Card, Page, Skeleton, cx } from "../../ds";
 import { useVisoes } from "../../lib/motor/useVisoes";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { prefsIguais } from "../../lib/motor/prefs";
-import { configSegura, type VisaoSalva } from "../../lib/motor/visoes";
+import { NOME_DA_VISAO_PADRAO, configSegura, type VisaoSalva } from "../../lib/motor/visoes";
 import { BarraDeVisualizacoes, layoutDe, type Layout } from "./BarraDeVisualizacoes";
-import { BarraDeConsulta } from "./BarraDeConsulta";
+import { BarraDeConsulta, ChipsDeFiltro } from "./BarraDeConsulta";
 import { CartoesDoMotor } from "./CartoesDoMotor";
 import { TabelaDoMotor } from "./TabelaDoMotor";
 import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
@@ -45,23 +45,26 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
 export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
-  const chaveTodas = `frota.motor.${tela}.todas`;
   const v = useVisoes(tela);
   const [busca, setBusca] = useState("");
   const [abaId, setAbaId] = useState("todas");
-  const [todas, setTodas] = useState<PreferenciasDaTabela>(() => { try { return configSegura(JSON.parse(localStorage.getItem(chaveTodas) ?? "{}")); } catch { return {}; } });
   const [rascunho, setRascunho] = useState<PreferenciasDaTabela | null>(null);
   const [buscando, setBuscando] = useState(false);
+  const [filtroNovo, setFiltroNovo] = useState<number | null>(null);
   const [ocupado, setOcupado] = useState(false);
   const [erroVisao, setErroVisao] = useState<string | null>(null);
 
-  useEffect(() => { try { localStorage.setItem(chaveTodas, JSON.stringify(todas)); } catch { /* sem armazenamento */ } }, [todas, chaveTodas]);
-  const ativa: VisaoSalva | undefined = v.visoes.find((x) => x.id === abaId);
+  /** A "Todas" também é salva no banco (uma linha reservada, escondida das abas), para valer em qualquer aparelho. */
+  const linhaPadrao: VisaoSalva | undefined = v.visoes.find((x) => x.nome === NOME_DA_VISAO_PADRAO);
+  const todasSalva: PreferenciasDaTabela = useMemo(() => (linhaPadrao ? configSegura(linhaPadrao.config) : {}), [linhaPadrao]);
+  const abas = useMemo(() => v.visoes.filter((x) => x.nome !== NOME_DA_VISAO_PADRAO), [v.visoes]);
+  const ativa: VisaoSalva | undefined = abas.find((x) => x.id === abaId);
   const abaValida = abaId === "todas" || !!ativa || v.carregando;
   useEffect(() => { if (!abaValida) setAbaId("todas"); }, [abaValida]);
-  const prefs = ativa ? (rascunho ?? ativa.config) : todas;
-  const alterada = ativa ? rascunho !== null && !prefsIguais(rascunho, ativa.config) : !prefsIguais(todas, {});
-  const onPrefs = (p: PreferenciasDaTabela) => { if (ativa) setRascunho(p); else setTodas(p); };
+  const base = ativa ? ativa.config : todasSalva;
+  const prefs = rascunho ?? base;
+  const alterada = rascunho !== null && !prefsIguais(rascunho, base);
+  const onPrefs = (p: PreferenciasDaTabela) => setRascunho(p);
   const irParaAba = (id: string) => { setAbaId(id); setRascunho(null); setErroVisao(null); };
   const modo: "tabela" | "cards" | "timeline" = modoFixo === "timeline" ? "timeline" : prefs.visualizacao === "galeria" ? "cards" : prefs.visualizacao === "timeline" && linhaDoTempo ? "timeline" : "tabela";
 
@@ -80,19 +83,26 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
         {!compacta && <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>}
         {avisos}
 
-        <BarraDeVisualizacoes<T> visoes={v.visoes} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
+        <BarraDeVisualizacoes<T> visoes={abas} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
           layoutAtivo={modo === "cards" ? "galeria" : modo === "timeline" ? "timeline" : "tabela"} layoutsDisponiveis={layouts} layoutFixo={!!modoFixo}
           campos={campos} prefs={prefs} onPrefs={onPrefs}
           onNovoLayout={async (layout: Layout, nome: string) => { const nova = await comAviso(() => v.criar(nome, layout, { visualizacao: layout })); if (nova) irParaAba(nova.id); }}
-          onSalvarComo={async (nome) => { const nova = await comAviso(() => v.criar(nome, prefs.visualizacao ?? "tabela", prefs)); if (nova) { if (!ativa) setTodas({}); irParaAba(nova.id); } }}
-          onSalvar={async () => { if (ativa && rascunho) { await comAviso(() => v.atualizar(ativa.id, { config: rascunho, tipo: layoutDe({ tipo: ativa.tipo, config: rascunho }) })); setRascunho(null); } }}
-          onDescartar={() => { if (ativa) setRascunho(null); else setTodas({}); }}
+          onSalvarComo={async (nome) => { const nova = await comAviso(() => v.criar(nome, prefs.visualizacao ?? "tabela", prefs)); if (nova) irParaAba(nova.id); }}
+          onSalvar={async () => {
+            if (!rascunho) return;
+            const tipo = layoutDe({ tipo: "tabela", config: rascunho });
+            if (ativa) await comAviso(() => v.atualizar(ativa.id, { config: rascunho, tipo: layoutDe({ tipo: ativa.tipo, config: rascunho }) }));
+            else if (linhaPadrao) await comAviso(() => v.atualizar(linhaPadrao.id, { config: rascunho, tipo }));
+            else await comAviso(() => v.criar(NOME_DA_VISAO_PADRAO, tipo, rascunho));
+            setRascunho(null);
+          }}
+          onDescartar={() => setRascunho(null)}
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
           onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
           acoes={acoes}
           ferramentas={<>
-            <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} />
+            <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
             <div className="mt-busca">
               {buscando || busca ? (
                 <input value={busca} autoFocus={buscando} onChange={(e) => setBusca(e.target.value)} onBlur={(e) => { const campo = e.currentTarget; window.setTimeout(() => { if (!campo.value) setBuscando(false); }, 250); }} onKeyDown={(e) => { if (e.key === "Escape") { setBusca(""); setBuscando(false); } }}
@@ -101,6 +111,8 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
               <button type="button" className={cx("mt-btn", "mt-btn--icone", !!busca && "is-on")} aria-label="Abrir busca" title="Buscar" data-testid="abrir-busca" onClick={() => { if (busca) { setBusca(""); setBuscando(false); } else setBuscando(!buscando); }}><MagnifyingGlass size={18} /></button>
             </div>
           </>} />
+
+        <ChipsDeFiltro campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} abrirIndice={filtroNovo} aoAbrir={() => setFiltroNovo(null)} aoAdicionar={setFiltroNovo} />
 
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>

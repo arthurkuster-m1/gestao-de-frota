@@ -168,6 +168,8 @@ Vale para toda tela que usa o motor de tabela (Veículos, Eventos, Manutenções
 - ✅ **O layout (Tabela, Cards, Linha do tempo) agora é da visualização**: some o seletor solto. Clicando na aba ativa (ou no ícone de configurações) abre o painel da visualização com **nome, layout, propriedades (mostrar/esconder, ordem, congelar colunas)**, **Duplicar** e **Excluir**. Trocar o layout de uma visualização salva pede para Salvar; salvar grava o layout novo.
 - ✅ O **+** oferece os **modelos** (Tabela, Cards, Linha do tempo) e cria a visualização já com o nome do modelo. A aba padrão **Todas** tem o mesmo painel e a opção "Salvar como nova visualização".
 - Obs.: o Planejamento (duas linhas do tempo fixas) esconde a escolha de layout.
+- ✅ **Filtros como no Notion** (13/11/2026): o funil abre uma busca "Filtrar por…" com as propriedades da tabela; ao escolher uma, nasce um **chip** (Propriedade + valor) logo abaixo da linha de visualizações e o editor dele já abre: um **seletor pequeno do formato** (contém, não contém, antes de, depois de, maior que, está vazio…, conforme o tipo) e o valor. Dá para mudar E/OU entre filtros, remover pela lixeira, e há "+ Filtro" no fim da fileira. O painel nunca passa da borda da tela.
+- ✅ **"Todas" também salva**: filtros, ordem, agrupamento, propriedades e layout feitos em Todas agora têm **Salvar em Todas** (vale em qualquer aparelho; fica numa linha reservada do banco, escondida das abas), **Descartar** e "Salvar como visualização". O layout (Tabela / Cards / Linha do tempo) virou três cartinhas iguais no painel da visualização.
 
 ## 8. Perguntas abertas (uma de cada vez)
 
