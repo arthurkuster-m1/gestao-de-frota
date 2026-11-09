@@ -98,3 +98,12 @@
 .mt-vde__total { color: var(--color-text-muted); }
 .mt-herdado { color: var(--color-text-subtle); font-style: italic; }
 .mt-transp b { font-weight: 700; }
+
+/* Ficha: a linha toda é o alvo do clique; o valor ocupa a largura inteira da coluna */
+.mt-ficha__linha:has(.mt-valor--edita) { cursor: pointer; }
+.mt-ficha__linha:has(.mt-valor--edita):hover { background: var(--color-surface-elevated); }
+.mt-ficha__linha dd .mt-valor--edita { display: block; width: 100%; text-align: left; min-height: 36px; }
+.mt-ficha__linha dd .mt-valor { display: block; width: 100%; }
+.mt-voltar { display: inline-flex; align-items: center; gap: 4px; font-size: 13px; font-weight: 600; color: var(--color-text-muted); text-decoration: none; margin-bottom: 4px; }
+.mt-voltar:hover { color: var(--color-accent); }
+.mt-ficha--local { padding: 8px 12px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }

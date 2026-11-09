@@ -9,6 +9,7 @@ import { useManutencoes } from "../manutencoes/useManutencoes";
 import { useTransportes } from "../transportes/useTransportes";
 import { useChecklists } from "../checklists/useChecklists";
 import type { AnotacaoDoCarro, AnotacaoNova, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "../../lib/eventos/tipos";
+import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoEvento, type ContextoDeEventos, type ReservaLinha } from "./camposDoEvento";
@@ -20,6 +21,7 @@ export function useDadosDeEventos() {
   const [reservas, setReservas] = useState<Reserva[]>([]);
   const [locais, setLocais] = useState<EventoLocal[]>([]);
   const [veiculos, setVeiculos] = useState<Veiculo[]>([]);
+  const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [desejados, setDesejados] = useState<ModeloDesejado[]>([]);
   const [anotacoes, setAnotacoes] = useState<AnotacaoDoCarro[]>([]);
   const man = useManutencoes();
@@ -29,6 +31,7 @@ export function useDadosDeEventos() {
 
   useEffect(() => {
     Promise.all([listarEventos(), listarReservas(), listarVeiculos()]).then(([e, r, v]) => { setEventos(e); setReservas(r); setVeiculos(v); }, (e: Error) => setErro(e.message));
+    listarClientes().then(setClientes, () => setClientes([]));
     listarDesejados().then(setDesejados, () => setDesejados([]));
     listarAnotacoes().then(setAnotacoes, () => setAnotacoes([]));
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
@@ -39,8 +42,8 @@ export function useDadosDeEventos() {
     for (const r of reservas) { const l = m.get(r.evento_id); if (l) l.push(r); else m.set(r.evento_id, [r]); }
     const lm = new Map<string, EventoLocal[]>();
     for (const l of [...locais].sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
-    return { reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento };
-  }, [reservas, veiculos, locais, tr.valorDoEvento]);
+    return { clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento };
+  }, [reservas, veiculos, locais, clientes, tr.valorDoEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
@@ -109,5 +112,5 @@ export function useDadosDeEventos() {
   const moverNota = (id: string, inicio: string, fim: string) => editarNota(id, { inicio, fim });
   const excluirNota = async (id: string) => { await removerAnotacao(id); setAnotacoes((l) => l.filter((x) => x.id !== id)); toast("Anotação removida"); };
 
-  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, locais, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

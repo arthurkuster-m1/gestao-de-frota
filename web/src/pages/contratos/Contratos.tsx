@@ -5,6 +5,7 @@ import { Button, EmptyState } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import type { Contrato } from "../../lib/contratos/tipos";
+import { SubpaginasDeEventos } from "../eventos/SubpaginasDeEventos";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 import { camposDoContrato, type ContextoDeContratos } from "./camposDeContratos";
 import { JanelaDoContrato } from "./JanelaDoContrato";
@@ -37,7 +38,7 @@ export function Contratos() {
 
   return (
     <>
-      <TelaDoMotor<Contrato> tela="contratos" titulo="Contratos" subtitulo="Comodato por evento, com cliente, vigência, carros e aditivos. A coluna Divergência confere o contrato com as reservas."
+      <TelaDoMotor<Contrato> tela="contratos" cabecalhoDireita={<SubpaginasDeEventos ativa="contratos" />} titulo="Contratos" subtitulo="Comodato por evento, com cliente, vigência, carros e aditivos. A coluna Divergência confere o contrato com as reservas."
         avisos={(k.erro || erroClientes) ? <p className="t-body-sm" role="alert" data-testid="aviso-contratos">{k.erro ?? erroClientes}</p> : null}
         acoes={<Button icon={<Plus size={20} />} onClick={() => setCriando(true)} data-testid="novo-contrato">Novo contrato</Button>}
         linhas={lista} erro={d.erro} campos={campos} idDe={(c) => c.id} onEditar={k.editar} onAbrir={(c) => navigate(`/contratos/${c.id}`)}

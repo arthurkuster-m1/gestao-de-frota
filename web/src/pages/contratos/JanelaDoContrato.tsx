@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Plus, Trash, Warning, X } from "@phosphor-icons/react";
 import { Button, Sheet } from "../../ds";
-import { CampoEditavel } from "../../components/motor/CampoEditavel";
+import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
 import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
@@ -50,7 +50,7 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
             {(ed.erro || edAd.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro ?? edAd.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { ed.setErro(null); edAd.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
             <dl className="mt-ficha" data-testid="ficha-dados">
               {campos.filter((c) => c.id !== "carros" && c.id !== "aditivos").map((c) => (
-                <div key={c.id} className="mt-ficha__linha"><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <Link to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</Link> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
+                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <Link to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</Link> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
               ))}
             </dl>
 

@@ -11,5 +11,6 @@ export * from "./components/Ordenavel";
 export * from "./components/DateFields";
 export * from "./components/Feedback";
 export * from "./components/Layout";
+export * from "./components/SeletorPilula";
 export { useTheme, type ThemeMode } from "./theme";
 export { cx, brl } from "./cx";

@@ -20,9 +20,6 @@ export const DESTINOS: Destino[] = [
   { path: "/planejamento", label: "Planejamento", Icon: CalendarBlank, principal: true, pronto: true, desc: "Veículos e eventos numa linha do tempo só", itens: ["Tabela de veículos com filtros e visões", "Tabela de eventos com filtros e visões", "Linha do tempo infinita com reservas, manutenções e prazos de logística", "Criar evento e manutenção e escolher os carros por aqui"] },
   { path: "/veiculos", label: "Veículos", Icon: Car, principal: true, pronto: true, desc: "Todos os carros, do pedido à devolução", itens: ["Tabela, cards e linha do tempo com visões salvas e colunas congeladas", "Cadastro individual e em massa", "Ciclo de Vida e Status de Uso", "Ficha com atividade, manutenções, eventos, multas, agenda e comentários"] },
   { path: "/eventos", label: "Eventos", Icon: CalendarCheck, principal: true, pronto: true, desc: "Solicitações de uso, reservas e transportes", itens: ["Formulário e cadastro em massa", "Carros por evento, com locais e datas por carro ou para todos", "Status do evento e do contrato"] },
-  { path: "/clientes", label: "Clientes", Icon: Users, pronto: true, desc: "Dados para o contrato de comodato", itens: ["Pessoa física ou jurídica", "Testemunha e motoristas autorizados (CNH)", "Reaproveitado nos eventos"] },
-  { path: "/contratos", label: "Contratos", Icon: FileText, pronto: true, desc: "Comodato por evento, com aditivos", itens: ["Contrato por evento, com cliente, vigência e carros", "Conferência com as reservas do evento", "Aditivo de troca de carros e de extensão de prazo"] },
-  { path: "/transportes", label: "Transportes e Pagamentos", Icon: Truck, pronto: true, desc: "PTA, TSO e retirada, e o que falta pagar", itens: ["Ida e volta por carro, grupo ou todos", "Valor planejado e valor real", "Aprovação e pagamento das PTAs e NFs"] },
   { path: "/manutencoes", label: "Manutenções", Icon: Wrench, pronto: true, desc: "Manutenções e sinistros", itens: ["Tipo, status e DA solicitada", "Se o carro ainda pode ir a evento", "Evento responsável preenchido sozinho"] },
   { path: "/multas", label: "Multas", Icon: Warning, desc: "AIT, quem estava com o carro e a cobrança", itens: ["Evento descoberto pela data e hora da infração", "Notificação recebida, pagamento, boleto e cobrança do cliente"] },
   { path: "/devolucoes", label: "Devoluções", Icon: ArrowUUpLeft, desc: "Planejar quais carros saem da frota", itens: ["Sugestões: mais velhos, parados, sem uso", "Devolver ou manter, com data", "Trocas planejadas e meta de 200 carros"] },
@@ -30,5 +27,7 @@ export const DESTINOS: Destino[] = [
   { path: "/configuracoes", label: "Configurações", Icon: GearSix, desc: "Conta, aparência e backup", itens: ["Aparência", "Backup", "Segurança da conta"] },
 ];
 
+/** Clientes, contratos, transportes e pagamentos são subpáginas de Eventos: o menu acende "Eventos" nelas. */
+const SUBPAGINAS_DE_EVENTOS = ["/clientes", "/contratos", "/transportes"];
 export const destinoDoCaminho = (pathname: string) =>
-  DESTINOS.filter((d) => d.path !== "/").find((d) => pathname === d.path || pathname.startsWith(d.path + "/"));
+  (SUBPAGINAS_DE_EVENTOS.some((p) => pathname === p || pathname.startsWith(p + "/")) ? DESTINOS.find((d) => d.path === "/eventos") : undefined) ?? DESTINOS.filter((d) => d.path !== "/").find((d) => pathname === d.path || pathname.startsWith(d.path + "/"));

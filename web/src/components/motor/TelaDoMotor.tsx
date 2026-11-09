@@ -20,6 +20,7 @@ import "./motor.css";
 type Props<T> = {
   /** Identifica a tela nas visualizações salvas ("veiculos", "eventos"…). */
   tela: string; titulo: string; subtitulo: string; acoes?: ReactNode; avisos?: ReactNode;
+  /** Canto superior direito do cabeçalho (ex.: o seletor de subpáginas de Eventos). */ cabecalhoDireita?: ReactNode;
   linhas: readonly T[] | null; erro: string | null; campos: readonly CampoDaTela<T>[]; idDe: (l: T) => string;
   onEditar: OnEditar<T>; onAbrir: (l: T) => void; vazio: ReactNode; rotuloDoTotal: (n: number) => string; placeholderDaBusca: string;
   /** Janelas e outros elementos por cima da tela (ex.: a janela do veículo). */
@@ -47,7 +48,7 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
@@ -89,7 +90,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, linhas,
   return (
     <Casca compacta={compacta} tela={tela}>
       <div className="ds-stack">
-        {!compacta && <div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>}
+        {!compacta && <div className="mt-cabecalho"><div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>{cabecalhoDireita}</div>}
         {avisos}
 
         <BarraDeVisualizacoes<T> visoes={abas} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}

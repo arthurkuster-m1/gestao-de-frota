@@ -1213,3 +1213,14 @@ html:root.tr-sam { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
 .ds-toasts { pointer-events: none; }
 
 @media (min-width: 640px) { .ds-sheet--wide { max-width: min(920px, calc(100vw - 48px)); } }
+
+/* Seletor de subpáginas: pílula no computador, caixa de seleção no celular */
+.ds-pilula__pc { display: none; }
+.ds-pilula__cel { min-width: 180px; }
+@media (min-width: 720px) {
+  .ds-pilula__pc { display: inline-flex; gap: 2px; padding: 3px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-full); background: var(--color-surface); }
+  .ds-pilula__cel { display: none; }
+}
+.ds-pilula__opcao { border: 0; background: transparent; color: var(--color-text-muted); font: inherit; font-size: 13.5px; font-weight: 600; padding: 7px 14px; border-radius: var(--radius-full); cursor: pointer; white-space: nowrap; }
+.ds-pilula__opcao:hover { color: var(--color-text); background: var(--color-surface-elevated); }
+.ds-pilula__opcao.is-on { background: var(--color-accent-soft); color: var(--color-accent); }

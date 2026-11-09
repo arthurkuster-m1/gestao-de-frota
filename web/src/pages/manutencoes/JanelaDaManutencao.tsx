@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Trash, X } from "@phosphor-icons/react";
 import { Button, Sheet } from "../../ds";
-import { CampoEditavel } from "../../components/motor/CampoEditavel";
+import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
 import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
@@ -33,7 +33,7 @@ export function JanelaDaManutencao({ manutencao, campos, onEditar, onExcluir, on
             {(ed.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { ed.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
             <dl className="mt-ficha" data-testid="ficha-dados">
               {campos.map((c) => (
-                <div key={c.id} className="mt-ficha__linha"><dt>{c.titulo}</dt><dd>{c.id === "veiculo" ? <Link to={`/veiculos/${manutencao.veiculo_id}`} className="mt-reserva__evento">{formatar(c, manutencao)}</Link> : <CampoEditavel linha={manutencao} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
+                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "veiculo" ? <Link to={`/veiculos/${manutencao.veiculo_id}`} className="mt-reserva__evento">{formatar(c, manutencao)}</Link> : <CampoEditavel linha={manutencao} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
               ))}
             </dl>
             <div><Button variant="danger" icon={<Trash size={18} />} onClick={() => setExcluindo(true)} data-testid="excluir-manutencao">Excluir manutenção</Button></div>

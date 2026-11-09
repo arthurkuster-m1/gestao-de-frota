@@ -4,6 +4,7 @@ import { CurrencyDollar, Plus, Truck } from "@phosphor-icons/react";
 import { Button, EmptyState, Segmented } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import type { Pagamento, Transporte } from "../../lib/transportes/tipos";
+import { SubpaginasDeEventos } from "../eventos/SubpaginasDeEventos";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 import { camposDoPagamento, camposDoTransporte, type ContextoDeTransportes } from "./camposDeTransportes";
 import { JanelaDoPagamento } from "./JanelaDoPagamento";
@@ -34,13 +35,12 @@ export function Transportes() {
   useEffect(() => { if (idPagamento && pronto && !tr.pagamentos.some((x) => x.id === idPagamento)) setBusca({ aba: "pagamentos" }, { replace: true }); }, [idPagamento, pronto, tr.pagamentos, setBusca]);
 
   const trocarAba = (v: string) => navigate(v === "pagamentos" ? "/transportes?aba=pagamentos" : "/transportes");
-  const seletor = <Segmented options={[{ value: "transportes", label: "Transportes" }, { value: "pagamentos", label: "Pagamentos" }]} value={aba} onChange={trocarAba} />;
   const aviso = tr.erro ? <p className="t-body-sm" role="alert" data-testid="aviso-transportes">{tr.erro}</p> : null;
 
   return (
     <>
       {aba === "transportes" ? (
-        <TelaDoMotor<Transporte> key="t" tela="transportes" titulo="Transportes e Pagamentos" subtitulo="Cada ida e cada volta, com os carros que levam, a distância e o pagamento." avisos={<>{seletor}{aviso}</>}
+        <TelaDoMotor<Transporte> key="t" tela="transportes" titulo="Transportes e Pagamentos" subtitulo="Cada ida e cada volta, com os carros que levam, a distância e o pagamento." cabecalhoDireita={<SubpaginasDeEventos ativa={aba} />} avisos={aviso}
           acoes={<Button icon={<Plus size={20} />} onClick={() => setNovoT(true)} data-testid="novo-transporte">Novo transporte</Button>}
           linhas={pronto ? tr.transportes : null} erro={d.erro} campos={camposT} idDe={(t) => t.id} onEditar={tr.editarTransporte} onAbrir={(t) => navigate(`/transportes/${t.id}`)}
           rotuloDoTotal={(n) => `${n} transporte${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar referência, evento, transportadora…"
@@ -48,7 +48,7 @@ export function Transportes() {
           filhos={<JanelaDoTransporte transporte={abertoT} campos={camposT} reservas={d.reservas} veiculos={d.veiculos} vinculos={tr.vinculos} pagamentos={tr.pagamentos} onEditar={tr.editarTransporte} onLigar={tr.ligarCarros}
             onExcluir={async (t) => { await tr.excluirT(t); navigate("/transportes"); }} onFechar={() => navigate("/transportes")} />} />
       ) : (
-        <TelaDoMotor<Pagamento> key="p" tela="pagamentos" titulo="Transportes e Pagamentos" subtitulo="PTAs e NFs da TSO: aprovar e pagar." avisos={<>{seletor}{aviso}</>}
+        <TelaDoMotor<Pagamento> key="p" tela="pagamentos" titulo="Transportes e Pagamentos" subtitulo="PTAs e NFs da TSO: aprovar e pagar." cabecalhoDireita={<SubpaginasDeEventos ativa={aba} />} avisos={aviso}
           acoes={<Button icon={<Plus size={20} />} onClick={() => setNovoP(true)} data-testid="novo-pagamento">Novo pagamento</Button>}
           linhas={pronto ? tr.pagamentos : null} erro={d.erro} campos={camposP} idDe={(p) => p.id} onEditar={tr.editarPagamento} onAbrir={(p) => navigate(`/transportes?aba=pagamentos&abrir=${p.id}`)}
           rotuloDoTotal={(n) => `${n} pagamento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar número, departamento…"

@@ -2,7 +2,7 @@ import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CalendarBlank, CalendarCheck, Plus, Warning, Wrench, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { Skeleton, Textarea, cx, useToast } from "../../ds";
-import { CampoEditavel } from "../../components/motor/CampoEditavel";
+import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
 import { formatar } from "../../components/motor/formatar";
@@ -89,8 +89,8 @@ export function JanelaDoVeiculo({ veiculo, campos, onEditar, onFechar, reservas,
             {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
             {aba === "dados" && (
               <dl className="mt-ficha" data-testid="ficha-dados">
-                <div className="mt-ficha__linha"><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 700 }}>{titulo}</span></dd></div>
-                {lista.map((c) => <div key={c.id} className="mt-ficha__linha"><dt>{c.titulo}</dt><dd><CampoEditavel linha={veiculo} campo={c} ed={ed} navegaveis={editaveis} /></dd></div>)}
+                <div className="mt-ficha__linha" onClick={clicarNaLinha}><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 700 }}>{titulo}</span></dd></div>
+                {lista.map((c) => <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={veiculo} campo={c} ed={ed} navegaveis={editaveis} /></dd></div>)}
               </dl>
             )}
             {aba === "atividade" && (hist === null ? <Skeleton h={20} /> : hist.length === 0 ? <p className="t-body t-muted">Sem atividade registrada.</p>

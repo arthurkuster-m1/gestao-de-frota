@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { MagnifyingGlass, Plus, Users } from "@phosphor-icons/react";
 import { Badge, Button, Card, EmptyState, Input, Page, Skeleton } from "../../ds";
+import { SubpaginasDeEventos } from "../eventos/SubpaginasDeEventos";
 import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import "../veiculos/veiculos.css";
 
@@ -18,8 +19,9 @@ export function Clientes() {
       <div className="ds-stack">
         <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}>
           <div><h1 className="t-h1">Clientes</h1><p className="t-body t-muted">Dados para o contrato de comodato.</p></div>
-          <Link to="/clientes/novo"><Button icon={<Plus size={20} />}>Novo cliente</Button></Link>
+          <SubpaginasDeEventos ativa="clientes" />
         </div>
+        <div><Link to="/clientes/novo"><Button icon={<Plus size={20} />}>Novo cliente</Button></Link></div>
         <div className="vei-barra">
           <div style={{ position: "relative", flex: "1 1 220px", maxWidth: 320 }}>
             <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar por nome ou cidade…" aria-label="Buscar cliente" />

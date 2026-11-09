@@ -23,7 +23,9 @@ export function Shell() {
     if (!gaveta && d.open) d.close();
   }, [gaveta]);
 
-  const ativo = principais.find((d) => (d.path === "/" ? pathname === "/" : pathname.startsWith(d.path)))?.path ?? "";
+  // clientes, contratos, transportes e pagamentos são subpáginas de Eventos
+  const caminhoDoMenu = /^\/(clientes|contratos|transportes)(\/|$)/.test(pathname) ? "/eventos" : pathname;
+  const ativo = principais.find((d) => (d.path === "/" ? caminhoDoMenu === "/" : caminhoDoMenu.startsWith(d.path)))?.path ?? "";
 
   return (
     <div className="ds-shell">

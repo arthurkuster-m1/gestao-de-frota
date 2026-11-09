@@ -22,3 +22,9 @@ export function CampoEditavel<T>({ linha, campo, ed, navegaveis }: { linha: T; c
     </button>
   );
 }
+
+/** Clique em QUALQUER ponto da linha da ficha abre a edição do campo (antes só o valor, pequeno, respondia). Ignora cliques em botões, links e campos já abertos. */
+export function clicarNaLinha(e: React.MouseEvent<HTMLElement>) {
+  if ((e.target as HTMLElement).closest("button, input, textarea, select, a, [popover]")) return;
+  e.currentTarget.querySelector<HTMLButtonElement>("button.mt-valor--edita")?.click();
+}
