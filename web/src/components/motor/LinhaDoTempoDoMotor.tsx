@@ -6,7 +6,7 @@ import { gerarDias, larguraDoPeriodo, mesesDoEixo, nomeDoMes, posicaoDoDia } fro
 import { empilhar, totalDeFaixas } from "../../lib/linhaDoTempo/faixas";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
 import { aplicarConsulta } from "../../lib/motor/consulta";
-import { hojeLocal, somarDias } from "../../lib/motor/datas";
+import { diaDaSemanaDaChave, diferencaEmDias, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
 import { CampoEditavel } from "./CampoEditavel";
 import { formatar } from "./formatar";
@@ -121,6 +121,16 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
   }
 
   const dias_ = useMemo(() => gerarDias(origem, dias), [origem, dias]);
+  /** Semanas de domingo a sábado ("08/11 - 14/11"); a primeira e a última podem ser parciais, cortadas pela borda do eixo. */
+  const semanas = useMemo(() => {
+    const fimEixo = somarDias(origem, dias - 1), out: { domingo: string; de: string; dias: number; rotulo: string; temHoje: boolean }[] = [];
+    const dm = (c: string) => `${c.slice(8, 10)}/${c.slice(5, 7)}`;
+    for (let dom = somarDias(origem, -((diaDaSemanaDaChave(origem) + 1) % 7)); dom <= fimEixo; dom = somarDias(dom, 7)) {
+      const sab = somarDias(dom, 6), de = dom < origem ? origem : dom, ate = sab > fimEixo ? fimEixo : sab;
+      out.push({ domingo: dom, de, dias: diferencaEmDias(de, ate) + 1, rotulo: `${dm(dom)} - ${dm(sab)}`, temHoje: hoje >= dom && hoje <= sab });
+    }
+    return out;
+  }, [origem, dias, hoje]);
   const meses = useMemo(() => mesesDoEixo(origem, dias), [origem, dias]);
   const grade = { backgroundImage: "linear-gradient(to right, var(--color-border) 1px, transparent 1px)", backgroundSize: `${escala === "dia" ? larguraDia : larguraDia * 7}px 100%` } as const;
   const posHoje = posicaoDoDia(hoje, origem, larguraDia);
@@ -194,7 +204,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
                 <div className="mt-tl__dias" style={{ width: larguraEixo }}>
                   {escala === "dia"
                     ? dias_.map((d) => { const dow = new Date(d + "T12:00:00Z").getUTCDay(); return <div key={d} className={cx("mt-tl__dia", (dow === 0 || dow === 6) && "is-fds", d === hoje && "is-hoje")} style={{ width: larguraDia }} title={d}><b>{d.slice(8, 10)}</b><span>{"DSTQQSS"[dow]}</span></div>; })
-                    : dias_.filter((d) => new Date(d + "T12:00:00Z").getUTCDay() === 1).map((d) => <div key={d} className="mt-tl__semana" style={{ left: posicaoDoDia(d, origem, larguraDia), width: larguraDia * 7 }}>{d.slice(8, 10)}/{d.slice(5, 7)}</div>)}
+                    : semanas.map((w) => <div key={w.domingo} className={cx("mt-tl__semana", w.temHoje && "is-hoje")} style={{ left: posicaoDoDia(w.de, origem, larguraDia), width: w.dias * larguraDia }} title={`${w.rotulo}`}>{w.rotulo}</div>)}
                 </div>
               </div>
             </div>

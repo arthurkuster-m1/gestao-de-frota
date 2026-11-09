@@ -1,8 +1,8 @@
 import { useCallback, useState } from "react";
-import { hojeLocal, somarDias } from "../../lib/motor/datas";
+import { diaDaSemanaDaChave, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { LARGURA_DO_DIA, posicaoDoDia, type Escala } from "../../lib/linhaDoTempo/eixo";
 
-const FOLGA_ESQ = 60, FOLGA_DIR = 120, BORDA = 500;
+const FOLGA_ESQ = 63, FOLGA_DIR = 120, BORDA = 500;
 
 /**
  * O eixo do tempo "infinito": começa 45 dias atrás e ~18 meses à frente, e CRESCE para os dois lados quando você rola até a borda.
@@ -10,7 +10,7 @@ const FOLGA_ESQ = 60, FOLGA_DIR = 120, BORDA = 500;
  */
 export function useEixoDoTempo(escalaInicial: Escala = "dia") {
   const [escala, setEscala] = useState<Escala>(escalaInicial);
-  const [origem, setOrigem] = useState(() => somarDias(hojeLocal(), -45));
+  const [origem, setOrigem] = useState(() => { const ini = somarDias(hojeLocal(), -45); return somarDias(ini, -((diaDaSemanaDaChave(ini) + 1) % 7)); });   // sempre começa num domingo: as semanas vão de domingo a sábado
   const [dias, setDias] = useState(560);
   const [scrollX, setScrollX] = useState<number | null>(null);
   const larguraDia = LARGURA_DO_DIA[escala];

@@ -302,3 +302,5 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-agenda-link:hover .mt-tag { filter: brightness(0.94); text-decoration: underline; }
 .mt-agenda-link:focus-visible { outline: 2px solid var(--color-accent-ring); outline-offset: 2px; }
 .mt-tl__cab { position: relative; }
+.mt-tl__semana { font-weight: 600; white-space: nowrap; overflow: hidden; }
+.mt-tl__semana.is-hoje { background: var(--color-accent-soft); color: var(--color-accent); }
