@@ -503,3 +503,5 @@ kbd{font:600 11px/1 var(--font-sans);padding:2px 6px;border-radius:6px;border:1p
 .grupo-ed .linha-edicao{background:var(--color-card)}
 .sugestoes{display:flex;flex-wrap:wrap;gap:6px}
 .sugestoes button{height:28px;padding:0 12px;font-size:12px}
+
+.barra-sel{display:flex;flex-wrap:wrap;align-items:center;gap:8px;padding:10px 12px;margin-bottom:12px;border:1px solid var(--color-border-strong);border-radius:var(--r-lg);background:var(--color-bg);position:sticky;top:8px;z-index:5}.barra-sel[hidden]{display:none}
