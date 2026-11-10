@@ -3,7 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { DataSheetGrid, keyColumn, textColumn } from "react-datasheet-grid";
 import "react-datasheet-grid/dist/style.css";
-import { ArrowLeft, CheckCircle, Columns, FileCsv, Minus, ArrowsClockwise, Warning, XCircle, ClipboardText } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, Columns, Plus, Trash, FileCsv, Minus, ArrowsClockwise, Warning, XCircle, ClipboardText } from "@phosphor-icons/react";
 import { Painel } from "../../components/motor/Painel";
 import { SeletorDeColunas } from "./SeletorDeColunas";
 import { TituloArrastavel } from "./TituloArrastavel";
@@ -11,7 +11,7 @@ import { colunaOpcao } from "../lancamentos/colunaOpcao";
 import { arrayMove } from "@dnd-kit/sortable";
 import { SEGURO, CICLO } from "../../lib/veiculos/tipos";
 import { SIM_NAO, type Opcao } from "../../lib/lancamentos/tipos";
-import { Button, Card, Page, Sheet, Textarea, useToast } from "../../ds";
+import { Button, Page, Sheet, Textarea, useToast } from "../../ds";
 import { criarVeiculos, listarVeiculos } from "../../lib/veiculos/dados";
 import { CAMPOS, CAMPOS_PADRAO, analisarMatriz, linhaVazia, validarTudo, type CampoLinha, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
 import "./veiculos.css";
@@ -54,6 +54,29 @@ export function Massa() {
   const navigate = useNavigate();
   const toast = useToast();
   const [linhas, setLinhas] = useState<LinhaCrua[]>(() => vazias(8));
+  const [selecionadas, setSelecionadas] = useState<{ de: number; ate: number } | null>(null);
+  const grade = useRef<HTMLDivElement>(null);
+  const excluirSelecionadas = () => { if (!selecionadas) return; const { de, ate } = selecionadas; setLinhas((l) => { const n = l.filter((_, k) => k < de || k > ate); return n.length ? n : vazias(1); }); setSelecionadas(null); };
+  // Selecionando com o mouse até a borda da grade, ela rola sozinha (e a seleção acompanha).
+  useEffect(() => {
+    const el = grade.current; if (!el) return;
+    const aoPressionar = (e: MouseEvent) => {
+      const rolavel = el.querySelector<HTMLElement>(".dsg-container"); if (!rolavel || e.button !== 0) return;
+      let x = e.clientX, y = e.clientY, quadro = 0;
+      const mover = (ev: MouseEvent) => { x = ev.clientX; y = ev.clientY; };
+      const passo = () => {
+        const r = rolavel.getBoundingClientRect(); let dy = 0, dx = 0;
+        if (y > r.bottom - 40) dy = Math.min(40, (y - (r.bottom - 40)) / 2 + 4); else if (y < r.top + 40) dy = -Math.min(40, (r.top + 40 - y) / 2 + 4);
+        if (x > r.right - 40) dx = Math.min(40, (x - (r.right - 40)) / 2 + 4); else if (x < r.left + 40) dx = -Math.min(40, (r.left + 40 - x) / 2 + 4);
+        if (dx || dy) { rolavel.scrollBy(dx, dy); document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, bubbles: true })); }
+        quadro = requestAnimationFrame(passo);
+      };
+      const fim = () => { cancelAnimationFrame(quadro); window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", fim); };
+      window.addEventListener("mousemove", mover); window.addEventListener("mouseup", fim); quadro = requestAnimationFrame(passo);
+    };
+    el.addEventListener("mousedown", aoPressionar);
+    return () => el.removeEventListener("mousedown", aoPressionar);
+  }, []);
   const [existentes, setExistentes] = useState<{ vins: Set<string>; placas: Set<string> }>({ vins: new Set(), placas: new Set() });
   const [carregouBase, setCarregouBase] = useState(false);
   const [colando, setColando] = useState(false);
@@ -122,14 +145,17 @@ export function Massa() {
           <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={visiveis.length} largura={340} testid="colunas-da-importacao">
             <SeletorDeColunas ordem={prefs.ordem} titulos={CAMPOS} ligadas={new Set(prefs.ligadas)} onChange={(ordem, ligadas) => mudaColunas({ ordem: ordem as CampoLinha[], ligadas: ordem.filter((i) => ligadas.has(i)) as CampoLinha[] })} onPadrao={() => mudaColunas(PADRAO)} />
           </Painel>
-          <Button variant="ghost" onClick={() => setLinhas(vazias(8))}>Limpar</Button>
+          <Button variant="secondary" icon={<Plus size={18} />} onClick={() => setLinhas((l) => [...l, ...vazias(1)])} data-testid="adicionar-linha">Linha</Button>
+          <Button variant="secondary" icon={<Plus size={18} />} onClick={() => setLinhas((l) => [...l, ...vazias(10)])}>10 linhas</Button>
+          <Button variant="secondary" icon={<Trash size={18} />} disabled={!selecionadas} onClick={excluirSelecionadas} data-testid="excluir-linhas">{selecionadas && selecionadas.ate > selecionadas.de ? `Excluir ${selecionadas.ate - selecionadas.de + 1} linhas` : "Excluir linha"}</Button>
+          <Button variant="ghost" onClick={() => { setLinhas(vazias(8)); setSelecionadas(null); }}>Limpar</Button>
         </div>
 
-        <Card flush>
-          <div className="ds-massa vei-massa" data-testid="grade-massa">
-            <DataSheetGrid<LinhaGrade> key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
+        <div>
+          <div className="ds-massa vei-massa" data-testid="grade-massa" ref={grade}>
+            <DataSheetGrid<LinhaGrade> onSelectionChange={({ selection }) => setSelecionadas(selection ? { de: Math.min(selection.min.row, selection.max.row), ate: Math.max(selection.min.row, selection.max.row) } : null)} onActiveCellChange={({ cell }) => { if (!cell) setSelecionadas(null); else setSelecionadas((a) => a ?? { de: cell.row, ate: cell.row }); }} key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
           </div>
-        </Card>
+        </div>
 
         <div className="ds-row" style={{ flexWrap: "wrap", justifyContent: "space-between" }} aria-live="polite" data-testid="resumo-massa">
           <span className="t-body">

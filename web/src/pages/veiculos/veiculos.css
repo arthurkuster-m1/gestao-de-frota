@@ -17,7 +17,8 @@
 .vei-hist li { display: grid; gap: 2px; padding-left: var(--space-4); border-left: 3px solid var(--color-accent-soft); }
 .vei-colunas { display: grid; gap: var(--space-3); }
 .vei-colunas label { display: flex; align-items: center; gap: var(--space-3); min-height: var(--touch); }
-.vei-massa { height: 60dvh; min-height: 320px; }
+.vei-massa { height: calc(100dvh - 330px); min-height: 320px; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-bg); }
+.vei-massa .dsg-container { height: 100% !important; max-height: 100% !important; }
 @media (max-width: 720px) { .vei-tabela { max-height: calc(100dvh - 360px); } }
 .vei-motorista { display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
 
