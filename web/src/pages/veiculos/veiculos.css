@@ -323,3 +323,18 @@
 .mt-comentario-auto { width: 100%; min-height: 36px; resize: none; overflow: hidden; padding-top: 7px; padding-bottom: 7px; line-height: 20px; }
 .mt-valor-fixo { padding: 0 14px; font-variant-numeric: tabular-nums; }
 .mt-ficha__linha--total { border-bottom: 0; background: var(--color-surface-elevated); border-radius: var(--radius-md); }
+
+/* Planejamento › Financeiro */
+.plan-fin__cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(210px, 1fr)); gap: var(--space-3); }
+.plan-fin__card { display: grid; gap: 4px; padding: 16px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
+.plan-fin__card b { font-size: 26px; line-height: 32px; font-variant-numeric: tabular-nums; }
+.plan-fin__card.is-destaque { background: var(--color-accent-soft); border-color: var(--color-accent-ring); }
+.plan-fin__card.is-destaque b { color: var(--color-accent); }
+.plan-fin__barras { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.plan-fin__barras li { display: grid; grid-template-columns: minmax(120px, 220px) 1fr auto; gap: 12px; align-items: center; }
+.plan-fin__trilho { display: block; height: 10px; border-radius: 999px; background: var(--color-surface-elevated); overflow: hidden; }
+.plan-fin__trilho > span { display: block; height: 100%; background: var(--color-accent); border-radius: 999px; }
+.plan-fin__tabela { width: 100% !important; table-layout: auto !important; }
+.plan-fin__tabela th, .plan-fin__tabela td { position: static !important; box-shadow: none !important; width: auto !important; min-width: 0 !important; padding: 0 12px !important; text-align: left; }
+.plan-fin__tabela th:last-child, .plan-fin__tabela td:last-child { text-align: right; }
+@media (max-width: 640px) { .plan-fin__barras li { grid-template-columns: 1fr auto; } .plan-fin__trilho { grid-column: 1 / -1; } }

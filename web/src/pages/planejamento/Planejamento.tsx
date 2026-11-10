@@ -4,6 +4,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 import { CalendarPlus, NotePencil, Wrench, X } from "@phosphor-icons/react";
 import { Button, Card, DateField, Segmented, Select, Sheet, useToast } from "../../ds";
 import { BotoesDeCopia } from "../veiculos/BotoesDeCopia";
+import { PainelFinanceiro } from "./PainelFinanceiro";
 import { formatarDiaBr } from "../../lib/motor/datas";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { useEixoDoTempo } from "../../components/motor/useEixoDoTempo";
@@ -55,7 +56,7 @@ export function Planejamento() {
   const [reservando, setReservando] = useState(false);
   const [criando, setCriando] = useState(false);
   /** Objetivo do planejamento: visão geral, ou planejar UM evento (a tela se volta só para ele). */
-  const [objetivo, setObjetivo] = useState<"geral" | "evento" | "disponiveis">("geral");
+  const [objetivo, setObjetivo] = useState<"geral" | "evento" | "disponiveis" | "financeiro">("geral");
   /** Objetivo "Veículos disponíveis": o intervalo escolhido (um dia só, se "Até" ficar igual a "De"). */
   const [de, setDe] = useState(() => hojeLocal());
   const [ate, setAte] = useState(() => hojeLocal());
@@ -117,8 +118,8 @@ export function Planejamento() {
             <button type="button" className="mt-btn" onClick={() => eixo.irParaHoje()} data-testid="tl-hoje">Hoje</button>
             <Segmented options={[{ value: "dia", label: "Dia" }, { value: "semana", label: "Semana" }]} value={eixo.escala} onChange={(e) => eixo.mudarEscala(e)} />
             <label className="plan-objetivo"><span className="t-body-sm t-muted">Objetivo</span>
-              <Select aria-label="Objetivo do planejamento" value={objetivo} onChange={(e) => { const o = e.target.value as "geral" | "evento" | "disponiveis"; setObjetivo(o); if (o !== "evento") setSelecionadoId(null); else if (!selecionadoId && d.eventos?.[0]) setSelecionadoId(d.eventos[0].id); }}>
-                <option value="geral">Visão geral</option><option value="evento">Planejar evento</option><option value="disponiveis">Veículos disponíveis</option>
+              <Select aria-label="Objetivo do planejamento" value={objetivo} onChange={(e) => { const o = e.target.value as "geral" | "evento" | "disponiveis" | "financeiro"; setObjetivo(o); if (o !== "evento") setSelecionadoId(null); else if (!selecionadoId && d.eventos?.[0]) setSelecionadoId(d.eventos[0].id); }}>
+                <option value="geral">Visão geral</option><option value="evento">Planejar evento</option><option value="disponiveis">Veículos disponíveis</option><option value="financeiro">Financeiro</option>
               </Select></label>
             {objetivo === "disponiveis" && (<>
               <label className="plan-objetivo"><span className="t-body-sm t-muted">De</span><DateField value={de} onChange={(e) => { setDe(e.target.value); if (ate && e.target.value > ate) setAte(e.target.value); }} aria-label="Disponível a partir de" /></label>
@@ -134,7 +135,9 @@ export function Planejamento() {
           </div>
         </div>
 
-        <section aria-label="Veículos" className="ds-stack" data-testid="pane-veiculos">
+        {objetivo === "financeiro" && <PainelFinanceiro d={d} />}
+
+        {objetivo !== "financeiro" && <section aria-label="Veículos" className="ds-stack" data-testid="pane-veiculos">
           <h2 className="t-h3">{objetivo === "disponiveis" ? `Veículos disponíveis de ${formatarDiaBr(periodoDisp.inicio)}${periodoDisp.fim !== periodoDisp.inicio ? ` a ${formatarDiaBr(periodoDisp.fim)}` : ""}` : "Veículos"}</h2>
           <TelaDoMotor<Veiculo> tela="planejamento-veiculos" extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} selecaoInicial={idsDaUrl("veiculos")} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} semPlanejamento />} titulo="Veículos" subtitulo="" compacta modoFixo="timeline" eixo={eixo}
             linhas={d.eventos ? veiculosVisiveis : null} erro={d.erro} campos={camposVeiculo} idDe={(v) => v.id} onEditar={editarVeiculo} onAbrir={(v) => abrirNoLugar(`/veiculos/${v.id}`)}
@@ -142,9 +145,9 @@ export function Planejamento() {
               onAbrirBarra: (_v, b) => { if (ehBarraDeManutencao(b)) navigate(`/manutencoes/${b.id}`); else if (ehBarraDeAnotacao(b)) criacao.editarNota(b.id); else { const id = (b.dados as { eventoId: string }).eventoId; setSelecionadoId(id); } } }}
             rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar carro…" alturaDaLinhaDoTempo="38dvh" larguraEsquerda={LARGURA_ESQUERDA}
             vazio={objetivo === "disponiveis" ? <p className="t-body t-muted">Nenhum veículo livre em todo esse intervalo.</p> : modoEvento ? <p className="t-body t-muted">Nenhum carro livre nessas datas que caiba no pedido do evento.</p> : <p className="t-body t-muted">Nenhum veículo cadastrado ainda.</p>} />
-        </section>
+        </section>}
 
-        {objetivo !== "disponiveis" && <section aria-label="Eventos" className="ds-stack" data-testid="pane-eventos">
+        {objetivo !== "disponiveis" && objetivo !== "financeiro" && <section aria-label="Eventos" className="ds-stack" data-testid="pane-eventos">
           <h2 className="t-h3">Eventos</h2>
           {selecionado && (
             <Card><div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }} data-testid="evento-selecionado">
