@@ -347,11 +347,6 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-abrir { right: 0; width: auto; height: 22px; gap: 4px; padding: 0 8px; border: 1px solid var(--color-border-strong); border-radius: 6px; background: var(--color-surface); color: var(--color-text-muted); font-size: 11px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; box-shadow: var(--shadow-xs); }
 .mt-abrir span { line-height: 1; }
 .mt-tabela .mt-total, .mt-total { font-size: 11.5px; letter-spacing: 0.05em; text-transform: uppercase; color: var(--color-text-subtle); font-weight: 600; }
-/* abas: a ativa com contorno, as outras só texto */
-.mt-abas { border-bottom: 0; gap: 4px; }
-.mt-aba { min-height: 32px; padding: 0 10px; border: 1px solid transparent; border-radius: 8px; font-size: 13px; font-weight: 500; }
-.mt-aba:hover { background: var(--color-surface-elevated); color: var(--color-text); }
-.mt-aba.is-on { color: var(--color-text); border-color: var(--color-border-strong); border-bottom-color: var(--color-border-strong); background: transparent; box-shadow: var(--shadow-xs); font-weight: 600; }
 .mt-btn--icone { min-width: 32px; padding: 0 8px; justify-content: center; border-color: transparent; background: transparent; color: var(--color-text-muted); }
 .mt-btn--icone:hover { background: var(--color-surface-elevated); border-color: transparent; color: var(--color-text); }
 .mt-btn--icone.is-on { background: var(--color-accent-soft); color: var(--color-accent); }
@@ -363,7 +358,6 @@ button.mt-tag:hover { filter: brightness(0.96); }
 [data-densidade="compacta"] .mt-grupo td { height: 32px; }
 [data-densidade="compacta"] .mt-btn { min-height: 30px; padding: 0 10px; font-size: 12.5px; }
 [data-densidade="compacta"] .mt-btn--icone { min-height: 30px; min-width: 30px; padding: 0 6px; }
-[data-densidade="compacta"] .mt-aba { min-height: 30px; }
 [data-densidade="compacta"] .mt-vbar .ds-btn, [data-densidade="compacta"] .mt-abas-wrap .ds-btn { min-height: 32px; padding: 0 14px; font-size: 13px; border-radius: 8px; }
 [data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"], [data-densidade="compacta"] .mt-tabela .mt-tag { font-size: 11.5px; line-height: 18px; padding: 0 8px; min-height: 20px; font-weight: 500; }
 [data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"]::before { width: 6px; height: 6px; }
