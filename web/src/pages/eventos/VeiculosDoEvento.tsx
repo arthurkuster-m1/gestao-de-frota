@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Link } from "react-router-dom";
-import { CaretDown, CaretLeft, CaretRight, ClipboardText, Columns, CopySimple, ListChecks, Lock, Plus, SortAscending, Trash, Warning, X } from "@phosphor-icons/react";
+import { CaretLeft, CaretRight, ClipboardText, Columns, CopySimple, ListChecks, Lock, Plus, SortAscending, Trash, Warning, X } from "@phosphor-icons/react";
 import { Button, Field, Segmented, Select, Sheet, Switch, cx, useToast } from "../../ds";
 import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
@@ -486,7 +486,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
                   {ordenadas.map((c) => c === "transporteIda" || c === "transporteVolta" ? (
                     <th key={c} className="mt-vde__bloco"><span className="mt-vde__cod">{tituloDe(c)}
                       <button type="button" className="mt-btn mt-btn--icone" aria-expanded={prefs.abertos[c === "transporteIda" ? "ida" : "volta"]} aria-label={`${prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? "Recolher" : "Expandir"} ${tituloDe(c)}`} title="Mostrar ou esconder os campos do transporte" data-testid={`expandir-${c}`}
-                        onClick={() => { const k = c === "transporteIda" ? "ida" : "volta"; muda({ ...prefs, abertos: { ...prefs.abertos, [k]: !prefs.abertos[k] } }); }}>{prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? <CaretDown size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button></span>{alca(c)}</th>
+                        onClick={() => { const k = c === "transporteIda" ? "ida" : "volta"; muda({ ...prefs, abertos: { ...prefs.abertos, [k]: !prefs.abertos[k] } }); }}>{prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button></span>{alca(c)}</th>
                   ) : <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel>)}
                   <th className="mt-vde__acoes" aria-label="Ações" />
                 </tr>
