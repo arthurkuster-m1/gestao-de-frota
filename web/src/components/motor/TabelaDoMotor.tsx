@@ -10,6 +10,7 @@ import { LARGURA_MAXIMA, LARGURA_MINIMA, limitarLargura, resolverColunas, type P
 import { CaixaDeSelecao, aposArrastoDeSelecao, type Selecao } from "./CaixaDeSelecao";
 import { IconeDoTipo } from "./IconeDoTipo";
 import { larguraIdeal } from "./larguraIdeal";
+import { executarEmLote } from "../../lib/motor/emLote";
 import { ThOrdenavel } from "./ThOrdenavel";
 import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCores } from "./EditorDeCores";
@@ -54,7 +55,14 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   // Seleção de células (clicar e arrastar, como no Excel/Notion): copiar e colar usam texto tabulado.
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);
   const arrastandoSel = useRef(false);
-  const visiveis = useMemo(() => (resultado.grupos ? resultado.grupos.filter((g) => !fechados.has(g.chave)).flatMap((g) => g.linhas) : resultado.linhas), [resultado, fechados]);
+  // Colando várias células de uma vez, as linhas NÃO mudam de lugar no meio da colagem (a ordenação/filtro só se refaz no fim): por isso a ordem fica congelada.
+  const [ordemCongelada, setOrdemCongelada] = useState<string[] | null>(null);
+  const linhasPlanas = useMemo(() => {
+    if (!ordemCongelada || resultado.grupos) return resultado.linhas;
+    const atual = new Map(linhas.map((l) => [idDe(l), l]));
+    return ordemCongelada.map((id) => atual.get(id)).filter((l): l is T => !!l);
+  }, [ordemCongelada, resultado, linhas, idDe]);
+  const visiveis = useMemo(() => (resultado.grupos ? resultado.grupos.filter((g) => !fechados.has(g.chave)).flatMap((g) => g.linhas) : linhasPlanas), [resultado, fechados, linhasPlanas]);
   const indiceDe = useMemo(() => new Map(visiveis.map((l, k) => [idDe(l), k])), [visiveis, idDe]);
   const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
   const refs = useRef({ faixa, visiveis, colunas, onEditar });
@@ -82,6 +90,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       const nl = encher ? f.l1 - f.l0 + 1 : m.length;
       void (async () => {
         let ok = 0, pulados = 0, erro: string | null = null;
+        const tarefas: { chave: string; executar: () => Promise<void> }[] = [];
         for (let dr = 0; dr < nl; dr++) {
           const l = vs[f.l0 + dr]; if (!l) break;
           const linhaM = encher ? m[0]! : m[dr]!;
@@ -94,9 +103,12 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
             const prep = prepararEdicao(cp.tipo, cp.edicao, bruto);
             if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
             if (prep.valor === valorParaEditor(cp.tipo, cp.valorDe(l))) continue;
-            try { await grava(l, cp, prep.valor); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; }
+            tarefas.push({ chave: idDe(l), executar: async () => { try { await grava(l, cp, prep.valor); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
           }
         }
+        // tudo de uma vez: grava as linhas em paralelo, com a ordem das linhas congelada até o fim
+        if (tarefas.length > 1) setOrdemCongelada(vs.map(idDe));
+        try { await executarEmLote(tarefas); } finally { setOrdemCongelada(null); }
         if (erro) ed.setErro(erro);
         toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
       })();
@@ -275,7 +287,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                   </tr>,
                   ...(fechado ? [] : g.linhas.map(linha)),
                 ];
-              }) : resultado.linhas.map(linha)}
+              }) : linhasPlanas.map(linha)}
             </tbody>
           </table>
         </div>

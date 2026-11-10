@@ -9,6 +9,7 @@ import { Tag } from "../../components/motor/Tag";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
 import { Painel } from "../../components/motor/Painel";
 import { larguraIdeal } from "../../components/motor/larguraIdeal";
+import { executarEmLote } from "../../lib/motor/emLote";
 import { prepararEdicao } from "../../components/motor/edicao";
 import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, type Ponto } from "../../components/motor/selecao";
 import { ThOrdenavel } from "../../components/motor/ThOrdenavel";
@@ -198,7 +199,10 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     return textoDaCelula(colId, l);
   };
   const rotuloDoGrupo = (colId: string, l: LinhaDoEvento) => textoDaCelula(colId, l).trim() || "(vazio)";
+  // colando várias células, as linhas não mudam de lugar no meio da colagem (a ordenação se refaz só no fim)
+  const [ordemCongelada, setOrdemCongelada] = useState<string[] | null>(null);
   const visiveis = useMemo(() => {
+    if (ordemCongelada) { const atual = new Map(linhas.map((l) => [l.key, l])); const fixa = ordemCongelada.map((k) => atual.get(k)).filter((l): l is LinhaDoEvento => !!l); if (fixa.length === linhas.length) return fixa; }
     const { ordem, agrupar } = prefs;
     if (!ordem && !agrupar) return linhas;
     const cmp = (a: string, b: string) => (a === "" ? (b === "" ? 0 : 1) : b === "" ? -1 : a.localeCompare(b, "pt-BR", { numeric: true, sensitivity: "base" }));   // vazios sempre por último
@@ -208,7 +212,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       return 0;
     });
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [linhas, prefs.ordem, prefs.agrupar, evento, locaisDoEvento, tr.transportes, tr.vinculos]);
+  }, [linhas, ordemCongelada, prefs.ordem, prefs.agrupar, evento, locaisDoEvento, tr.transportes, tr.vinculos]);
   const tamanhoDoGrupo = useMemo(() => { const m = new Map<string, number>(); if (prefs.agrupar) for (const l of visiveis) { const k = rotuloDoGrupo(prefs.agrupar, l); m.set(k, (m.get(k) ?? 0) + 1); } return m; }, [visiveis, prefs.agrupar]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   async function copiarOutlook() {
@@ -233,6 +237,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       // colando o que ACABOU de ser copiado daqui: as células de transporte levam o próprio transporte (não só o texto)
       const interna = copiaInterna.current && copiaInterna.current.tsv === paraTsv(m) ? copiaInterna.current : null;
       const lotes = new Map<string, { sentido: Sentido; id: string | null; reservas: string[] }>();
+      const tarefas: { chave: string; executar: () => Promise<void> }[] = [];
       for (let dr = 0; dr < nl; dr++) {
         const l = ls[f.l0 + dr]; if (!l) break; const linhaM = encher ? m[0]! : m[dr]!; const nc = encher ? f.c1 - f.c0 + 1 : linhaM.length;
         for (let dc = 0; dc < nc; dc++) {
@@ -250,10 +255,16 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
           if (bruto === undefined) { pulados++; continue; }
           const prep = prepararEdicao(cp.tipo, cp.edicao!, bruto);
           if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
-          try { await onSalvarReserva(l.reserva.id, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; }
+          const reservaId = l.reserva.id;
+          tarefas.push({ chave: reservaId, executar: async () => { try { await onSalvarReserva(reservaId, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
         }
       }
-      try { for (const lote of lotes.values()) await tr.ligarCarros(lote.reservas, lote.sentido, lote.id); } catch (x) { erro ??= (x as Error).message; }
+      // tudo de uma vez: grava as linhas em paralelo, com a ordem congelada até o fim
+      if (tarefas.length + lotes.size > 1) setOrdemCongelada(ls.map((x) => x.key));
+      try {
+        tarefas.push(...[...lotes.values()].map((lote) => ({ chave: `transporte|${lote.sentido}|${lote.id ?? ""}`, executar: async () => { try { await tr.ligarCarros(lote.reservas, lote.sentido, lote.id); } catch (x) { erro ??= (x as Error).message; } } })));
+        await executarEmLote(tarefas);
+      } finally { setOrdemCongelada(null); }
       if (erro) onErro(erro);
       toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
     })(),
