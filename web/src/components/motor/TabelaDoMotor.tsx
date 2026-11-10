@@ -2,7 +2,7 @@ import { useEffect, useMemo, useRef, useState, type CSSProperties, type ReactNod
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { ArrowSquareOut, CaretDown, CaretRight, CaretUp, X } from "@phosphor-icons/react";
+import { CaretDown, CaretRight, CaretUp, X } from "@phosphor-icons/react";
 import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
@@ -202,7 +202,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       else setSel({ a: p, b: p });
       arrastandoSel.current = true;
     };
-    const conteudoDaCelula = i === 0 && onAbrir ? <span className="mt-primeira">{iconeDaPrimeira && <span className="mt-primeira__icone" aria-hidden>{iconeDaPrimeira}</span>}<span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={13} /><span>Abrir</span></button></span> : formatar(campo, l);
+    const conteudoDaCelula = i === 0 && onAbrir ? <span className="mt-primeira">{iconeDaPrimeira && <span className="mt-primeira__icone" aria-hidden>{iconeDaPrimeira}</span>}<span className="mt-primeira__txt mt-primeira__abre" role="link" tabIndex={0} title="Abrir a ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onAbrir(l); } }}>{formatar(campo, l)}</span></span> : formatar(campo, l);
     return (
       <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, (prefs.quebrarLinhas ?? []).includes(c.id) && "mt-quebra", editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
         {i === 0 && selecao ? <span className="mt-comchk"><CaixaDeSelecao marcada={selecao.ids.has(idDe(l))} onChange={() => { ancoraDaSelecao.current = idDe(l); selecao.alternar(idDe(l)); }} onPressionar={() => iniciarArrastoDeLinhas(idDe(l))} onShift={() => selecionarAte(idDe(l))} rotulo="Selecionar linha" />{conteudoDaCelula}</span> : conteudoDaCelula}

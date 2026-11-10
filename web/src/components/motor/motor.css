@@ -384,3 +384,7 @@ body.mt-arrastando-linhas * { cursor: grabbing !important; }
 .mt-tabela { max-height: none; overflow-x: auto; overflow-y: hidden; }
 @media (max-width: 720px) { .mt-tabela { max-height: none; } }
 .mt-tabela.mt-cab-grudado thead th { box-shadow: 0 1px 0 var(--color-border-strong), 0 6px 8px -6px rgba(16, 30, 60, 0.25); }
+
+/* o nome da primeira coluna abre a ficha (sem botão "Abrir" por cima do texto) */
+.mt-primeira__abre { cursor: pointer; }
+.mt-primeira__abre:hover { text-decoration: underline; text-underline-offset: 3px; }
