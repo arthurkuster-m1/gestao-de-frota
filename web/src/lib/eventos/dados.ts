@@ -41,18 +41,18 @@ const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao,
 const COLUNAS_LOCAL_ANTIGAS = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
 
 export async function listarEventos(): Promise<Evento[]> {
-  const { data, error } = await supabase.from("eventos").select(colunasEvento()).order("created_at", { ascending: false }).limit(2000);
+  const { data, error } = await supabase.from("eventos").select(colunasEvento()).order("created_at", { ascending: false }).order("id", { ascending: true }).limit(2000);
   if (error && desligaGrupoDoEvento(error.message)) return listarEventos();
   if (error) throw traduzir(error);
   return (data ?? []) as Evento[];
 }
 export async function listarReservas(): Promise<Reserva[]> {
-  const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
+  const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).order("id", { ascending: true }).limit(10000);
   if (!error) return (data ?? []) as Reserva[];
   if (comEnderecoRetorno() && /endereco_retorno|envio|retorno/.test(error.message)) { semEnderecoRetornoAte = Date.now() + 20000; return listarReservas(); }
   // migration 0007 (chegada/retirada) ainda não aplicada: lê sem essas colunas, para Status de uso e Agenda seguirem funcionando
   if (/chegada|retirada/.test(error.message)) {
-    const antigo = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA_ANTIGAS).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
+    const antigo = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA_ANTIGAS).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).order("id", { ascending: true }).limit(10000);
     if (antigo.error) throw traduzir(antigo.error);
     return ((antigo.data ?? []) as Omit<Reserva, "chegada" | "retirada">[]).map((r) => ({ ...r, chegada: null, retirada: null }));
   }
@@ -60,7 +60,7 @@ export async function listarReservas(): Promise<Reserva[]> {
 }
 /** Os carros que estão em eventos mas ainda sem data (a agenda e a linha do tempo não os enxergam). */
 export async function listarReservasSemData(): Promise<ReservaDoEvento[]> {
-  const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).is("reserva_inicio", null).limit(10000);
+  const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).is("reserva_inicio", null).order("id", { ascending: true }).limit(10000);
   if (error && comEnderecoRetorno() && /endereco_retorno|envio|retorno/.test(error.message)) { semEnderecoRetornoAte = Date.now() + 20000; return listarReservasSemData(); }
   if (error) throw traduzir(error);
   return (data ?? []) as ReservaDoEvento[];

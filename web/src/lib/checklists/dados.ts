@@ -14,7 +14,7 @@ function traduzir(e: { code?: string; message: string }): ErroChecklist {
 const COLUNAS = "id, reserva_id, momento, data_hora, km, combustivel, limpeza, recebido_por, teve_avarias, avarias, observacoes, created_at";
 
 export async function listarChecklists(): Promise<Checklist[]> {
-  const { data, error } = await supabase.from("checklists").select(COLUNAS).order("data_hora", { ascending: false }).limit(10000);
+  const { data, error } = await supabase.from("checklists").select(COLUNAS).order("data_hora", { ascending: false }).order("id", { ascending: true }).limit(10000);
   if (error) throw traduzir(error);
   return (data ?? []) as Checklist[];
 }

@@ -17,7 +17,7 @@ function traduzir(e: { code?: string; message: string; details?: string }): Erro
 }
 
 export async function listarVeiculos(): Promise<Veiculo[]> {
-  const { data, error } = await supabase.from("veiculos").select("*").order("created_at", { ascending: false }).limit(2000);
+  const { data, error } = await supabase.from("veiculos").select("*").order("created_at", { ascending: false }).order("id", { ascending: true }).limit(2000);
   if (error) throw traduzir(error);
   return (data ?? []) as Veiculo[];
 }

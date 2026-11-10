@@ -26,7 +26,7 @@ const COLUNAS = "id, tipo_pessoa, nome, cidade, estado, created_at";
 const COLUNAS_FICHA = "id, tipo_pessoa, nome, cep, endereco, numero, complemento, cidade, estado, testemunha_nome, comentarios";
 
 export async function listarClientes(): Promise<ClienteResumo[]> {
-  const { data, error } = await supabase.from("clientes").select(COLUNAS).order("nome", { ascending: true }).limit(2000);
+  const { data, error } = await supabase.from("clientes").select(COLUNAS).order("nome", { ascending: true }).order("id", { ascending: true }).limit(2000);
   if (error) throw traduzir(error);
   return (data ?? []) as ClienteResumo[];
 }

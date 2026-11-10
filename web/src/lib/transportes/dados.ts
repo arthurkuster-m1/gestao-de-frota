@@ -23,7 +23,7 @@ function arrumar<T extends Record<string, unknown>>(patch: T): T {
 }
 
 export async function listarTransportes(): Promise<Transporte[]> {
-  const { data, error } = await supabase.from("transportes").select(COL_T).order("created_at", { ascending: false }).limit(5000);
+  const { data, error } = await supabase.from("transportes").select(COL_T).order("created_at", { ascending: false }).order("id", { ascending: true }).limit(5000);
   if (error) throw traduzir(error);
   return (data ?? []) as Transporte[];
 }

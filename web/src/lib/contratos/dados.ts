@@ -13,9 +13,9 @@ function traduzir(e: { code?: string; message: string }): ErroContrato {
 const COL_C = "id, evento_id, cliente_id, status, vigencia_inicio, vigencia_fim, assinado_em, observacoes, created_at";
 const COL_A = "id, contrato_id, tipo, status, motivo, vigencia_fim_anterior, vigencia_fim_nova, assinado_em, created_at";
 
-export async function listarContratos(): Promise<Contrato[]> { const { data, error } = await supabase.from("contratos_comodato").select(COL_C).order("created_at", { ascending: false }).limit(5000); if (error) throw traduzir(error); return (data ?? []) as Contrato[]; }
+export async function listarContratos(): Promise<Contrato[]> { const { data, error } = await supabase.from("contratos_comodato").select(COL_C).order("created_at", { ascending: false }).order("id", { ascending: true }).limit(5000); if (error) throw traduzir(error); return (data ?? []) as Contrato[]; }
 export async function listarCarrosDosContratos(): Promise<ContratoVeiculo[]> { const { data, error } = await supabase.from("contrato_veiculos").select("id, contrato_id, veiculo_id").limit(20000); if (error) throw traduzir(error); return (data ?? []) as ContratoVeiculo[]; }
-export async function listarAditivos(): Promise<Aditivo[]> { const { data, error } = await supabase.from("contrato_aditivos").select(COL_A).order("created_at", { ascending: true }).limit(5000); if (error) throw traduzir(error); return (data ?? []) as Aditivo[]; }
+export async function listarAditivos(): Promise<Aditivo[]> { const { data, error } = await supabase.from("contrato_aditivos").select(COL_A).order("created_at", { ascending: true }).order("id", { ascending: true }).limit(5000); if (error) throw traduzir(error); return (data ?? []) as Aditivo[]; }
 export async function listarCarrosDosAditivos(): Promise<AditivoVeiculo[]> { const { data, error } = await supabase.from("contrato_aditivo_veiculos").select("id, aditivo_id, veiculo_id, acao").limit(20000); if (error) throw traduzir(error); return (data ?? []) as AditivoVeiculo[]; }
 
 export async function criarContrato(c: ContratoNovo, veiculoIds: string[]): Promise<{ contrato: Contrato; carros: ContratoVeiculo[] }> {

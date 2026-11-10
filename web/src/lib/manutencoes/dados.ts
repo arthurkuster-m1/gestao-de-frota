@@ -12,7 +12,7 @@ function traduzir(e: { code?: string; message: string }): ErroManutencao {
 const COLUNAS = "id, veiculo_id, nome, tipo, status, data_ocorrencia, data_da_solicitada, data_inicio, data_fim, bloqueia_uso, descricao, comentarios, created_at";
 
 export async function listarManutencoes(): Promise<Manutencao[]> {
-  const { data, error } = await supabase.from("manutencoes").select(COLUNAS).order("data_inicio", { ascending: false }).limit(5000);
+  const { data, error } = await supabase.from("manutencoes").select(COLUNAS).order("data_inicio", { ascending: false }).order("id", { ascending: true }).limit(5000);
   if (error) throw traduzir(error);
   return (data ?? []) as Manutencao[];
 }
