@@ -1,6 +1,6 @@
 import { rotuloCiclo, type Veiculo } from "./tipos";
 
-const DATAS: Record<string, string> = { data_pedido: "Pedido recebido em", data_liberacao: "Liberado em", data_faturamento: "Faturado em", data_emplacamento: "Emplacado em", data_devolucao: "Devolvido em" };
+const DATAS: Record<string, string> = { data_pedido: "Pedido recebido em", data_liberacao: "Liberado em", data_chegada_planta: "Chegou na planta em", data_faturamento: "Faturado em", data_placas_solicitadas: "Placas solicitadas em", data_emplacamento: "Emplacado em", data_devolucao: "Devolvido em" };
 
 /**
  * O que o BANCO mudou sozinho numa edição (ciclo de vida ou data de marco), para avisar a pessoa.

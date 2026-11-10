@@ -5,8 +5,9 @@
 import { CICLO, normalizarPlaca, normalizarVin, placaValida, type Veiculo } from "./tipos";
 import { planoDoRegistro, type Plano } from "./registros";
 import { lerData } from "../eventos/importacao";
+import { reservavelPeloCiclo, rotuloDoUso, usoDoCiclo } from "../eventos/uso";
 
-export type AcaoEmMassa = "liberacao" | "chegada" | "faturamento" | "emplacamento" | "devolucaoCvo" | "devolucao" | "saida" | "retorno" | "reserva";
+export type AcaoEmMassa = "liberacao" | "chegada" | "faturamento" | "placas" | "emplacamento" | "devolucaoCvo" | "devolucao" | "saida" | "retorno" | "reserva";
 /** `data` (dd/mm/aaaa), `hora` (hh:mm) e `evento` (id) são opcionais por linha; vazios, valem os padrões da ação. */
 export type LinhaDaLista = { ref?: string; placa?: string; data?: string; hora?: string; evento?: string };
 export type Tom = "ok" | "erro" | "dup" | "ign";
@@ -16,8 +17,9 @@ export type CampoDeBusca = "vin" | "codigo" | "placa" | "pedido";
 export type DefinicaoDaAcao = { id: AcaoEmMassa; rotulo: string; descricao: string; referencia: string; campos: CampoDeBusca[]; comPlaca?: boolean; comData: boolean; /** envio e retorno: checklist com hora e dados opcionais */ comChecklist?: boolean };
 export const ACOES: DefinicaoDaAcao[] = [
   { id: "liberacao", rotulo: "Liberados da produção", descricao: "Registra a liberação (data) e leva o ciclo de vida para Liberado.", referencia: "Referência (Pedido, Código ou VIN)", campos: ["pedido", "codigo", "vin"], comData: true },
-  { id: "chegada", rotulo: "Chegada na planta", descricao: "Registra que o carro chegou na planta: o ciclo vira Disponível sem faturamento.", referencia: "Referência (VIN, Código ou Pedido)", campos: ["vin", "codigo", "pedido"], comData: false },
+  { id: "chegada", rotulo: "Chegou na planta", descricao: "Registra a chegada do carro na planta (data; sem data, hoje): o ciclo vira Disponível sem faturamento e começa a contar o prazo da placa.", referencia: "Referência (Código ou VIN)", campos: ["codigo", "vin", "pedido"], comData: true },
   { id: "faturamento", rotulo: "Faturados", descricao: "Registra o faturamento (data) e atualiza o ciclo de vida.", referencia: "Referência (Pedido, Código ou VIN)", campos: ["pedido", "codigo", "vin"], comData: true },
+  { id: "placas", rotulo: "Placas solicitadas", descricao: "Registra o dia em que as placas foram solicitadas (sem data, hoje). Mede quantos dias leva para solicitar a placa e, depois, para emplacar.", referencia: "Referência (Código ou VIN)", campos: ["codigo", "vin"], comData: true },
   { id: "emplacamento", rotulo: "Emplacados", descricao: "Cadastra a placa, registra o emplacamento e atualiza o ciclo de vida.", referencia: "Referência (VIN ou Código)", campos: ["vin", "codigo"], comPlaca: true, comData: true },
   { id: "devolucaoCvo", rotulo: "Devolução para a CVO", descricao: "Marca os carros como Em devolução (a caminho da devolução para a CVO). A devolução concluída é a ação Devolvidos.", referencia: "Referência (Código, Placa ou VIN)", campos: ["codigo", "placa", "vin"], comData: false },
   { id: "devolucao", rotulo: "Devolvidos", descricao: "Registra a devolução (data) e leva o ciclo de vida para Devolvido.", referencia: "Referência (Código, Placa ou VIN)", campos: ["codigo", "placa", "vin"], comData: true },
@@ -82,6 +84,7 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     if (acao === "reserva") {
       const ev = l.evento || ctx.eventoId;
       if (!ev) return { tom: "erro", texto: `${nome}: falta o evento` };
+      if (!reservavelPeloCiclo(v.status_ciclo)) return { tom: "erro", texto: `${nome} está ${rotuloDoUso(usoDoCiclo(v.status_ciclo)!)} e não recebe reservas` };
       const ja = ctx.noEvento ? ctx.noEvento(ev, v.id) : ctx.jaNoEvento?.has(v.id);
       return ja ? { tom: "dup", texto: `${nome} já está neste evento: será ignorado`, veiculo: v, eventoId: ev } : { tom: "ok", texto: `${nome}: será reservado${ctx.nomeDoEvento ? ` em ${ctx.nomeDoEvento(ev)}` : ""}`, veiculo: v, eventoId: ev };
     }
@@ -91,7 +94,7 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     }
     if (acao === "chegada") {
       if (pos(v.status_ciclo) < pos("liberado")) return { tom: "erro", texto: `${nome} ainda não foi liberado da produção` };
-      if (pos(v.status_ciclo) >= pos("disponivel_sem_faturamento")) return { tom: "dup", texto: `${nome} já passou desta etapa: será ignorado`, veiculo: v };
+      if (v.data_chegada_planta || pos(v.status_ciclo) >= pos("disponivel_sem_faturamento")) return { tom: "dup", texto: `${nome} já chegou na planta${v.data_chegada_planta ? ` em ${v.data_chegada_planta.split("-").reverse().join("/")}` : ""}: será ignorado`, veiculo: v };
       const plano = planoDoRegistro("chegada", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
     if (acao === "devolucaoCvo") {
@@ -103,11 +106,18 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
       if (v.data_faturamento) return { tom: "dup", texto: `${nome} já foi faturado em ${v.data_faturamento.split("-").reverse().join("/")}: será ignorado`, veiculo: v };
       const plano = planoDoRegistro("faturamento", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
+    if (acao === "placas") {
+      if (!v.data_faturamento) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para solicitar as placas` };
+      if (v.data_placas_solicitadas) return { tom: "dup", texto: `${nome}: placas já solicitadas em ${v.data_placas_solicitadas.split("-").reverse().join("/")}: será ignorado`, veiculo: v };
+      const plano = planoDoRegistro("placas", v, { data: dataDaLinha });
+      const dias = v.data_chegada_planta ? Math.round((Date.parse(`${dataDaLinha}T12:00:00Z`) - Date.parse(`${v.data_chegada_planta}T12:00:00Z`)) / 86400000) : null;
+      return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}${dias !== null ? ` (${dias} dia${dias === 1 ? "" : "s"} desde a chegada na planta)` : ""}`, veiculo: v, plano };
+    }
     // emplacamento
     const placa = normalizarPlaca(l.placa ?? "");
     if (!placa) return { tom: "erro", texto: `${nome}: falta a placa` };
     if (!placaValida(placa)) return { tom: "erro", texto: `${nome}: placa inválida (7 caracteres): ${placa}` };
-    if (pos(v.status_ciclo) < pos("revisao_emplacamento")) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para emplacar` };
+    if (!v.data_faturamento && pos(v.status_ciclo) <= pos("disponivel_sem_faturamento")) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para emplacar` };
     if (v.data_emplacamento && v.placa) return { tom: "dup", texto: `${nome} já está emplacado (${v.placa}): será ignorado`, veiculo: v };
     const dono = ctx.veiculos.find((x) => x.placa === placa && x.id !== v.id);
     if (dono) return { tom: "erro", texto: `A placa ${placa} já é de ${dono.codigo ?? dono.modelo}` };

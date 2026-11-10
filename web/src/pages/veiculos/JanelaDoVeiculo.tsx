@@ -36,7 +36,8 @@ const ABAS: { id: Aba; rotulo: string }[] = [
 const BLOCOS: { titulo: string; ids: string[] }[] = [
   { titulo: "Uso", ids: ["codigo", "statusUso", "agenda"] },
   { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "pedido", "ciclo", "seguro"] },
-  { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "faturadoEm", "emplacadoEm", "devolvidoEm"] },
+  { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "chegouPlantaEm", "faturadoEm", "placasSolicitadasEm", "emplacadoEm", "devolvidoEm"] },
+  { titulo: "Prazos da placa", ids: ["diasParaSolicitar", "diasParaEmplacar", "diasTotalPlaca"] },
 ];
 
 function EmBreve({ icone, titulo, children }: { icone: ReactNode; titulo: string; children: ReactNode }) {
@@ -83,7 +84,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
   const editaveis = campos.filter((c) => c.edicao).map((c) => c.id);
   const campoComentarios = campos.find((c) => c.id === "comentarios");
   const hoje = hojeLocal();
-  const statusAtual = statusDeUso(reservas, manutencoes, hoje);
+  const statusAtual = statusDeUso(reservas, manutencoes, hoje, veiculo?.status_ciclo);
   const itensTexto = agendaItens(reservas, nomeDoEvento, hoje, manutencoes);
   /** Compromissos COM data (calendário e linha do tempo) e eventos do carro sem data (ficam só numa lista). */
   const comData = reservas.filter((r) => r.estado !== "cancelado");

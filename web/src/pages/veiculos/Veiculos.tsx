@@ -1,3 +1,4 @@
+import { prazosDaPlaca } from "../../lib/veiculos/prazos";
 import { BotoesDeCopia } from "./BotoesDeCopia";
 import { useVersaoDosDados } from "../../lib/sincronia";
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
@@ -34,7 +35,7 @@ import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, 
 import "../veiculos/veiculos.css";
 
 const dia = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
-const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { pedido_recebido: "neutral", liberado: "info", em_transporte_0km: "info", disponivel_sem_faturamento: "warning", revisao_emplacamento: "warning", em_blindagem: "accent", disponivel: "success", gravame: "error", venda_vip: "accent", em_devolucao: "warning", devolvido: "neutral" };
+const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { pedido_recebido: "neutral", liberado: "info", em_transporte_0km: "info", disponivel_sem_faturamento: "warning", em_blindagem: "accent", disponivel: "success", gravame: "error", venda_vip: "accent", em_devolucao: "warning", devolvido: "neutral" };
 const OPCOES_CICLO: OpcaoDoCampo[] = CICLO.map((c) => ({ value: c.value, label: c.label, tom: TOM_CICLO[c.value] ?? "neutral" }));
 const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label: s.label, tom: s.value === "cadastrado" ? "success" : s.value === "cancelado" ? "error" : "warning" }));
 
@@ -49,7 +50,7 @@ const OPCOES_USO: OpcaoDoCampo[] = STATUS_DE_USO.map((u) => ({ value: u.value, l
 export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "codigo", titulo: "Código", tipo: "texto", valorDe: (v) => v.codigo ?? v.modelo.toUpperCase(), largura: 180, fixa: true },
   { id: "placa", titulo: "Placa", tipo: "texto", valorDe: (v) => v.placa, largura: 110, edicao: { coluna: "placa", maxLength: 8, placeholder: "ABC1D23", normalizar: normalizarPlaca, validar: (t) => (placaValida(t) ? null : "A placa tem 7 caracteres.") } },
-  { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? [], ctx.manutencoes?.get(v.id) ?? [], ctx.hoje) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
+  { id: "statusUso", titulo: "Status de uso", tipo: "opcao", valorDe: (v) => (ctx.carregado ? statusDeUso(ctx.reservas.get(v.id) ?? [], ctx.manutencoes?.get(v.id) ?? [], ctx.hoje, v.status_ciclo) : null), opcoes: OPCOES_USO, rotuloDoValor: (x) => OPCOES_USO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => STATUS_DE_USO.findIndex((u) => u.value === x), largura: 150 },
   { id: "agenda", titulo: "Agenda", tipo: "texto", valorDe: (v) => (ctx.carregado ? agendaTexto(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) || null : null), multilinha: true, largura: 420,
     celula: (v) => <AgendaEmTags itens={ctx.carregado ? agendaItens(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento, ctx.hoje, ctx.manutencoes?.get(v.id) ?? []) : []} /> },
   { id: "vin", titulo: "VIN (chassi)", tipo: "texto", valorDe: (v) => v.vin, largura: 190, edicao: { coluna: "vin", maxLength: 20, placeholder: "17 caracteres", normalizar: normalizarVin, validar: (t) => (vinValido(t) ? null : "O VIN tem 17 letras e números.") } },
@@ -62,8 +63,13 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false, edicao: { coluna: "blindado" } },
   { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 200, padrao: false, edicao: { coluna: "data_pedido" } },
   { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 170, padrao: false, edicao: { coluna: "data_liberacao" } },
+  { id: "chegouPlantaEm", titulo: "Chegou na planta em", tipo: "data", valorDe: (v) => v.data_chegada_planta, largura: 190, padrao: false, edicao: { coluna: "data_chegada_planta" } },
   { id: "faturadoEm", titulo: "Faturado em", tipo: "data", valorDe: (v) => v.data_faturamento, largura: 170, padrao: false, edicao: { coluna: "data_faturamento" } },
+  { id: "placasSolicitadasEm", titulo: "Placas solicitadas em", tipo: "data", valorDe: (v) => v.data_placas_solicitadas, largura: 200, padrao: false, edicao: { coluna: "data_placas_solicitadas" } },
   { id: "emplacadoEm", titulo: "Emplacado em", tipo: "data", valorDe: (v) => v.data_emplacamento, largura: 170, padrao: false, edicao: { coluna: "data_emplacamento" } },
+  { id: "diasParaSolicitar", titulo: "Dias para solicitar a placa", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).paraSolicitar, largura: 210, padrao: false },
+  { id: "diasParaEmplacar", titulo: "Dias para emplacar", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).paraEmplacar, largura: 170, padrao: false },
+  { id: "diasTotalPlaca", titulo: "Dias da chegada ao emplacamento", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).total, largura: 240, padrao: false },
   { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 170, padrao: false, edicao: { coluna: "data_devolucao" } },
   { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
   { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 170, padrao: false },

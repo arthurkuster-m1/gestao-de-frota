@@ -9,6 +9,13 @@ export const STATUS_DE_USO = [
   { value: "em_uso", label: "Em uso", tom: "info" },
   { value: "em_retorno", label: "Em retorno", tom: "warning" },
   { value: "manutencao", label: "Manutenção", tom: "error" },
+  // vêm do ciclo de vida do carro (sobrepõem as reservas):
+  { value: "indisponivel", label: "Indisponível", tom: "neutral" },
+  { value: "em_blindagem", label: "Em blindagem", tom: "warning" },
+  { value: "gravame", label: "Indisponível (Gravame)", tom: "error" },
+  { value: "venda_vip", label: "Venda VIP", tom: "accent" },
+  { value: "em_devolucao", label: "Em devolução", tom: "warning" },
+  { value: "devolvido", label: "Devolvido", tom: "neutral" },
 ] as const;
 export type StatusDeUso = (typeof STATUS_DE_USO)[number]["value"];
 export const rotuloDoUso = (v: string) => STATUS_DE_USO.find((s) => s.value === v)?.label ?? v;
@@ -20,11 +27,28 @@ export const estaAberta = (r: Pick<Reserva, "estado">) => ESTADOS_ABERTOS.includ
 /** Quem aparece primeiro na agenda e no status: o que o carro está fazendo agora vem antes do que vem depois. */
 const PRIORIDADE: Record<string, number> = { em_retorno: 0, em_uso: 1, reservado: 2 };
 
+/** O status de uso que o CICLO DE VIDA impõe ao carro (null = o ciclo libera: vale o que as reservas dizem). */
+export function usoDoCiclo(ciclo: string | null | undefined): StatusDeUso | null {
+  switch (ciclo) {
+    case "pedido_recebido": case "liberado": case "em_transporte_0km": return "indisponivel";
+    case "em_blindagem": return "em_blindagem";
+    case "gravame": return "gravame";
+    case "venda_vip": return "venda_vip";
+    case "em_devolucao": return "em_devolucao";
+    case "devolvido": return "devolvido";
+    default: return null;   // Disponível sem faturamento e Pronto: livres para reserva e uso
+  }
+}
+/** Pode receber reservas? Não: indisponível, em blindagem, gravame, venda VIP e devolvido. Em devolução ainda pode (com alerta). */
+export const reservavelPeloCiclo = (ciclo: string | null | undefined) => { const u = usoDoCiclo(ciclo); return u === null || u === "em_devolucao"; };
+
 /**
- * O Status de Uso é CALCULADO (nunca digitado): manutenção que bloqueia > em retorno > em uso > reservado > disponível.
+ * O Status de Uso é CALCULADO (nunca digitado): primeiro o que o ciclo de vida impõe (indisponível, em blindagem, gravame, venda VIP, em devolução, devolvido);
+ * depois manutenção que bloqueia > em retorno > em uso > reservado > disponível.
  * Um carro pode ter várias reservas; basta uma em uso para ele estar em uso. Com `hoje`, manutenção que começa no futuro ainda não conta.
  */
-export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[], manutencoes: readonly Pick<Manutencao, "status" | "bloqueia_uso" | "data_inicio">[] = [], hoje?: string): StatusDeUso {
+export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[], manutencoes: readonly Pick<Manutencao, "status" | "bloqueia_uso" | "data_inicio">[] = [], hoje?: string, ciclo?: string | null): StatusDeUso {
+  const doCiclo = usoDoCiclo(ciclo); if (doCiclo) return doCiclo;
   if (manutencoes.some((m) => bloqueiaAgora(m) && (!hoje || m.data_inicio <= hoje))) return "manutencao";
   const abertas = reservas.filter(estaAberta);
   if (abertas.some((r) => r.estado === "em_retorno")) return "em_retorno";

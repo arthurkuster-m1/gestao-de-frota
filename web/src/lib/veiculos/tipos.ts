@@ -5,7 +5,6 @@ export const CICLO = [
   { value: "liberado", label: "Liberado" },
   { value: "em_transporte_0km", label: "Em transporte 0 km" },
   { value: "disponivel_sem_faturamento", label: "Disponível sem faturamento" },
-  { value: "revisao_emplacamento", label: "Revisão e emplacamento" },
   { value: "em_blindagem", label: "Em blindagem" },
   { value: "disponivel", label: "Pronto" },
   { value: "gravame", label: "Gravame" },
@@ -31,7 +30,7 @@ export type Veiculo = {
   modelo: string; versao: string | null; cor: string | null; my: string | null; pedido: string | null;
   vin: string | null; placa: string | null; blindado: boolean;
   seguro_status: Seguro; status_ciclo: Ciclo;
-  data_pedido: string | null; data_liberacao: string | null; data_faturamento: string | null; data_emplacamento: string | null; data_devolucao: string | null;
+  data_pedido: string | null; data_liberacao: string | null; data_chegada_planta: string | null; data_faturamento: string | null; data_placas_solicitadas: string | null; data_emplacamento: string | null; data_devolucao: string | null;
   comentarios: string | null;
   created_at: string;
 };
@@ -41,7 +40,7 @@ export type VeiculoNovo = {
   modelo: string; cor?: string | null; my?: string | null; pedido?: string | null;
   vin?: string | null; placa?: string | null; blindado?: boolean;
   seguro_status?: Seguro; status_ciclo?: Ciclo;
-  data_pedido?: string | null; data_liberacao?: string | null; data_faturamento?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
+  data_pedido?: string | null; data_liberacao?: string | null; data_chegada_planta?: string | null; data_faturamento?: string | null; data_placas_solicitadas?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
   comentarios?: string | null;
 };
 

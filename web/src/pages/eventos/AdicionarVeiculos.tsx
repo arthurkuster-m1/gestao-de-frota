@@ -7,7 +7,7 @@ import { periodoDaReserva } from "../../lib/eventos/barras";
 import { cabeNosPedidos } from "../../lib/eventos/desejados";
 import type { Evento, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
 import { PedidosDoEvento } from "./PedidosDoEvento";
-import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, statusDeUso } from "../../lib/eventos/uso";
+import { STATUS_DE_USO, agendaTexto, conflitos, reservasPorVeiculo, reservavelPeloCiclo, statusDeUso } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
@@ -50,14 +50,14 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const linhas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return veiculos
-      .filter((v) => v.status_ciclo !== "devolvido" && !jaNoEvento.has(v.id))
+      .filter((v) => reservavelPeloCiclo(v.status_ciclo) && !jaNoEvento.has(v.id))
       .filter((v) => !soPedido || marcados.has(v.id) || cabeNosPedidos(v, pedidosDoEvento))
       .filter((v) => !q || `${v.codigo ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""}`.toLowerCase().includes(q))
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
         const choques = periodoOk ? conflitos({ inicio, fim }, r, evento.id) : [];
         const noConserto = periodoOk ? manutencoesQueBloqueiam({ inicio, fim }, oficina.get(v.id) ?? []) : [];
-        return { v, uso: statusDeUso(r, oficina.get(v.id) ?? [], hojeLocal()), choques, noConserto };
+        return { v, uso: statusDeUso(r, oficina.get(v.id) ?? [], hojeLocal(), v.status_ciclo), choques, noConserto };
       })
       .filter((l) => !soLivres || marcados.has(l.v.id) || (l.choques.length === 0 && l.noConserto.length === 0))
       .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0) - Number(b.choques.length + b.noConserto.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
@@ -106,6 +106,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
                   <span className="mt-escolha__nome">{v.codigo ?? v.modelo.toUpperCase()}</span>
                   <span className="t-body-sm t-muted">{[v.cor, v.placa].filter(Boolean).join(" · ")}</span>
                   <Tag opcao={{ value: u.value, label: u.label, tom: u.tom }} />
+                  {uso === "em_devolucao" && <span className="t-body-sm" style={{ color: "var(--color-warning-fg)" }} title="Este carro está para ser devolvido: confirme antes de reservar">⚠ em devolução</span>}
                 </label>
                 {noConserto.length > 0 && (
                   <p className="mt-escolha__aviso" role="note" data-testid="aviso-manutencao"><Warning size={16} weight="fill" />Em manutenção nesse período: {noConserto.map((m) => m.nome).join(", ")}</p>

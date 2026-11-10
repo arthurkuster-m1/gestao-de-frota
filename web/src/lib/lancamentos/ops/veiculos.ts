@@ -98,7 +98,7 @@ const novoVeiculo: Lancamento = {
 
 export const LANCAMENTOS_DE_VEICULOS: Lancamento[] = [
   novoVeiculo,
-  ...(["liberacao", "chegada", "faturamento", "emplacamento", "devolucaoCvo", "devolucao"] as AcaoEmMassa[]).map((id) => atualizacaoDeVeiculo(ACOES.find((a) => a.id === id)!)),
+  ...(["liberacao", "chegada", "faturamento", "placas", "emplacamento", "devolucaoCvo", "devolucao"] as AcaoEmMassa[]).map((id) => atualizacaoDeVeiculo(ACOES.find((a) => a.id === id)!)),
   checklistEmMassa(ACOES.find((a) => a.id === "saida")!, "saida"),
   checklistEmMassa(ACOES.find((a) => a.id === "retorno")!, "retorno"),
   reservaEmEvento,

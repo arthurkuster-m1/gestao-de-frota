@@ -5,7 +5,7 @@ import type { Veiculo } from "./tipos";
 const v = (id: string, o: Partial<Veiculo>): Veiculo => ({ id, codigo: null, modelo: "Onix", cor: null, my: null, pedido: null, vin: null, placa: null, blindado: false, status_ciclo: "disponivel_sem_faturamento", data_faturamento: null, data_emplacamento: null, ...o }) as Veiculo;
 const frota = [
   v("1", { codigo: "ONIX RS 1111", vin: "11111111111111111", pedido: "P1", status_ciclo: "disponivel_sem_faturamento" }),
-  v("2", { codigo: "ONIX RS 2222", vin: "22222222222222222", pedido: "P1", status_ciclo: "revisao_emplacamento", data_faturamento: "2026-11-01" }),
+  v("2", { codigo: "ONIX RS 2222", vin: "22222222222222222", pedido: "P1", status_ciclo: "disponivel_sem_faturamento", data_faturamento: "2026-11-01" }),
   v("3", { codigo: "S10 3333", vin: "33333333333333333", placa: "ABC1D23", status_ciclo: "disponivel", data_emplacamento: "2026-11-02", data_faturamento: "2026-11-01" }),
   v("4", { codigo: "S10 4444", vin: "44444444444444444", status_ciclo: "devolvido" }),
 ];
@@ -22,7 +22,7 @@ describe("atualização em massa", () => {
   it("faturamento: registra data e ciclo; já faturado é ignorado; devolvido dá erro", () => {
     const r = validarLista("faturamento", [{ ref: "11111111111111111" }, { ref: "22222222222222222" }, { ref: "44444444444444444" }, { ref: "999" }, {}], ctx);
     expect(r.map((x) => x.tom)).toEqual(["ok", "dup", "erro", "erro", "ign"]);
-    expect(r[0]!.plano!.patch).toEqual({ data_faturamento: "2026-11-12", status_ciclo: "revisao_emplacamento" });
+    expect(r[0]!.plano!.patch).toEqual({ data_faturamento: "2026-11-12" });
   });
   it("emplacamento: exige faturado, placa válida e única", () => {
     const r = validarLista("emplacamento", [{ ref: "22222222222222222", placa: "xyz9k88" }, { ref: "11111111111111111", placa: "XYZ9K88" }, { ref: "33333333333333333", placa: "AAA1B22" }, { ref: "22222222222222222", placa: "ZZZ" }], ctx);
@@ -56,5 +56,19 @@ describe("atualização em massa", () => {
     expect(validarLista("saida", [{ ref: "ONIX RS 2222" }], { ...base, eventoId: "e2" })[0]!.reservaId).toBe("r3");
     const rt = validarLista("retorno", [{ ref: "ONIX RS 2222" }], { ...base, eventoId: "e1" });
     expect(rt[0]!.tom).toBe("dup");
+  });
+  it("chegou na planta e placas solicitadas: data, ordem das etapas e prazo", () => {
+    const vs = [
+      v("1", { codigo: "A", vin: "11111111111111111", status_ciclo: "liberado" }),
+      v("2", { codigo: "B", vin: "22222222222222222", status_ciclo: "disponivel_sem_faturamento", data_chegada_planta: "2026-11-01", data_faturamento: "2026-11-02" }),
+      v("3", { codigo: "C", vin: "33333333333333333", status_ciclo: "disponivel_sem_faturamento", data_chegada_planta: "2026-11-01" }),
+    ];
+    const c = validarLista("chegada", [{ ref: "A", data: "05/11/2026" }, { ref: "B" }], { veiculos: vs, data: "2026-11-12" });
+    expect(c.map((x) => x.tom)).toEqual(["ok", "dup"]);
+    expect(c[0]!.plano!.patch).toEqual({ data_chegada_planta: "2026-11-05", status_ciclo: "disponivel_sem_faturamento" });
+    const p = validarLista("placas", [{ ref: "B" }, { ref: "C" }, { ref: "A" }], { veiculos: vs, data: "2026-11-04" });
+    expect(p.map((x) => x.tom)).toEqual(["ok", "erro", "erro"]);   // B ok; C não foi faturado; A nem chegou
+    expect(p[0]!.plano!.patch).toEqual({ data_placas_solicitadas: "2026-11-04" });
+    expect(p[0]!.texto).toMatch(/3 dias desde a chegada na planta/);
   });
 });

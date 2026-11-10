@@ -13,7 +13,7 @@ import { atualizarReserva } from "../../lib/eventos/dados";
 import { cabeNosPedidos } from "../../lib/eventos/desejados";
 import { anotacoesPorVeiculo, barrasDeAnotacao, ehBarraDeAnotacao } from "../../lib/veiculos/anotacoes";
 import { aplicarArrasto } from "../../lib/linhaDoTempo/arrasto";
-import { conflitos } from "../../lib/eventos/uso";
+import { conflitos, reservavelPeloCiclo } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import { PedidosDoEvento } from "../eventos/PedidosDoEvento";
 import { AvisoDeChecklistEmMassa } from "../checklists/AvisoDeChecklistEmMassa";
@@ -87,12 +87,12 @@ export function Planejamento() {
     if (objetivo === "disponiveis") {
       // livres em TODO o intervalo: sem reserva aberta, sem manutenção que bloqueie e ainda na frota (não devolvido)
       const oficina = manutencoesPorVeiculo(d.manutencoes);
-      return d.veiculos.filter((v) => v.status_ciclo !== "devolvido" && conflitos(periodoDisp, ctxUso.reservas.get(v.id) ?? []).length === 0 && manutencoesQueBloqueiam(periodoDisp, oficina.get(v.id) ?? []).length === 0);
+      return d.veiculos.filter((v) => reservavelPeloCiclo(v.status_ciclo) && conflitos(periodoDisp, ctxUso.reservas.get(v.id) ?? []).length === 0 && manutencoesQueBloqueiam(periodoDisp, oficina.get(v.id) ?? []).length === 0);
     }
     if (!modoEvento || !selecionado) return d.veiculos;
     const oficina = manutencoesPorVeiculo(d.manutencoes);
     const doEvento = new Set(d.reservas.filter((r) => r.evento_id === selecionado.id && r.estado !== "cancelado").map((r) => r.veiculo_id));
-    return d.veiculos.filter((v) => doEvento.has(v.id) || (v.status_ciclo !== "devolvido" && cabeNosPedidos(v, pedidosDoSel)
+    return d.veiculos.filter((v) => doEvento.has(v.id) || (reservavelPeloCiclo(v.status_ciclo) && cabeNosPedidos(v, pedidosDoSel)
       && (!periodoDoSel || (conflitos(periodoDoSel, ctxUso.reservas.get(v.id) ?? [], selecionado.id).length === 0 && manutencoesQueBloqueiam(periodoDoSel, oficina.get(v.id) ?? []).length === 0))));
   }, [objetivo, periodoDisp, modoEvento, selecionado, d.veiculos, d.reservas, d.manutencoes, pedidosDoSel, periodoDoSel, ctxUso]);
   const eventosVisiveis = modoEvento && selecionado ? [selecionado] : d.eventos;
