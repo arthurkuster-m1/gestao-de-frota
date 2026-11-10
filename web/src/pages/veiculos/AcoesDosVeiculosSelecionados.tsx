@@ -1,12 +1,13 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarBlank, CalendarPlus, Copy, Receipt, ArrowUUpLeft } from "@phosphor-icons/react";
+import { CalendarBlank, CalendarPlus, Copy, Receipt, ArrowUUpLeft, Trash } from "@phosphor-icons/react";
 import { Button, Sheet, useToast } from "../../ds";
 import { hojeLocal } from "../../lib/motor/datas";
 import type { Evento } from "../../lib/eventos/tipos";
 import { copiarTabela, tabelaDeVeiculosParaOutlook } from "../../lib/eventos/linhasDoEvento";
 import { atualizarCampos } from "../../lib/veiculos/dados";
 import { AdicionarVeiculos } from "../eventos/AdicionarVeiculos";
+import { ExcluirVeiculos } from "./ExcluirVeiculos";
 import type { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 
 /**
@@ -19,6 +20,7 @@ export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento }
   const [escolhendo, setEscolhendo] = useState(false);
   const [evento, setEvento] = useState<Evento | null>(null);
   const [ocupado, setOcupado] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
 
   async function marcar(patch: Parameters<typeof atualizarCampos>[1], texto: string) {
     setOcupado(true);
@@ -38,6 +40,9 @@ export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento }
       <Button size="sm" variant="secondary" icon={<ArrowUUpLeft size={16} />} loading={ocupado} onClick={() => void marcar({ status_ciclo: "em_devolucao" }, "marcado(s) para devolução")} data-testid="sel-devolucao">Marcar para Devolução</Button>
       <Button size="sm" variant="secondary" icon={<Receipt size={16} />} loading={ocupado} onClick={() => void marcar({ data_faturamento: hojeLocal() }, "marcado(s) como faturado(s)")} data-testid="sel-faturado">Marcar como Faturado(s)</Button>
 
+      <Button size="sm" variant="danger" icon={<Trash size={16} />} onClick={() => setExcluindo(true)} data-testid="sel-excluir">Excluir</Button>
+      <ExcluirVeiculos aberto={excluindo} onFechar={() => setExcluindo(false)} veiculos={d.veiculos.filter((v) => ids.includes(v.id))}
+        consequencias={{ reservas: [...d.reservas, ...d.reservasSemData].filter((r) => ids.includes(r.veiculo_id)).length, manutencoes: d.manutencoes.filter((m) => ids.includes(m.veiculo_id)).length }} onExcluido={limpar} />
       <Sheet open={escolhendo} onClose={() => setEscolhendo(false)} title="Adicionar em qual evento?">
         <div className="ds-stack" data-testid="escolher-evento">
           <p className="t-body-sm t-muted">{ids.length} veículo{ids.length === 1 ? "" : "s"} selecionado{ids.length === 1 ? "" : "s"}. Escolha o evento; na próxima janela você confere as datas e confirma.</p>

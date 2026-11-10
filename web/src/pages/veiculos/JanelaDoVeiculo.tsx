@@ -1,7 +1,7 @@
 import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CalendarBlank, CalendarCheck, Plus, Warning, Wrench, X } from "@phosphor-icons/react";
+import { CalendarBlank, CalendarCheck, Plus, Trash, Warning, Wrench, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
 import { Skeleton, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
@@ -22,6 +22,7 @@ import { RegistrarAcoes } from "./RegistrarAcoes";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
 import { Tag } from "../../components/motor/Tag";
 import { Button } from "../../ds";
+import { ExcluirVeiculos } from "./ExcluirVeiculos";
 import { NovaManutencao } from "../manutencoes/NovaManutencao";
 import { STATUS_MANUTENCAO, type Manutencao, type ManutencaoNova } from "../../lib/manutencoes/tipos";
 import "./veiculos.css";
@@ -68,6 +69,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
   const toast = useToast();
   const id = veiculo?.id;
   const [novaManutencao, setNovaManutencao] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
   const [comentario, setComentario] = useState("");
   const [erroComentario, setErroComentario] = useState<string | null>(null);
 
@@ -130,6 +132,8 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                   <Textarea rows={5} value={comentario} aria-label="Comentários do veículo" data-testid="campo-comentarios" placeholder="Anotações livres sobre este carro. Salva ao sair do campo." onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
                   {erroComentario && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erroComentario}</p>}
                 </section>
+                <div><Button variant="danger" icon={<Trash size={18} />} onClick={() => setExcluindo(true)} data-testid="excluir-veiculo">Excluir veículo</Button></div>
+                <ExcluirVeiculos aberto={excluindo} onFechar={() => setExcluindo(false)} veiculos={[veiculo]} consequencias={{ reservas: reservas.length + reservasSemData.length, manutencoes: manutencoes.length }} onExcluido={onFechar} />
               </div>
             )}
             {aba === "agenda" && (usoCarregado ? (

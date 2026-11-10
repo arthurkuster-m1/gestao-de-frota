@@ -42,6 +42,19 @@ export async function criarVeiculos(vs: VeiculoNovo[]): Promise<number> {
   return vs.length;
 }
 
+/**
+ * Exclui veículos de vez. O banco apaga junto tudo que é DO carro (reservas nos eventos, checklists, manutenções, histórico, itens de contrato, anotações);
+ * pedidos de modelo que ele atendia voltam a ficar em aberto. Não dá para desfazer. Devolve quantos foram apagados.
+ */
+export async function excluirVeiculos(ids: string[]): Promise<number> {
+  if (ids.length === 0) return 0;
+  const { data, error } = await supabase.from("veiculos").delete().in("id", ids).select("id");
+  if (error) throw traduzir(error);
+  const n = (data ?? []).length;
+  if (n === 0) throw new ErroVeiculo("Nenhum veículo foi excluído (já não existem, ou sem permissão). Atualize a página.");
+  return n;
+}
+
 /** Muda só alguns campos (edição no lugar, na tabela, nos cards, na linha do tempo). Devolve a linha inteira atualizada (o código é recalculado pelo banco). */
 export async function atualizarCampos(id: string, patch: Partial<VeiculoNovo>): Promise<Veiculo> {
   const { data, error } = await supabase.from("veiculos").update(patch).eq("id", id).select("*").single();
