@@ -1,7 +1,6 @@
 import { useState } from "react";
-import { Bell, BellRinging, Palette, Plus, Trash } from "@phosphor-icons/react";
-import { Button, Card, Field, Input, Page, Segmented, Switch, useToast } from "../../ds";
-import { useDensidade, type Densidade } from "../../lib/densidade";
+import { Bell, BellRinging, Plus, Trash } from "@phosphor-icons/react";
+import { Button, Card, Field, Input, Page, Switch, useToast } from "../../ds";
 import { NOTIFICACOES_PADRAO, gravarNotificacoes, horarioValido, lerNotificacoes, mostrarNotificacao, notificacaoSuportada, permissaoDeNotificar, type Notificacao } from "../../lib/notificacoes/notificacoes";
 import "../veiculos/veiculos.css";
 
@@ -12,7 +11,6 @@ const DIAS = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 /** Configurações. Por enquanto: as notificações (cada uma com interruptor, horários, dias e o botão que ela traz). */
 export function Configuracoes() {
   const toast = useToast();
-  const { densidade, mudar: mudarDensidade } = useDensidade();
   const [lista, setLista] = useState<Notificacao[]>(lerNotificacoes);
   const [permissao, setPermissao] = useState(permissaoDeNotificar);
   const [novoHorario, setNovoHorario] = useState<Record<string, string>>({});
@@ -30,15 +28,7 @@ export function Configuracoes() {
   return (
     <Page wide>
       <div className="ds-stack">
-        <div><h1 className="t-h1">Configurações</h1><p className="t-body t-muted">Aparência e notificações do app.</p></div>
-
-        <Card>
-          <div className="ds-stack">
-            <h2 className="t-h3"><Palette size={20} style={{ verticalAlign: "-4px" }} /> Aparência</h2>
-            <Field label="Densidade das tabelas"><Segmented options={[{ value: "compacta", label: "Compacta" }, { value: "confortavel", label: "Confortável" }]} value={densidade} onChange={(v: Densidade) => mudarDensidade(v)} /></Field>
-            <p className="t-body-sm t-muted">Compacta: linhas baixas e letra menor, cabem mais linhas na tela (como no Notion). Confortável: linhas mais altas, com mais espaço. Também dá para alternar pelo botão de linhas na barra de qualquer tabela. Vale para este aparelho.</p>
-          </div>
-        </Card>
+        <div><h1 className="t-h1">Configurações</h1><p className="t-body t-muted">Notificações do app.</p></div>
 
         <Card>
           <div className="ds-stack">

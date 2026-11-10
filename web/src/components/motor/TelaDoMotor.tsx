@@ -10,7 +10,6 @@ import { BarraDeConsulta, ChipsDeFiltro } from "./BarraDeConsulta";
 import { ChipsRapidos, filtrarPorChips, type ConfigDeChips, type SelecaoDeChips } from "./ChipsRapidos";
 import { CartoesDoMotor } from "./CartoesDoMotor";
 import { TabelaDoMotor } from "./TabelaDoMotor";
-import { BotaoDeDensidade } from "./BotaoDeDensidade";
 import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
 import { useEixoDoTempo, type EixoDoTempo } from "./useEixoDoTempo";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
@@ -146,7 +145,6 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           acoes={acoes} fixas={[...(chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []), ...(visoesFixas ?? []).map((f) => ({ id: f.id, rotulo: f.rotulo }))]} nomeDaBase={naFixa ? chipsRapidos!.rotulo : fixaDeFabrica ? fixaDeFabrica.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
-            <BotaoDeDensidade />
             <div className="mt-busca">
               {buscando || busca ? (
                 <input value={busca} autoFocus={buscando} onChange={(e) => setBusca(e.target.value)} onBlur={(e) => { const campo = e.currentTarget; window.setTimeout(() => { if (!campo.value) setBuscando(false); }, 250); }} onKeyDown={(e) => { if (e.key === "Escape") { setBusca(""); setBuscando(false); } }}

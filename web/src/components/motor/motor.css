@@ -352,16 +352,16 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-btn--icone.is-on { background: var(--color-accent-soft); color: var(--color-accent); }
 
 /* --- densidade COMPACTA (padrão): linhas baixas, letra menor, etiquetas e botões enxutos --- */
-[data-densidade="compacta"] .mt-tabela th, [data-densidade="compacta"] .mt-tabela td { height: 36px; padding: 0 10px; font-size: 13.5px; }
-[data-densidade="compacta"] .mt-tabela th { height: 32px; font-size: 12px; }
-[data-densidade="compacta"] .mt-tabela td.mt-editando { padding: 0; }
-[data-densidade="compacta"] .mt-grupo td { height: 32px; }
-[data-densidade="compacta"] .mt-btn { min-height: 30px; padding: 0 10px; font-size: 12.5px; }
-[data-densidade="compacta"] .mt-btn--icone { min-height: 30px; min-width: 30px; padding: 0 6px; }
-[data-densidade="compacta"] .mt-vbar .ds-btn, [data-densidade="compacta"] .mt-abas-wrap .ds-btn { min-height: 32px; padding: 0 14px; font-size: 13px; border-radius: 8px; }
-[data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"], [data-densidade="compacta"] .mt-tabela .mt-tag { font-size: 11.5px; line-height: 18px; padding: 0 8px; min-height: 20px; font-weight: 500; }
-[data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"]::before { width: 6px; height: 6px; }
-[data-densidade="compacta"] .mt-ed { font-size: 12.5px; }
+:root .mt-tabela th, :root .mt-tabela td { height: 36px; padding: 0 10px; font-size: 13.5px; }
+:root .mt-tabela th { height: 32px; font-size: 12px; }
+:root .mt-tabela td.mt-editando { padding: 0; }
+:root .mt-grupo td { height: 32px; }
+:root .mt-btn { min-height: 30px; padding: 0 10px; font-size: 12.5px; }
+:root .mt-btn--icone { min-height: 30px; min-width: 30px; padding: 0 6px; }
+:root .mt-vbar .ds-btn, :root .mt-abas-wrap .ds-btn { min-height: 32px; padding: 0 14px; font-size: 13px; border-radius: 8px; }
+:root .mt-tabela .ds-badge[class*="ds-badge--cor-"], :root .mt-tabela .mt-tag { font-size: 11.5px; line-height: 18px; padding: 0 8px; min-height: 20px; font-weight: 500; }
+:root .mt-tabela .ds-badge[class*="ds-badge--cor-"]::before { width: 6px; height: 6px; }
+:root .mt-ed { font-size: 12.5px; }
 
 /* seleção em massa estilo Notion: a barra de ações flutua POR CIMA das abas (nada se mexe) e arrastar sobre as caixinhas seleciona várias linhas */
 .mt-abas-wrap { position: relative; }
@@ -400,9 +400,9 @@ html[data-theme="light"] body:has(.mt-abas-wrap) { --color-bg: var(--nt-fundo); 
 .mt-tabela th { z-index: 6; }
 .mt-tabela th.mt-cong { z-index: 7; }
 /* compacta = a altura e o tamanho de letra do Notion */
-[data-densidade="compacta"] .mt-tabela th, [data-densidade="compacta"] .mt-tabela td { height: 34px; font-size: 14px; }
-[data-densidade="compacta"] .mt-tabela th { height: 34px; font-size: 14px; }
-[data-densidade="compacta"] .mt-tabela .mt-th__icone { width: 16px; height: 16px; }
+:root .mt-tabela th, :root .mt-tabela td { height: 34px; font-size: 14px; }
+:root .mt-tabela th { height: 34px; font-size: 14px; }
+:root .mt-tabela .mt-th__icone { width: 16px; height: 16px; }
 .mt-tabela.mt-cab-grudado thead th { box-shadow: 0 1px 0 var(--nt-linha); }
 
 /* a tabela ocupa a largura toda da página: o espaço que sobra à direita das colunas é uma coluna vazia, com as linhas continuando (como no Notion) */

@@ -14,7 +14,6 @@
           var s = localStorage.getItem("frota.theme");
           var d = s ? s === "dark" : window.matchMedia("(prefers-color-scheme: dark)").matches;
           document.documentElement.setAttribute("data-theme", d ? "dark" : "light");
-          document.documentElement.dataset.densidade = localStorage.getItem("frota:densidade") === "confortavel" ? "confortavel" : "compacta";
         } catch (e) {}
       })();
     </script>
