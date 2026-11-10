@@ -18,7 +18,7 @@ export function planoDoRegistro(tipo: TipoDeRegistro, v: Pick<Veiculo, "status_c
   switch (tipo) {
     case "liberacao": patch.data_liberacao = dados.data; resumo.push(`Liberado em ${br(dados.data)}`); ciclo("liberado"); break;
     case "chegada": patch.data_chegada_planta = dados.data; resumo.push(`Chegou na planta em ${br(dados.data)}`); ciclo("disponivel_sem_faturamento"); break;
-    case "faturamento": patch.data_faturamento = dados.data; resumo.push(`Faturado em ${br(dados.data)}`); break;   // faturar não muda o ciclo de vida
+    case "faturamento": patch.data_faturamento = dados.data; resumo.push(`Faturado em ${br(dados.data)}`); if (v.status_ciclo === "disponivel_sem_faturamento") ciclo("disponivel_sem_placa"); break;   // faturado e ainda sem placa
     case "placas": patch.data_placas_solicitadas = dados.data; resumo.push(`Placas solicitadas em ${br(dados.data)}`); break;
     case "emplacamento":
       patch.data_emplacamento = dados.data; resumo.push(`Emplacado em ${br(dados.data)}`);
@@ -40,7 +40,7 @@ export function proximosPassos(v: Pick<Veiculo, "status_ciclo"> & Partial<Pick<V
   switch (v.status_ciclo) {
     case "pedido_recebido": return ["liberacao"];
     case "liberado": case "em_transporte_0km": return ["chegada"];
-    case "disponivel_sem_faturamento":
+    case "disponivel_sem_faturamento": case "disponivel_sem_placa":
       if (!v.data_faturamento) return ["faturamento", "devolucao"];
       return v.data_placas_solicitadas ? ["emplacamento", "devolucao"] : ["placas", "emplacamento", "devolucao"];
     case "devolvido": return [];

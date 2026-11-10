@@ -5,16 +5,19 @@ import { nomeAutomatico, nomeUnico } from "../eventos/nome";
 import type { Evento } from "../eventos/tipos";
 import { atualizarCampos } from "./dados";
 import type { Resultado } from "./atualizacaoEmMassa";
+import { executarEmLote } from "../motor/emLote";
 
-/** Grava os planos (faturamento, emplacamento, devolução) carro a carro. Para na primeira falha e devolve os que já foram. */
+/** Grava os planos (faturamento, emplacamento, devolução) vários carros ao mesmo tempo. Devolve os que foram e a primeira falha, se houve. */
 export async function aplicarPlanos(prontos: readonly Resultado[]): Promise<{ feitos: string[]; falha: { codigo: string; erro: string } | null }> {
-  const feitos: string[] = [];
-  for (const r of prontos) {
-    if (!r.veiculo || !r.plano) continue;
-    try { await atualizarCampos(r.veiculo.id, r.plano.patch); feitos.push(r.veiculo.id); }
-    catch (e) { return { feitos, falha: { codigo: r.veiculo.codigo ?? r.veiculo.modelo, erro: (e as Error).message } }; }
-  }
-  return { feitos, falha: null };
+  const feitos: string[] = []; let falha: { codigo: string; erro: string } | null = null;
+  await executarEmLote(prontos.filter((r) => r.veiculo && r.plano).map((r) => ({
+    chave: r.veiculo!.id,
+    executar: async () => {
+      try { await atualizarCampos(r.veiculo!.id, r.plano!.patch); feitos.push(r.veiculo!.id); }
+      catch (e) { falha ??= { codigo: r.veiculo!.codigo ?? r.veiculo!.modelo, erro: (e as Error).message }; }
+    },
+  })), 10);
+  return { feitos, falha };
 }
 
 /** Reserva os carros num evento (criando o evento na hora, se for o caso). Com as datas do evento, reserva no período; sem elas, entra sem data. */

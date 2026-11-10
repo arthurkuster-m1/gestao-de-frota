@@ -22,7 +22,7 @@ describe("atualização em massa", () => {
   it("faturamento: registra data e ciclo; já faturado é ignorado; devolvido dá erro", () => {
     const r = validarLista("faturamento", [{ ref: "11111111111111111" }, { ref: "22222222222222222" }, { ref: "44444444444444444" }, { ref: "999" }, {}], ctx);
     expect(r.map((x) => x.tom)).toEqual(["ok", "dup", "erro", "erro", "ign"]);
-    expect(r[0]!.plano!.patch).toEqual({ data_faturamento: "2026-11-12" });
+    expect(r[0]!.plano!.patch).toEqual({ data_faturamento: "2026-11-12", status_ciclo: "disponivel_sem_placa" });
   });
   it("emplacamento: exige faturado, placa válida e única", () => {
     const r = validarLista("emplacamento", [{ ref: "22222222222222222", placa: "xyz9k88" }, { ref: "11111111111111111", placa: "XYZ9K88" }, { ref: "33333333333333333", placa: "AAA1B22" }, { ref: "22222222222222222", placa: "ZZZ" }], ctx);

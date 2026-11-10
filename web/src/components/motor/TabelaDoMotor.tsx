@@ -77,13 +77,27 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const visiveis = useMemo(() => (resultado.grupos ? resultado.grupos.filter((g) => !fechados.has(g.chave)).flatMap((g) => g.linhas) : linhasPlanas), [resultado, fechados, linhasPlanas]);
   const indiceDe = useMemo(() => new Map(visiveis.map((l, k) => [idDe(l), k])), [visiveis, idDe]);
   const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
+  const selRef = useRef(sel); selRef.current = sel;
+  const edRef = useRef(ed); edRef.current = ed;
   const refs = useRef({ faixa, visiveis, colunas, onEditar });
   refs.current = { faixa, visiveis, colunas, onEditar };
   useEffect(() => {
     const solta = () => { arrastandoSel.current = false; };
-    const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-tabela")) setSel(null); };
+    const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-tabela, [popover], dialog, .mt-selbar-sobre")) setSel(null); };
     const tecla = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSel(null);
+      if (e.key.startsWith("Arrow") || e.key === "Enter") {
+        const alvo = e.target as HTMLElement | null;
+        if (alvo?.closest("input, textarea, select, [contenteditable], [popover], dialog, button, a, [role=link]") || e.ctrlKey || e.metaKey || e.altKey) return;
+        const { visiveis: vs, colunas: cs } = refs.current; const atual = selRef.current; if (!atual || vs.length === 0 || cs.length === 0) return;
+        if (e.key === "Enter") { const l = vs[atual.a.l], c = cs[atual.a.c]; const cp = c && campoPorId.get(c.id); if (l && cp?.edicao && cp.tipo !== "caixa" && refs.current.onEditar) { e.preventDefault(); edRef.current.abrir(l, cp); } return; }
+        e.preventDefault();
+        const mover = atual.b ?? atual.a; const dl = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0, dc = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+        const p = { l: Math.max(0, Math.min(vs.length - 1, (e.shiftKey ? mover.l : atual.a.l) + dl)), c: Math.max(0, Math.min(cs.length - 1, (e.shiftKey ? mover.c : atual.a.c) + dc)) };
+        setSel(e.shiftKey ? { a: atual.a, b: p } : { a: p, b: p });
+        requestAnimationFrame(() => { const tr = caixa.current?.querySelectorAll<HTMLElement>("tbody tr[data-id]")[p.l]; tr?.querySelectorAll<HTMLElement>("td[data-campo]")[p.c]?.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+        return;
+      }
       if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
         if ((e.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable]")) return;
         const grupo = pilhaDesfazer.current.pop(); const grava = refs.current.onEditar; if (!grupo || !grava) return;
@@ -113,19 +127,21 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       const texto = e.clipboardData?.getData("text/plain"); if (!texto) return;
       e.preventDefault();
       const m = deTsv(texto);
-      const encher = m.length === 1 && m[0]!.length === 1 && multiplas(f); // 1 valor sobre vários campos: preenche todos
-      const nl = encher ? f.l1 - f.l0 + 1 : m.length;
+      // o que foi copiado se REPETE para baixo/para o lado quando a seleção é um múltiplo dele (ex.: 2 colunas copiadas, 30 linhas selecionadas)
+      const sr = f.l1 - f.l0 + 1, sc = f.c1 - f.c0 + 1, mr = m.length, mc = Math.max(...m.map((x) => x.length));
+      const repeteLinhas = sr > mr && sr % mr === 0, repeteColunas = sc > mc && sc % mc === 0;
+      const nl = repeteLinhas ? sr : mr;
       void (async () => {
         let ok = 0, pulados = 0, erro: string | null = null;
         const tarefas: { chave: string; executar: () => Promise<void> }[] = [];
         for (let dr = 0; dr < nl; dr++) {
           const l = vs[f.l0 + dr]; if (!l) break;
-          const linhaM = encher ? m[0]! : m[dr]!;
-          const nc = encher ? f.c1 - f.c0 + 1 : linhaM.length;
+          const linhaM = m[dr % mr]!;
+          const nc = repeteColunas ? sc : linhaM.length;
           for (let dc = 0; dc < nc; dc++) {
             const col = cs[f.c0 + dc]; const cp = col && campoPorId.get(col.id);
             if (!cp || !cp.edicao) { pulados++; continue; }
-            const bruto = converterColado(cp, encher ? m[0]![0]! : linhaM[dc]!);
+            const bruto = converterColado(cp, linhaM[dc % linhaM.length]!);
             if (bruto === undefined) { pulados++; continue; }
             const prep = prepararEdicao(cp.tipo, cp.edicao, bruto);
             if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
@@ -245,6 +261,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); }
       else setSel({ a: p, b: p });
       arrastandoSel.current = true;
+      rolarEnquantoSeleciona(e.clientX, e.clientY);
     };
     const conteudoDaCelula = i === 0 && onAbrir ? <span className="mt-primeira">{iconeDaPrimeira && <span className="mt-primeira__icone" aria-hidden>{iconeDaPrimeira}</span>}<span className="mt-primeira__txt mt-primeira__abre" role="link" tabIndex={0} title="Abrir a ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }} onKeyDown={(e) => { if (e.key === "Enter") { e.stopPropagation(); onAbrir(l); } }}>{formatar(campo, l)}</span></span> : formatar(campo, l);
     return (
@@ -275,6 +292,31 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     if (b < 0) return;
     const faixa = a < 0 ? [id] : ids.slice(Math.min(a, b), Math.max(a, b) + 1);
     selecao.alternarVarios(faixa, true); ancoraDaSelecao.current = id;
+  }
+  // Selecionando células com o mouse até a borda da tela, a página rola sozinha e a seleção acompanha (como no Excel/Notion).
+  function rolarEnquantoSeleciona(x0: number, y0: number) {
+    let x = x0, y = y0, quadro = 0;
+    const mover = (ev: MouseEvent) => { x = ev.clientX; y = ev.clientY; };
+    const passo = () => {
+      if (!arrastandoSel.current) { fim(); return; }
+      const raiz = caixa.current; const altura = window.innerHeight;
+      let dy = 0, dx = 0;
+      if (y > altura - 60) dy = Math.min(36, (y - (altura - 60)) / 2 + 4); else if (y < 130) dy = -Math.min(36, (130 - y) / 2 + 4);
+      if (raiz) { const r = raiz.getBoundingClientRect(); if (x > Math.min(r.right, window.innerWidth) - 50) dx = Math.min(36, (x - (Math.min(r.right, window.innerWidth) - 50)) / 2 + 4); else if (x < Math.max(r.left, 0) + 50) dx = -Math.min(36, (Math.max(r.left, 0) + 50 - x) / 2 + 4); }
+      if (dy) window.scrollBy(0, dy);
+      if (dx && raiz) raiz.scrollBy(dx, 0);
+      if (dx || dy) {
+        const td = document.elementFromPoint(Math.max(0, Math.min(window.innerWidth - 1, x)), Math.max(0, Math.min(window.innerHeight - 1, y)))?.closest<HTMLElement>("td[data-campo]");
+        const tr = td?.closest<HTMLElement>("tr[data-id]");
+        if (td && tr && raiz) {
+          const l = idsNaTela().indexOf(tr.dataset.id!), c = [...tr.querySelectorAll("td[data-campo]")].indexOf(td);
+          if (l >= 0 && c >= 0) setSel((v) => (v ? { a: v.a, b: { l, c } } : v));
+        }
+      }
+      quadro = requestAnimationFrame(passo);
+    };
+    const fim = () => { cancelAnimationFrame(quadro); window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", fim); };
+    window.addEventListener("mousemove", mover); window.addEventListener("mouseup", fim); quadro = requestAnimationFrame(passo);
   }
   const linha = (l: T) => (
     <tr key={idDe(l)} data-id={idDe(l)} data-testid="linha-motor" className={selecao?.ids.has(idDe(l)) ? "is-sel" : undefined}>

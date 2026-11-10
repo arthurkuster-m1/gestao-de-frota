@@ -5,6 +5,7 @@ export const CICLO = [
   { value: "liberado", label: "Liberado" },
   { value: "em_transporte_0km", label: "Em transporte 0 km" },
   { value: "disponivel_sem_faturamento", label: "Disponível sem faturamento" },
+  { value: "disponivel_sem_placa", label: "Disponível sem placa" },
   { value: "em_blindagem", label: "Em blindagem" },
   { value: "disponivel", label: "Pronto" },
   { value: "gravame", label: "Gravame" },

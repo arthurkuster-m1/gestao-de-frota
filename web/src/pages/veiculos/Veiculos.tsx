@@ -35,7 +35,7 @@ import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, 
 import "../veiculos/veiculos.css";
 
 const dia = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
-const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { pedido_recebido: "neutral", liberado: "info", em_transporte_0km: "info", disponivel_sem_faturamento: "warning", em_blindagem: "accent", disponivel: "success", gravame: "error", venda_vip: "accent", em_devolucao: "warning", devolvido: "neutral" };
+const TOM_CICLO: Record<string, OpcaoDoCampo["tom"]> = { pedido_recebido: "neutral", liberado: "info", em_transporte_0km: "info", disponivel_sem_faturamento: "warning", disponivel_sem_placa: "warning", em_blindagem: "accent", disponivel: "success", gravame: "error", venda_vip: "accent", em_devolucao: "warning", devolvido: "neutral" };
 const OPCOES_CICLO: OpcaoDoCampo[] = CICLO.map((c) => ({ value: c.value, label: c.label, tom: TOM_CICLO[c.value] ?? "neutral" }));
 const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label: s.label, tom: s.value === "cadastrado" ? "success" : s.value === "cancelado" ? "error" : "warning" }));
 
@@ -97,7 +97,11 @@ export function Veiculos() {
   const notasPorCarro = useMemo(() => anotacoesPorVeiculo(d.anotacoes), [d.anotacoes]);
 
   const versao = useVersaoDosDados();
-  useEffect(() => { listarVeiculos().then(setLista, (e: Error) => setErro(e.message)); }, [versao]);
+  // Edição otimista: o valor aparece na hora (como no Excel/Notion) e a gravação segue em segundo plano, uma de cada vez por carro.
+  const emVoo = useRef(new Map<string, number>());
+  const pendentes = useRef(new Map<string, Partial<Veiculo>>());
+  const filas = useRef(new Map<string, Promise<void>>());
+  useEffect(() => { listarVeiculos().then((l) => setLista(l.map((x) => (pendentes.current.has(x.id) ? { ...x, ...pendentes.current.get(x.id) } : x))), (e: Error) => setErro(e.message)); }, [versao]);
 
   const ctx = useMemo<ContextoDeUso>(() => {
     if (!d.eventos) return SEM_USO;
@@ -107,10 +111,22 @@ export function Veiculos() {
   const campos = useMemo(() => camposDoVeiculo(ctx), [ctx]);
 
   const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
-    const novo = await atualizarCampos(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Veiculo>);
-    setLista((l) => (l ?? []).map((x) => (x.id === linha.id ? novo : x)));
-    const aviso = avisoDoCicloAutomatico(linha, novo, campo.edicao!.coluna);
-    if (aviso) toast(aviso);
+    const col = campo.edicao!.coluna, id = linha.id, antigo = (linha as unknown as Record<string, unknown>)[col];
+    pendentes.current.set(id, { ...pendentes.current.get(id), [col]: valor } as Partial<Veiculo>);
+    setLista((l) => (l ?? []).map((x) => (x.id === id ? ({ ...x, [col]: valor } as Veiculo) : x)));
+    emVoo.current.set(id, (emVoo.current.get(id) ?? 0) + 1);
+    const fim = () => { const n = (emVoo.current.get(id) ?? 1) - 1; if (n <= 0) { emVoo.current.delete(id); pendentes.current.delete(id); filas.current.delete(id); } else emVoo.current.set(id, n); };
+    filas.current.set(id, (filas.current.get(id) ?? Promise.resolve()).then(async () => {
+      try {
+        const novo = await atualizarCampos(id, { [col]: valor } as Partial<Veiculo>);
+        if ((emVoo.current.get(id) ?? 0) <= 1) setLista((l) => (l ?? []).map((x) => (x.id === id ? novo : x)));
+        const aviso = avisoDoCicloAutomatico(linha, novo, col);
+        if (aviso) toast(aviso);
+      } catch (e) {
+        setLista((l) => (l ?? []).map((x) => (x.id === id ? ({ ...x, [col]: antigo } as Veiculo) : x)));
+        toast(`${campo.titulo}: não consegui salvar (${(e as Error).message}). Voltei o valor anterior.`);
+      } finally { fim(); }
+    }));
   };
   /** Arrastar uma barra de reserva na linha do tempo muda as datas da reserva (mover leva chegada e retirada junto). */
   const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
@@ -127,7 +143,7 @@ export function Veiculos() {
 
   return (
     <>
-    <TelaDoMotor<Veiculo> tela="veiculos" iconeDaPrimeira={<Car size={16} />} extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} />} chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
+    <TelaDoMotor<Veiculo> tela="veiculos" iconeDaPrimeira={<Car size={16} />} extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} aoAtualizar={(novos) => setLista((l) => { const m = new Map(novos.map((x) => [x.id, x])); return (l ?? []).map((x) => m.get(x.id) ?? x); })} />} chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
       acoes={<NovoMenu aoNovo={() => setNovo(true)} />}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}

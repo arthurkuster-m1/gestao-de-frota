@@ -1,3 +1,4 @@
+import { executarEmLote } from "../../motor/emLote";
 import { criarChecklistsEmMassa } from "../../checklists/dados";
 import { reservarEmMassa } from "../../veiculos/executarEmMassa";
 import { ACOES, validarLista, type AcaoEmMassa, type DefinicaoDaAcao, type Resultado as RV } from "../../veiculos/atualizacaoEmMassa";
@@ -24,13 +25,14 @@ function atualizacaoDeVeiculo(def: DefinicaoDaAcao, grupo = GRUPO): Lancamento {
     parametros: () => (def.comData ? [{ id: "data", rotulo: "Data padrão", tipo: "data" as const }] : []),
     validar: (linhas, d, p) => validarLista(def.id, linhas.map(lista), { veiculos: d.veiculos, data: p.data || d.hoje }).map((r) => ({ tom: r.tom, texto: r.texto, pronto: r })),
     aplicar: async (prontos) => {
-      const feitos: number[] = [];
-      for (const { indice, pronto } of prontos) {
-        const r = pronto as RV; if (!r.veiculo || !r.plano) continue;
-        try { await atualizarCampos(r.veiculo.id, r.plano.patch); feitos.push(indice); }
-        catch (e) { return { feitos, falha: `${r.veiculo.codigo ?? r.veiculo.modelo}: ${(e as Error).message}` }; }
-      }
-      return { feitos, falha: null };
+      // vários carros ao mesmo tempo (o banco não precisa da ordem): bem mais rápido que um por um
+      const feitos: number[] = []; let falha: string | null = null;
+      await executarEmLote(prontos.flatMap(({ indice, pronto }) => { const r = pronto as RV; return r.veiculo && r.plano ? [{ r, indice }] : []; }).map(({ r, indice }) => ({
+        chave: r.veiculo!.id,
+        executar: async () => { try { await atualizarCampos(r.veiculo!.id, r.plano!.patch); feitos.push(indice); } catch (e) { falha ??= `${r.veiculo!.codigo ?? r.veiculo!.modelo}: ${(e as Error).message}`; } },
+      })), 10);
+      feitos.sort((a, b) => a - b);
+      return { feitos, falha };
     },
   };
 }

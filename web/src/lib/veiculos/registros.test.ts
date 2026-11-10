@@ -3,8 +3,8 @@ import { planoDoRegistro, proximosPassos } from "./registros";
 
 const v = (status_ciclo: string, blindado = false, placa: string | null = null) => ({ status_ciclo, blindado, placa }) as never;
 describe("registrar ações do veículo", () => {
-  it("faturamento só registra a data (não muda mais o ciclo de vida)", () => {
-    expect(planoDoRegistro("faturamento", v("disponivel_sem_faturamento"), { data: "2026-11-12" })).toEqual({ patch: { data_faturamento: "2026-11-12" }, resumo: ["Faturado em 12/11/2026"] });
+  it("faturamento registra a data e leva Disponível sem faturamento a Disponível sem placa", () => {
+    expect(planoDoRegistro("faturamento", v("disponivel_sem_faturamento"), { data: "2026-11-12" })).toEqual({ patch: { data_faturamento: "2026-11-12", status_ciclo: "disponivel_sem_placa" }, resumo: ["Faturado em 12/11/2026", "Ciclo de vida → Disponível sem placa"] });
     expect(planoDoRegistro("faturamento", v("disponivel"), { data: "2026-11-12" }).patch).toEqual({ data_faturamento: "2026-11-12" });
   });
   it("emplacamento: placa + data; blindado vai para Em blindagem, os demais para Pronto", () => {

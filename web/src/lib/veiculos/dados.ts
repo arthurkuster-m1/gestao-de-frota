@@ -62,6 +62,14 @@ export async function atualizarCampos(id: string, patch: Partial<VeiculoNovo>): 
   return data as Veiculo;
 }
 
+/** O mesmo ajuste em vários carros numa só chamada (rápido: uma ida ao banco, não uma por carro). */
+export async function atualizarVarios(ids: readonly string[], patch: Partial<VeiculoNovo>): Promise<Veiculo[]> {
+  if (ids.length === 0) return [];
+  const { data, error } = await supabase.from("veiculos").update(patch).in("id", [...ids]).select("*");
+  if (error) throw traduzir(error);
+  return (data ?? []) as Veiculo[];
+}
+
 export async function atualizarVeiculo(id: string, v: VeiculoNovo): Promise<Veiculo> {
   const { data, error } = await supabase.from("veiculos").update(v).eq("id", id).select("*").single();
   if (error) throw traduzir(error);

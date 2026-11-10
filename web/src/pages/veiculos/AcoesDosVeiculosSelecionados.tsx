@@ -5,7 +5,8 @@ import { Button, Sheet, useToast } from "../../ds";
 import { hojeLocal } from "../../lib/motor/datas";
 import type { Evento } from "../../lib/eventos/tipos";
 import { copiarTabela, tabelaDeVeiculosParaOutlook } from "../../lib/eventos/linhasDoEvento";
-import { atualizarCampos } from "../../lib/veiculos/dados";
+import { atualizarVarios } from "../../lib/veiculos/dados";
+import type { Veiculo } from "../../lib/veiculos/tipos";
 import { AdicionarVeiculos } from "../eventos/AdicionarVeiculos";
 import { ExcluirVeiculos } from "./ExcluirVeiculos";
 import type { useDadosDeEventos } from "../eventos/useDadosDeEventos";
@@ -14,7 +15,7 @@ import type { useDadosDeEventos } from "../eventos/useDadosDeEventos";
  * O leque que abre ao selecionar veículos: adicionar em evento, ver no Planejamento, marcar para devolução e marcar como faturados.
  * ("Filtrar seleção" e "Limpar" já vêm na barra da tela.)
  */
-export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento }: { d: ReturnType<typeof useDadosDeEventos>; ids: string[]; limpar: () => void; semPlanejamento?: boolean }) {
+export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento, aoAtualizar }: { d: ReturnType<typeof useDadosDeEventos>; ids: string[]; limpar: () => void; semPlanejamento?: boolean; aoAtualizar?: (novos: Veiculo[]) => void }) {
   const navigate = useNavigate();
   const toast = useToast();
   const [escolhendo, setEscolhendo] = useState(false);
@@ -22,9 +23,9 @@ export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento }
   const [ocupado, setOcupado] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
-  async function marcar(patch: Parameters<typeof atualizarCampos>[1], texto: string) {
+  async function marcar(patch: Parameters<typeof atualizarVarios>[1], texto: string) {
     setOcupado(true);
-    try { for (const id of ids) await atualizarCampos(id, patch); toast(`${ids.length} veículo${ids.length === 1 ? "" : "s"} ${texto}`); limpar(); }
+    try { const novos = await atualizarVarios(ids, patch); aoAtualizar?.(novos); toast(`${ids.length} veículo${ids.length === 1 ? "" : "s"} ${texto}`); limpar(); }
     catch (e) { toast(`Não consegui: ${(e as Error).message}`); } finally { setOcupado(false); }
   }
 
