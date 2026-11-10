@@ -1,4 +1,7 @@
-import { Button } from "../../ds";
+import { useState } from "react";
+import { Trash } from "@phosphor-icons/react";
+import { Button, Sheet } from "../../ds";
+import { rotuloDoDesejado } from "../../lib/eventos/desejados";
 import type { ModeloDesejado } from "../../lib/eventos/tipos";
 
 /**
@@ -6,10 +9,12 @@ import type { ModeloDesejado } from "../../lib/eventos/tipos";
  * `atendidos`: pedido → carro que o atende (da reserva ligada, ou de um carro do evento que caiba). `previsao`: pedido → carro marcado agora (ainda não reservado).
  * Com `onSelecionar`, clicar numa linha a escolhe como filtro dos carros.
  */
-export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, selecionadoId, onSelecionar, onNaoAtendido, onErro }: {
+export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, selecionadoId, onSelecionar, onNaoAtendido, onRemover, onErro }: {
   pedidos: readonly ModeloDesejado[]; atendidos: ReadonlyMap<string, string>; previsao?: ReadonlyMap<string, string>; codigoDoCarro: (veiculoId: string) => string;
-  selecionadoId?: string | null; onSelecionar?: (id: string | null) => void; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>; onErro?: (m: string) => void;
+  selecionadoId?: string | null; onSelecionar?: (id: string | null) => void; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>; /** Com isto, cada linha ganha a lixeira (pede confirmação antes de excluir o modelo solicitado). */ onRemover?: (id: string) => Promise<void>; onErro?: (m: string) => void;
 }) {
+  const [excluindo, setExcluindo] = useState<ModeloDesejado | null>(null);
+  const [apagando, setApagando] = useState(false);
   if (pedidos.length === 0) return null;
   const muda = (id: string, v: boolean) => void onNaoAtendido?.(id, v).catch((e: Error) => onErro?.(e.message));
   const feitos = pedidos.filter((p) => atendidos.has(p.id) || previsao?.has(p.id)).length;
@@ -33,12 +38,20 @@ export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, s
                 <td className="mt-ped__acao">
                   {onNaoAtendido && !carro && !p.nao_atendido && !previsto && <Button type="button" size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); muda(p.id, true); }} data-testid="nao-disponivel">Não estava disponível</Button>}
                   {onNaoAtendido && p.nao_atendido && <Button type="button" size="sm" variant="ghost" onClick={(e) => { e.stopPropagation(); muda(p.id, false); }}>Desfazer</Button>}
+                  {onRemover && <Button type="button" size="icon" variant="ghost" aria-label={`Excluir o modelo solicitado ${rotuloDoDesejado(p)}`} title="Excluir modelo solicitado" onClick={(e) => { e.stopPropagation(); setExcluindo(p); }} data-testid="excluir-pedido"><Trash size={18} /></Button>}
                 </td>
               </tr>
             );
           })}
         </tbody>
       </table>
+      <Sheet open={!!excluindo} onClose={() => setExcluindo(null)} title="Excluir modelo solicitado">
+        <div className="ds-stack">
+          <p className="t-body">Excluir <b>{excluindo ? rotuloDoDesejado(excluindo) : ""}</b> dos modelos solicitados deste evento?{excluindo && (atendidos.has(excluindo.id) || excluindo.reserva_id) ? " O carro que atende esse pedido continua reservado no evento." : ""} Não dá para desfazer.</p>
+          <Button variant="danger" size="lg" block loading={apagando} data-testid="confirmar-exclusao-pedido" onClick={() => { if (!excluindo || !onRemover) return; setApagando(true); void onRemover(excluindo.id).then(() => setExcluindo(null)).catch((e: Error) => { onErro?.(e.message); setExcluindo(null); }).finally(() => setApagando(false)); }}>Excluir modelo</Button>
+          <Button variant="secondary" size="lg" block onClick={() => setExcluindo(null)}>Cancelar</Button>
+        </div>
+      </Sheet>
     </div>
   );
 }

@@ -2,7 +2,7 @@ import { useVersaoDosDados } from "../../lib/sincronia";
 import { useEffect, useMemo, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
-import { listarReservasSemData, reservarSemData, atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
+import { removerDesejado, listarReservasSemData, reservarSemData, atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
 import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
 import { fatosDosEventos, statusAutomatico } from "../../lib/eventos/automacaoDeStatus";
 import { hojeLocal } from "../../lib/motor/datas";
@@ -160,6 +160,8 @@ export function useDadosDeEventos() {
     const feitos = await criarDesejados(eventoId, pedidos, desejados.filter((d) => d.evento_id === eventoId).length);
     setDesejados((l) => [...l, ...feitos]); toast(`${feitos.length} carro${feitos.length === 1 ? "" : "s"} pedido${feitos.length === 1 ? "" : "s"}`);
   };
+  /** Tira um modelo do pedido do evento (a solicitação mudou). A reserva do carro que o atendia continua. */
+  const removerPedido = async (id: string) => { await removerDesejado(id); setDesejados((l) => l.filter((x) => x.id !== id)); toast("Modelo solicitado excluído"); };
   /** "Veículo não estava disponível": fica registrado que o pedido não foi atendido (desfazer = false). */
   const marcarNaoAtendido = async (id: string, naoAtendido: boolean) => {
     const salvo = await atualizarDesejado(id, { nao_atendido: naoAtendido }); setDesejados((l) => l.map((x) => (x.id === id ? salvo : x)));
@@ -171,5 +173,5 @@ export function useDadosDeEventos() {
 
   const locaisSemOrigens = useMemo(() => locais.filter((l) => l.tipo !== "origem"), [locais]);
   const origensExtras = useMemo(() => locais.filter((l) => l.tipo === "origem"), [locais]);
-  return { pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { removerPedido, pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }
