@@ -15,7 +15,7 @@ import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao } from "../../components/motor/useEdicao";
 import { validarEndereco } from "../../lib/enderecos";
 import { formatarDiaBr, hojeLocal } from "../../lib/motor/datas";
-import { codigoDaLinha, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresEfetivos, type LinhaDoEvento } from "../../lib/eventos/linhasDoEvento";
+import { codigoDaLinha, copiarTabela, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresEfetivos, type LinhaDoEvento } from "../../lib/eventos/linhasDoEvento";
 import type { Evento, EventoLocal, ModeloDesejado, Reserva, ReservaDoEvento } from "../../lib/eventos/tipos";
 import { conflitos, reservasPorVeiculo, agendaTexto } from "../../lib/eventos/uso";
 import { reais } from "../../lib/transportes/regras";
@@ -134,11 +134,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   async function copiarOutlook() {
     const t = tabelaParaOutlook(linhas);
     if (!linhas.some((l) => l.veiculo)) { toast("Nenhum carro definido para copiar"); return; }
-    try {
-      if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) await navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([t.html], { type: "text/html" }), "text/plain": new Blob([t.texto], { type: "text/plain" }) })]);
-      else await navigator.clipboard.writeText(t.texto);
-      toast("Tabela copiada: cole no Outlook");
-    } catch { onErro("Não consegui copiar. Libere a área de transferência no navegador."); }
+    if (await copiarTabela(t)) toast("Tabela copiada: cole no Outlook"); else onErro("Não consegui copiar. Libere a área de transferência no navegador.");
   }
 
   // ---- seleção de células: copiar, colar e duplicar para baixo

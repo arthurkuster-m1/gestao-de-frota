@@ -45,13 +45,27 @@ export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" 
 }
 
 const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-/** Tabela pequena para colar no Outlook: 1ª linha os títulos, depois "Código | Placa | VIN | Modelo | Cor | MY". Devolve HTML (Outlook) e texto tabulado (Excel/bloco de notas). */
-export function tabelaParaOutlook(linhas: readonly LinhaDoEvento[]): { html: string; texto: string } {
+/**
+ * Tabela pequena para colar no Outlook: 1ª linha os títulos (azul, letra branca), depois "Código | Placa | VIN | Modelo | Cor | MY".
+ * Devolve HTML (Outlook) e texto tabulado (Excel/bloco de notas).
+ */
+export function tabelaDeVeiculosParaOutlook(veiculos: readonly Veiculo[]): { html: string; texto: string } {
   const titulos = ["Código", "Placa", "VIN", "Modelo", "Cor", "MY"];
-  const dados = linhas.filter((l) => l.veiculo).map((l) => { const v = l.veiculo!; return [codigoDoVeiculo(v), v.placa ?? "", v.vin ?? "", v.modelo, v.cor ?? "", v.my ?? ""]; });
-  const cel = (t: string, th: boolean) => `<${th ? "th" : "td"} style="border:1px solid #999;padding:4px 8px;text-align:left;${th ? "background:#eee;font-weight:bold;" : ""}">${esc(t)}</${th ? "th" : "td"}>`;
+  const dados = veiculos.map((v) => [codigoDoVeiculo(v), v.placa ?? "", v.vin ?? "", v.modelo, v.cor ?? "", v.my ?? ""]);
+  const base = "border:1px solid #000;padding:2px 8px;text-align:center;font-family:Calibri,Arial,sans-serif;font-size:11pt;";
+  const cel = (t: string, th: boolean) => `<${th ? "th" : "td"} style="${base}${th ? "background:#4472C4;color:#fff;font-weight:bold;" : ""}">${esc(t)}</${th ? "th" : "td"}>`;
   const html = `<table style="border-collapse:collapse;font-family:Calibri,Arial,sans-serif;font-size:11pt"><tr>${titulos.map((t) => cel(t, true)).join("")}</tr>${dados.map((r) => `<tr>${r.map((t) => cel(t, false)).join("")}</tr>`).join("")}</table>`;
   return { html, texto: [titulos, ...dados].map((r) => r.join("\t")).join("\n") };
+}
+export const tabelaParaOutlook = (linhas: readonly LinhaDoEvento[]) => tabelaDeVeiculosParaOutlook(linhas.filter((l) => l.veiculo).map((l) => l.veiculo!));
+
+/** Copia a tabela para a área de transferência (HTML para o Outlook + texto para o Excel). Devolve false se o navegador não deixou. */
+export async function copiarTabela(t: { html: string; texto: string }): Promise<boolean> {
+  try {
+    if (typeof ClipboardItem !== "undefined" && navigator.clipboard?.write) await navigator.clipboard.write([new ClipboardItem({ "text/html": new Blob([t.html], { type: "text/html" }), "text/plain": new Blob([t.texto], { type: "text/plain" }) })]);
+    else await navigator.clipboard.writeText(t.texto);
+    return true;
+  } catch { return false; }
 }
 
 /** Acha um transporte já cadastrado no evento com a mesma referência (nº da PTA…), sentido e modalidade: vários carros dividem o mesmo. */

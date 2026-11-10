@@ -188,7 +188,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       <MenuDaColuna ancora={menuCol?.el ?? null} campo={menuCol ? campoPorId.get(menuCol.id) : undefined} indice={menuCol ? colunas.findIndex((c) => c.id === menuCol.id) : 0} prefs={prefs} onPrefs={onPrefs} aoFiltrar={aoNovoFiltro} aoEditarCores={setCoresDe} onFechar={() => setMenuCol(null)} />
       {coresDe && <EditorDeCores aberto onFechar={() => setCoresDe(null)} campoId={coresDe.id} titulo={coresDe.titulo} opcoes={opcoesDoCampo(coresDe, linhas)} />}
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
-        <div className={cx("mt-tabela", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
+        <div className={cx("mt-tabela", !!selecao && selecao.ids.size > 0 && "tem-sel", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
           <table style={{ width: total, tableLayout: "fixed" }}>
             <colgroup>{colunas.map((c) => <col key={c.id} style={{ width: larguraDe(c) }} />)}</colgroup>
             <thead>

@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarBlank, CalendarPlus, Receipt, ArrowUUpLeft } from "@phosphor-icons/react";
+import { CalendarBlank, CalendarPlus, Copy, Receipt, ArrowUUpLeft } from "@phosphor-icons/react";
 import { Button, Sheet, useToast } from "../../ds";
 import { hojeLocal } from "../../lib/motor/datas";
 import type { Evento } from "../../lib/eventos/tipos";
+import { copiarTabela, tabelaDeVeiculosParaOutlook } from "../../lib/eventos/linhasDoEvento";
 import { atualizarCampos } from "../../lib/veiculos/dados";
 import { AdicionarVeiculos } from "../eventos/AdicionarVeiculos";
 import type { useDadosDeEventos } from "../eventos/useDadosDeEventos";
@@ -25,8 +26,13 @@ export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento }
     catch (e) { toast(`Não consegui: ${(e as Error).message}`); } finally { setOcupado(false); }
   }
 
+  async function copiar() {
+    const lista = ids.map((id) => d.veiculos.find((v) => v.id === id)).filter((v): v is NonNullable<typeof v> => !!v);
+    toast((await copiarTabela(tabelaDeVeiculosParaOutlook(lista))) ? `Tabela de ${lista.length} veículo${lista.length === 1 ? "" : "s"} copiada: cole no Outlook` : "Não consegui copiar. Libere a área de transferência no navegador.");
+  }
   return (
     <>
+      <Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={() => void copiar()} data-testid="sel-copiar">Copiar tabela</Button>
       <Button size="sm" variant="secondary" icon={<CalendarPlus size={16} />} onClick={() => setEscolhendo(true)} data-testid="sel-adicionar-evento">Adicionar em evento</Button>
       {!semPlanejamento && <Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?veiculos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button>}
       <Button size="sm" variant="secondary" icon={<ArrowUUpLeft size={16} />} loading={ocupado} onClick={() => void marcar({ status_ciclo: "em_devolucao" }, "marcado(s) para devolução")} data-testid="sel-devolucao">Marcar para Devolução</Button>

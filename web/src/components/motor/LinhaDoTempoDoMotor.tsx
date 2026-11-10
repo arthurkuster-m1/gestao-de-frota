@@ -190,7 +190,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
   };
 
   return (
-    <div className="mt-tl-wrap" data-testid="linha-do-tempo">
+    <div className={cx("mt-tl-wrap", !!selecao && selecao.ids.size > 0 && "tem-sel")} data-testid="linha-do-tempo">
       {comControles && (
         <div className="mt-tl-controles">
           <button type="button" className="mt-btn" onClick={() => eixo.irParaHoje()} data-testid="tl-hoje">Hoje</button>

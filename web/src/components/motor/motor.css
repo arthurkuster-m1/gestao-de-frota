@@ -318,3 +318,11 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-th .mt-chk-sel { margin-right: 10px; vertical-align: -3px; }
 .mt-selbar { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 12px; border: 1px solid var(--color-accent-ring); border-radius: var(--radius-lg); background: var(--color-surface); position: sticky; top: 8px; z-index: 6; box-shadow: var(--shadow-xs); }
 .mt-selbar b { margin-right: 4px; }
+
+/* Caixas de seleção escondidas: aparecem ao passar o mouse na linha ou quando marcadas; a do cabeçalho aparece quando há algo selecionado (ou ao passar o mouse nele).
+   Em telas de toque (sem hover) ficam sempre visíveis, senão não haveria como selecionar. */
+@media (hover: hover) {
+  .mt-chk-sel { opacity: 0; transition: opacity var(--dur-fast, 120ms); }
+  .mt-tabela tbody tr:hover .mt-chk-sel, .mt-tl__linha:hover .mt-chk-sel, .mt-chk-sel:checked, .mt-chk-sel:indeterminate, .mt-chk-sel:focus-visible { opacity: 1; }
+  .mt-tabela th:hover .mt-chk-sel, .tem-sel .mt-th .mt-chk-sel { opacity: 1; }
+}

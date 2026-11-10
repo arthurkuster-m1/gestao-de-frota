@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
-import { CalendarBlank, CalendarCheck, Plus, Table } from "@phosphor-icons/react";
-import { Button, EmptyState } from "../../ds";
+import { CalendarBlank, CalendarCheck, Copy, Plus, Table } from "@phosphor-icons/react";
+import { Button, EmptyState, useToast } from "../../ds";
+import { copiarTabela, tabelaDeVeiculosParaOutlook } from "../../lib/eventos/linhasDoEvento";
 import { usePopover } from "../../ds/popover";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { barraDoEvento } from "../../lib/eventos/barras";
@@ -22,12 +23,21 @@ export function Eventos() {
   const [busca, setBusca] = useSearchParams();
   const aba: AbaDoEvento = (["dados", "veiculos", "transportes", "contratos"] as const).find((x) => x === busca.get("aba")) ?? "dados";
 
+  const toast = useToast();
+  /** Copia (para o Outlook) a tabela dos carros dos eventos selecionados: Código, Placa, VIN, Modelo, Cor, MY. */
+  async function copiarCarros(ids: string[]) {
+    const veiculosPorId = new Map(d.veiculos.map((v) => [v.id, v]));
+    const vistos = new Set<string>();
+    const lista = [...d.reservas, ...d.reservasSemData].filter((r) => ids.includes(r.evento_id) && r.estado !== "cancelado").flatMap((r) => { const v = veiculosPorId.get(r.veiculo_id); if (!v || vistos.has(v.id)) return []; vistos.add(v.id); return [v]; });
+    if (lista.length === 0) { toast("Os eventos selecionados não têm carros definidos"); return; }
+    toast((await copiarTabela(tabelaDeVeiculosParaOutlook(lista))) ? `Tabela de ${lista.length} carro${lista.length === 1 ? "" : "s"} copiada: cole no Outlook` : "Não consegui copiar. Libere a área de transferência no navegador.");
+  }
   const aberto = idAberto && d.eventos ? (d.eventos.find((x) => x.id === idAberto) ?? null) : null;
   useEffect(() => { if (idAberto && d.eventos && !d.eventos.some((x) => x.id === idAberto)) navigate("/eventos", { replace: true }); }, [idAberto, d.eventos, navigate]);
 
   return (
     <>
-      <TelaDoMotor<Evento> tela="eventos" acoesDaSelecao={({ ids }) => <Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
+      <TelaDoMotor<Evento> tela="eventos" acoesDaSelecao={({ ids }) => <><Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={() => void copiarCarros(ids)} data-testid="sel-copiar">Copiar tabela dos carros</Button><Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button></>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
         acoes={<NovoMenuDeEventos aoNovo={() => setCriando(true)} />}
         linhas={d.eventos} erro={d.erro} campos={d.campos} idDe={(x) => x.id} onEditar={d.editarEvento} onAbrir={(x) => navigate(`/eventos/${x.id}`)}
         linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => navigate(`/eventos/${e.id}`) }}
