@@ -22,6 +22,8 @@ type Props<T> = {
   tela: string; titulo: string; subtitulo: string; acoes?: ReactNode; avisos?: ReactNode;
   /** Ações extras da barra que aparece ao selecionar linhas (a barra já traz "Filtrar seleção" e "Limpar"). */
   acoesDaSelecao?: (c: { ids: string[]; itens: T[]; limpar: () => void }) => ReactNode;
+  /** Algo no canto do título da primeira coluna (botões de copiar…): recebe as linhas que estão filtradas. */
+  extrasDaPrimeira?: (linhas: T[]) => ReactNode;
   /** Abre a tela já filtrada por estes ids (ex.: "Visualizar no Planejamento"). */
   selecaoInicial?: readonly string[];
   /** Canto superior direito do cabeçalho (ex.: o seletor de subpáginas de Eventos). */ cabecalhoDireita?: ReactNode;
@@ -52,7 +54,7 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, extrasDaPrimeira, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
@@ -156,10 +158,10 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
           : modo === "timeline" && linhaDoTempo
-            ? <LinhaDoTempoDoMotor selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={compacta ? undefined : onPrefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onCriarNaData={linhaDoTempo.onCriarNaData} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
+            ? <LinhaDoTempoDoMotor extrasDaPrimeira={extrasDaPrimeira} selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={compacta ? undefined : onPrefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onCriarNaData={linhaDoTempo.onCriarNaData} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
           : modo === "cards"
             ? <CartoesDoMotor linhas={buscadas} campos={campos} prefs={prefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} />
-            : <TabelaDoMotor selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
+            : <TabelaDoMotor extrasDaPrimeira={extrasDaPrimeira} selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
       </div>
       {filhos}
     </Casca>

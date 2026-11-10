@@ -23,6 +23,8 @@ type Props<T> = {
   onAlterarBarra?: (linha: T, barra: Barra, modo: ModoDeArrasto, delta: number) => Promise<void>;
   /** Com isto, as colunas da parte fixa se redimensionam arrastando a borda do título (grava em `larguras`, como na tabela). */
   onPrefs?: (p: PreferenciasDaTabela) => void;
+  /** Algo no canto do título da primeira coluna (ex.: botões de copiar), com as linhas filtradas. */
+  extrasDaPrimeira?: (linhas: T[]) => ReactNode;
   /** Duplo clique num dia vazio da linha: `data` (aaaa-mm-dd) na linha `l`. */
   onCriarNaData?: (l: T, data: string) => void;
   /** Seleção de várias linhas (caixinha na primeira coluna da parte fixa). */
@@ -36,7 +38,7 @@ type Props<T> = {
 
 const ALTURA_FAIXA = 28, ALTURA_MIN = 48;
 
-export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriarNaData, selecao, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda }: Props<T>) {
+export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriarNaData, selecao, idDe, eixo, barrasDe, onAlterarBarra, onAbrir, onAbrirBarra, onEditar, vazio, rotuloDoTotal, selecionadoId, aoSelecionar, comControles = true, alturaMax, larguraEsquerda, extrasDaPrimeira }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const rolagem = useRef<HTMLDivElement>(null);
   const ignorar = useRef(false);
@@ -202,7 +204,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
         <div className="mt-tl" ref={rolagem} onScroll={aoRolarDoUsuario} style={alturaMax ? { maxHeight: alturaMax } : undefined} data-testid="rolagem-tl">
           <div className="mt-tl__grade" style={{ width: larguraEsq + larguraEixo, ["--esq" as string]: `${larguraEsq}px` }}>
             <div className="mt-tl__cabecalho">
-              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c) => <div key={c.id} className="mt-tl__celula mt-tl__cab" style={{ width: c.largura }}>{porId.get(c.id)?.titulo}{onPrefs && <span className="mt-alca" role="separator" aria-label={`Largura de ${porId.get(c.id)?.titulo}`} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />}</div>)}</div>
+              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c, i) => <div key={c.id} className="mt-tl__celula mt-tl__cab" style={{ width: c.largura }}>{porId.get(c.id)?.titulo}{i === 0 && extrasDaPrimeira?.(resultado.linhas as T[])}{onPrefs && <span className="mt-alca" role="separator" aria-label={`Largura de ${porId.get(c.id)?.titulo}`} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />}</div>)}</div>
               <div className="mt-tl__eixo" style={{ width: larguraEixo }}>
                 <div className="mt-tl__meses">{meses.map((m) => <div key={m.chave} className="mt-tl__mes" style={{ width: m.dias * larguraDia }}><span>{nomeDoMes(m.chave)}</span></div>)}</div>
                 <div className="mt-tl__dias" style={{ width: larguraEixo }}>

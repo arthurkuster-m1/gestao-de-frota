@@ -29,12 +29,14 @@ type Props<T> = {
   selecao?: Selecao;
   /** Avisa que o menu da coluna criou um filtro (a tela abre o editor dele). */
   aoNovoFiltro?: (indice: number) => void;
+  /** Algo no canto do título da primeira coluna (ex.: botões de copiar), com as linhas que estão filtradas. */
+  extrasDaPrimeira?: (linhas: T[]) => ReactNode;
 };
 
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
 
-export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro, selecao }: Props<T>) {
+export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro, selecao, extrasDaPrimeira }: Props<T>) {
   const ed = useEdicao<T>(idDe, onEditar);
   const colunas = useMemo(() => resolverColunas(campos, prefs).filter((c) => c.visivel), [campos, prefs]);
   const resultado = useMemo(() => aplicarConsulta(linhas, campos, prefs, { hoje: hojeLocal() }), [linhas, campos, prefs]);
@@ -199,7 +201,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                     return (
                       <ThOrdenavel key={c.id} id={c.id} travada={i < congeladas || !!c.fixa} estilo={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
                         onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
-                        <span className="mt-th">{i === 0 && selecao && <CaixaDeSelecao marcada={resultado.linhas.length > 0 && resultado.linhas.every((x) => selecao.ids.has(idDe(x)))} parcial={resultado.linhas.some((x) => selecao.ids.has(idDe(x)))} onChange={(m) => selecao.alternarVarios(resultado.linhas.map(idDe), m)} rotulo="Selecionar todas as linhas" />}{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}</span>
+                        <span className="mt-th">{i === 0 && selecao && <CaixaDeSelecao marcada={resultado.linhas.length > 0 && resultado.linhas.every((x) => selecao.ids.has(idDe(x)))} parcial={resultado.linhas.some((x) => selecao.ids.has(idDe(x)))} onChange={(m) => selecao.alternarVarios(resultado.linhas.map(idDe), m)} rotulo="Selecionar todas as linhas" />}{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}{i === 0 && extrasDaPrimeira?.(resultado.linhas as T[])}</span>
                         <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
                       </ThOrdenavel>
                     );

@@ -310,3 +310,7 @@
 .mt-vde__tabela td > .mt-valor, .mt-vde__tabela td > .mt-valor--edita { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
 .mt-vde__tabela td > .mt-vde__codigo { max-width: 100%; }
 .mt-painel__grupo { display: grid; gap: 2px; margin-bottom: 6px; }
+
+/* botões de copiar no canto do título da coluna de códigos */
+.mt-copias { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: middle; }
+.mt-tl__cab { display: flex; align-items: center; }
