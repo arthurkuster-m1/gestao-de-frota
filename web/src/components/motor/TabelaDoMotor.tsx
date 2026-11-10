@@ -276,6 +276,25 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     window.addEventListener("pointerdown", aoPressionar);
     return () => window.removeEventListener("pointerdown", aoPressionar);
   }, []);
+  // ---- a barra de ações da seleção aparece em cima da primeira linha selecionada (e não presa no topo da página)
+  const idsSelecionados = selecao?.ids;
+  useEffect(() => {
+    if (!idsSelecionados || idsSelecionados.size === 0) return;
+    let quadro = 0;
+    const posicionar = () => {
+      const barra = document.querySelector<HTMLElement>(".mt-selbar-sobre"); const pai = barra?.offsetParent as HTMLElement | null;
+      const primeira = [...(caixa.current?.querySelectorAll<HTMLElement>("tbody tr[data-id]") ?? [])].find((tr) => idsSelecionados.has(tr.dataset.id!));
+      if (!barra || !pai || !primeira) return;
+      const mig = document.querySelector<HTMLElement>(".ds-migalhas"), topoVisivel = mig && getComputedStyle(mig).display !== "none" ? mig.getBoundingClientRect().bottom + 6 : 6;
+      const paiTop = pai.getBoundingClientRect().top, linhaTop = primeira.getBoundingClientRect().top;
+      const desejado = linhaTop - barra.offsetHeight - 6, y = Math.max(desejado, topoVisivel) - paiTop;
+      barra.style.top = `${Math.max(0, Math.round(y))}px`;
+    };
+    const agendar = () => { cancelAnimationFrame(quadro); quadro = requestAnimationFrame(posicionar); };
+    agendar();
+    window.addEventListener("scroll", agendar, true); window.addEventListener("resize", agendar);
+    return () => { cancelAnimationFrame(quadro); window.removeEventListener("scroll", agendar, true); window.removeEventListener("resize", agendar); };
+  }, [idsSelecionados]);
   const semLinhas = resultado.linhas.length === 0;
 
   return (
