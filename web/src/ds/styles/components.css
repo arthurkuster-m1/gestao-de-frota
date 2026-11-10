@@ -1252,3 +1252,16 @@ html:has(dialog[open]), body:has(dialog[open]) { overscroll-behavior-y: contain;
   .ds-shell.is-recolhido .ds-shell__abrir-menu:hover { background: var(--color-surface-elevated); color: var(--color-text); }
   .ds-shell.is-recolhido .ds-shell__main { padding-top: 40px; }
 }
+
+/* topo da página no estilo Notion: caminho de navegação fininho, título grande e mais respiro nas laterais */
+.ds-migalhas { display: none; }
+@media (min-width: 900px) {
+  .ds-migalhas { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 var(--space-6); font-size: 14px; color: var(--color-text-subtle); }
+  .ds-migalhas b { color: var(--color-text); font-weight: 500; }
+  .ds-shell.is-recolhido .ds-migalhas { padding-left: 56px; }
+  .ds-shell.is-recolhido .ds-shell__main { padding-top: 0; }
+  .ds-shell .ds-page { padding-top: var(--space-6); }
+  .ds-shell .ds-page--wide { padding-left: 48px; padding-right: 48px; }
+  .ds-migalhas { padding-left: 48px; }
+  .ds-shell.is-recolhido .ds-migalhas { padding-left: 56px; }
+}

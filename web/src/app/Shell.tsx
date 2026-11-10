@@ -48,6 +48,7 @@ export function Shell() {
       <button type="button" className="ds-shell__abrir-menu" aria-label="Abrir o menu lateral" title="Abrir o menu (Ctrl + \)" onClick={alternarMenu} data-testid="abrir-menu"><SidebarSimple size={20} /></button>
 
       <div className="ds-shell__main">
+        <nav className="ds-migalhas" aria-label="Onde você está" data-testid="migalhas"><span>Frota</span><span aria-hidden>/</span><b>{titulo}</b></nav>
         <header className="ds-topbar">
           <Button variant="ghost" size="icon" aria-label="Abrir menu" onClick={() => setGaveta(true)}><List size={24} /></Button>
           <span className="t-h3">{titulo}</span>

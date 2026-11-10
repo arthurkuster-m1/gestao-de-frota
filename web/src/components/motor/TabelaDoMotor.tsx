@@ -209,6 +209,8 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     const bordas = dentro && faixa ? cx("mt-sel", r === faixa.l0 && "mt-sel-t", r === faixa.l1 && "mt-sel-b", i === faixa.c0 && "mt-sel-l", i === faixa.c1 && "mt-sel-r") : "";
     const aoPressionar = (e: React.MouseEvent) => {
       if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, textarea, select, a")) return;
+      // na 1ª coluna, apertar e arrastar para cima/baixo SELECIONA LINHAS (e não texto), como no Notion; um clique simples continua abrindo a ficha
+      if (i === 0 && selecao && !e.shiftKey) { e.preventDefault(); iniciarArrastoDeLinhas(idDe(l)); return; }
       const p = { l: r, c: i };
       if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); }
       else setSel({ a: p, b: p });
