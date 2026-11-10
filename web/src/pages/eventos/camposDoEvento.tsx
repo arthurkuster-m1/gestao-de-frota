@@ -36,7 +36,11 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
     { id: "distVolta", titulo: "Distância de volta (km)", tipo: "numero", valorDe: (e) => e.distancia_volta_km ?? null, largura: 170, padrao: false, edicao: { coluna: "distancia_volta_km" } },
     { id: "solicitante", titulo: "Solicitante", tipo: "texto", valorDe: (e) => e.solicitante, largura: 200, edicao: { coluna: "solicitante" } },
     { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (e) => e.origem ?? null, largura: 320, padrao: false, edicao: { coluna: "origem", maxLength: 300, endereco: true, validar: validarEndereco, sugestaoDeEndereco: ORIGEM_PADRAO } },
-    { id: "contato", titulo: "Contato", tipo: "texto", valorDe: (e) => e.contato, largura: 220, edicao: { coluna: "contato" } },
+    { id: "contatoOrigem", titulo: "Contato da origem", tipo: "texto", valorDe: (e) => e.contato_origem ?? null, largura: 220, padrao: false, edicao: { coluna: "contato_origem", maxLength: 200 } },
+    { id: "enderecoRetorno", titulo: "Local do retorno", tipo: "texto", valorDe: (e) => e.endereco_retorno ?? null, largura: 320, padrao: false, edicao: { coluna: "endereco_retorno", maxLength: 300, endereco: true, validar: validarEndereco } },
+    { id: "contatoRetorno", titulo: "Contato do retorno", tipo: "texto", valorDe: (e) => e.contato_retorno ?? null, largura: 220, padrao: false, edicao: { coluna: "contato_retorno", maxLength: 200 } },
+    { id: "custosExtras", titulo: "Custos extras (R$)", tipo: "numero", valorDe: (e) => e.custos_extras ?? null, largura: 160, padrao: false, edicao: { coluna: "custos_extras", placeholder: "0,00" } },
+    { id: "contato", titulo: "Contato do evento", tipo: "texto", valorDe: (e) => e.contato, largura: 220, edicao: { coluna: "contato" } },
     { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (e) => e.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
     { id: "cadastradoEm", titulo: "Criado em", tipo: "data", valorDe: (e) => e.created_at.slice(0, 10), largura: 150, padrao: false },
   ];

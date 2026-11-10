@@ -1,6 +1,6 @@
 import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { useVersaoDosDados } from "../../lib/sincronia";
-import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, Copy, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
@@ -24,6 +24,7 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { JanelaDeEndereco } from "../../components/motor/EditorDeEndereco";
 import { LinhaDeEndereco } from "./LinhaDeEndereco";
+import { reais } from "../../lib/transportes/regras";
 import { ORIGEM_PADRAO } from "../../lib/enderecos";
 import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
 import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
@@ -74,8 +75,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
   const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);
   const locaisDoEvento = useMemo(() => p.locais.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.locais, evento.id]);
-  const camposDeDados = campos.filter((c) => !["comentarios", "locais", "carros", "transporte"].includes(c.id));
-  const editaveis = camposDeDados.filter((c) => c.edicao).map((c) => c.id);
+  const editaveis = campos.filter((c) => c.edicao && c.id !== "comentarios").map((c) => c.id);
   const campoComentarios = campos.find((c) => c.id === "comentarios");
   const campoStatus = campos.find((c) => c.id === "status");
   const campoOrigem = campos.find((c) => c.id === "origem");
@@ -108,6 +108,17 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       setResultadoRotas([`Ida ${km(r.kmIda)} → envio ${dm(r.envio)}`, `Volta ${km(r.kmVolta)} → retorno ${dm(r.retorno)}`, ...r.avisos].join(" · "));
     } catch (e) { setFalha((e as Error).message); } finally { setCalculando(false); }
   }
+  const campoRetorno = campos.find((c) => c.id === "enderecoRetorno");
+  /** Uma linha da ficha para um campo editável do evento. */
+  const linhaCampo = (id: string) => { const c = campos.find((x) => x.id === id); return c ? <div key={id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div> : null; };
+  const areaDeComentario = useRef<HTMLTextAreaElement>(null);
+  useEffect(() => { const t = areaDeComentario.current; if (t) { t.style.height = "auto"; t.style.height = `${t.scrollHeight}px`; } }, [comentario, aba]);   // cresce com o texto
+  /** Custos: ida e volta somam os transportes do evento (valor planejado); extras é digitado. */
+  const custos = useMemo(() => {
+    const soma = (sentido: string) => tr.transportes.filter((t) => t.evento_id === evento.id && t.sentido === sentido).reduce((a, t) => a + (t.valor_planejado ?? 0), 0);
+    const envio = soma("ida"), retorno = soma("volta"), extras = evento.custos_extras ?? 0;
+    return { envio, retorno, extras, total: envio + retorno + extras };
+  }, [tr.transportes, evento.id, evento.custos_extras]);
   const erro = (e: unknown) => setFalha((e as Error).message);
   /** Salvar um endereço de local ou origem extra: texto novo troca, vazio remove. */
   const salvarLocal = (l: EventoLocal, v: string | null) => (v ? p.onEditarLocal(l, campoEnderecoLocal, v) : p.onRemoverLocal(l)).catch(erro);
@@ -147,29 +158,53 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {(edEvento.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{edEvento.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { edEvento.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
 
         {aba === "dados" && (
-          <div className="ds-stack">
-            <dl className="mt-ficha" data-testid="ficha-dados">
-              {camposDeDados.map((c) => c.id === "origem" ? (
-                <Fragment key={c.id}>
-                  <LinhaDeEndereco sugestao={ORIGEM_PADRAO} titulo="Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
-                  {origensExtras.map((l, i) => <LinhaDeEndereco sugestao={ORIGEM_PADRAO} key={l.id} titulo={`Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
-                  {locaisDoEvento.length === 0
-                    ? <LinhaDeEndereco titulo="Local do evento" valor={null} onSalvar={(v) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v }]).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
-                    : locaisDoEvento.map((l, i) => <LinhaDeEndereco key={l.id} titulo={i === 0 ? "Local do evento" : `Local ${i + 1}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onAdicionar={i === 0 ? () => setAdicionando("local") : undefined} rotuloAdicionar="Adicionar outro local" onRemover={i === 0 ? undefined : () => void p.onRemoverLocal(l).catch(erro)} testid="linha-local" />)}
-                </Fragment>
-              ) : <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div>)}
-            </dl>
-            <div className="ds-stack" data-testid="calcular-rotas-evento">
-              <div><Button variant="secondary" icon={<MapPin size={18} />} loading={calculando} onClick={() => void calcularRotas()} data-testid="calcular-rotas">Calcular km das rotas e gerar envio e retorno</Button></div>
-              <p className="t-body-sm t-muted" role="status">{resultadoRotas ?? "Mede a ida (origem → local) e a volta (local → retorno) pelo mapa. Envio = chegada menos os dias de viagem; retorno = retirada mais os dias de viagem (km ÷ 500). As datas vão para a agenda do carro e para a linha do tempo."}</p>
-            </div>
+          <div className="ds-stack mt-dados">
+            <section data-testid="secao-dados">
+              <SecaoDoDados titulo="Dados" />
+              <dl className="mt-ficha" data-testid="ficha-dados">
+                {["nome", "cliente", "tipo", "status", "solicitante", "cadastradoEm"].map(linhaCampo)}
+                <div className="mt-ficha__linha mt-ficha__linha--topo"><dt>Comentários</dt><dd>
+                  <textarea ref={areaDeComentario} className="ds-textarea mt-comentario-auto" rows={1} value={comentario} aria-label="Comentários do evento" placeholder="Anotações livres sobre o evento. Salva ao sair do campo."
+                    onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
+                </dd></div>
+              </dl>
+            </section>
+
+            <section data-testid="secao-logistica">
+              <SecaoDoDados titulo="Logística" acao={<Button size="sm" variant="secondary" icon={<MapPin size={16} />} loading={calculando} onClick={() => void calcularRotas()} data-testid="calcular-rotas">Calcular Rotas</Button>} />
+              <dl className="mt-ficha" data-testid="ficha-logistica">{["envio", "inicio", "distIda", "fim", "retorno", "distVolta"].map(linhaCampo)}</dl>
+              <p className="t-body-sm t-muted" role="status" data-testid="calcular-rotas-evento">{resultadoRotas ?? "Calcular Rotas mede a ida (origem → local) e a volta (local → retorno) pelo mapa. Envio = chegada menos os dias de viagem; retorno = retirada mais os dias de viagem (km ÷ 500). As datas vão para a agenda do carro e para a linha do tempo."}</p>
+            </section>
+
+            <section data-testid="secao-enderecos">
+              <SecaoDoDados titulo="Endereços" />
+              <dl className="mt-ficha" data-testid="ficha-enderecos">
+                <LinhaDeEndereco sugestao={ORIGEM_PADRAO} titulo="Local de Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
+                {origensExtras.map((l, i) => <LinhaDeEndereco sugestao={ORIGEM_PADRAO} key={l.id} titulo={`Local de Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
+                {linhaCampo("contatoOrigem")}
+                {locaisDoEvento.length === 0
+                  ? <LinhaDeEndereco titulo="Local do Evento" valor={null} onSalvar={(v) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v }]).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
+                  : locaisDoEvento.map((l, i) => <LinhaDeEndereco key={l.id} titulo={i === 0 ? "Local do Evento" : `Local do Evento ${i + 1}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onAdicionar={i === 0 ? () => setAdicionando("local") : undefined} rotuloAdicionar="Adicionar outro local" onRemover={i === 0 ? undefined : () => void p.onRemoverLocal(l).catch(erro)} testid="linha-local" />)}
+                {linhaCampo("contato")}
+                <LinhaDeEndereco titulo="Local do Retorno" valor={evento.endereco_retorno ?? null} placeholder="Vazio = volta para a origem" onSalvar={(v) => { if (campoRetorno) void p.onEditarEvento(evento, campoRetorno, v).catch(erro); }} testid="linha-retorno" />
+                {linhaCampo("contatoRetorno")}
+              </dl>
+            </section>
+
+            <section data-testid="secao-custos">
+              <SecaoDoDados titulo="Custos" />
+              <dl className="mt-ficha" data-testid="ficha-custos">
+                <div className="mt-ficha__linha"><dt>Custos de Envio</dt><dd className="mt-valor-fixo" data-testid="custo-envio">{reais(custos.envio)}</dd></div>
+                <div className="mt-ficha__linha"><dt>Custos de Retorno</dt><dd className="mt-valor-fixo" data-testid="custo-retorno">{reais(custos.retorno)}</dd></div>
+                {linhaCampo("custosExtras")}
+                <div className="mt-ficha__linha mt-ficha__linha--total"><dt>Total</dt><dd className="mt-valor-fixo" data-testid="custo-total"><b>{reais(custos.total)}</b></dd></div>
+              </dl>
+              <p className="t-body-sm t-muted">Envio e retorno somam os transportes de ida e de volta cadastrados nos carros do evento (valor planejado).</p>
+            </section>
+
             <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
               onSalvar={(t) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo }]).catch(erro); }} />
 
-            <section className="ds-stack">
-              <h3 className="t-h3">Comentários</h3>
-              <Textarea rows={6} value={comentario} aria-label="Comentários do evento" placeholder="Anotações livres sobre o evento. Salva ao sair do campo." onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
-            </section>
             <div><Button variant="danger" icon={<Trash size={18} />} onClick={() => setExcluindo(true)} data-testid="excluir-evento">Excluir evento</Button></div>
           </div>
         )}
@@ -226,4 +261,9 @@ export function JanelaDoEvento({ evento, onFechar, ...resto }: Omit<Props, "even
       {evento && <ConteudoDoEvento evento={evento} {...resto} cheia={cheia} aoAlternarCheia={() => setCheia((c) => !c)} onFechar={onFechar} />}
     </dialog>
   );
+}
+
+/** Subtítulo divisor de uma seção da aba Dados; `acao` fica alinhada à direita, na mesma linha. */
+function SecaoDoDados({ titulo, acao }: { titulo: string; acao?: ReactNode }) {
+  return <div className="mt-secao"><h3 className="t-h3">{titulo}</h3>{acao}</div>;
 }

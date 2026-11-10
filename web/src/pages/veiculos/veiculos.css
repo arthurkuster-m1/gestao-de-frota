@@ -314,3 +314,12 @@
 /* botões de copiar no canto do título da coluna de códigos */
 .mt-copias { display: inline-flex; gap: 2px; margin-left: 6px; vertical-align: middle; }
 .mt-tl__cab { display: flex; align-items: center; }
+
+/* aba Dados do evento em seções */
+.mt-dados { gap: var(--space-5); }
+.mt-secao { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); padding-bottom: 6px; margin-bottom: 4px; border-bottom: 2px solid var(--color-border-strong); min-height: 36px; }
+.mt-secao .t-h3 { margin: 0; }
+.mt-ficha__linha--topo { align-items: start; padding-top: 8px; padding-bottom: 8px; }
+.mt-comentario-auto { width: 100%; min-height: 36px; resize: none; overflow: hidden; padding-top: 7px; padding-bottom: 7px; line-height: 20px; }
+.mt-valor-fixo { padding: 0 14px; font-variant-numeric: tabular-nums; }
+.mt-ficha__linha--total { border-bottom: 0; background: var(--color-surface-elevated); border-radius: var(--radius-md); }

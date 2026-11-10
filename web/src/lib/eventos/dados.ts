@@ -1,10 +1,12 @@
 import { supabase } from "../supabase";
 import { cidadeEUf } from "../enderecos";
+import { paraNumero } from "../transportes/regras";
 import type { ReservaDoEvento, AnotacaoDoCarro, AnotacaoNova, EstadoReserva, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "./tipos";
 
 export class ErroEvento extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroEvento {
   if (/eventos|evento_veiculos/.test(e.message) && /schema cache|does not exist/.test(e.message)) return new ErroEvento("Eventos e reservas ainda não foram ativados no banco (falta aplicar a migration 0006).");
+  if (/contato_origem|contato_retorno|custos_extras|envio_previsto|retorno_previsto|distancia_ida_km|distancia_volta_km/.test(e.message) && /schema cache|does not exist|column/.test(e.message)) return new ErroEvento("Esses dados do evento ainda não foram ativados no banco (faltam as migrations 0024 e 0026).");
   if (/endereco_retorno|envio|retorno/.test(e.message) && /schema cache|does not exist|column/.test(e.message)) return new ErroEvento("O endereço de retorno e as datas de envio/retorno ainda não foram ativados no banco (faltam as migrations 0023 e 0024).");
   if (/tipo/.test(e.message) && /schema cache|does not exist|column/.test(e.message)) return new ErroEvento("Várias origens ainda não foram ativadas no banco (falta aplicar a migration 0022).");
   if (e.code === "23505") return new ErroEvento(/evento_veiculos_evento_id_veiculo_id/.test(e.message) ? "Esse carro já está nesse evento." : "Já existe um evento com esse nome.");
@@ -14,11 +16,20 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
   return new ErroEvento(e.message);
 }
 const COLUNAS_EVENTO_BASE = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato, cliente_id, origem";
-/** Envio, retorno e km do evento só existem depois da migration 0024: se o banco reclamar, lemos sem eles (o resto do app segue). */
-let semDatasDeRotaAte = 0;   // depois da migration 0024 a leitura volta ao normal sozinha (sem recarregar a página)
-const comDatasDeRota = () => Date.now() >= semDatasDeRotaAte;
-const colunasEvento = () => (COLUNAS_EVENTO_BASE + (comDatasDeRota() ? ", envio_previsto, retorno_previsto, distancia_ida_km, distancia_volta_km" : "")) as "*";
-const faltaRota = (m: string) => /envio_previsto|retorno_previsto|distancia_ida_km|distancia_volta_km|envio|retorno/.test(m);
+/**
+ * Colunas do evento que dependem de migrations novas (0024: envio/retorno/km; 0026: contatos, retorno e custos extras): se o banco reclamar de
+ * um grupo, lemos sem ele por 20 s (e tentamos de novo depois, sem precisar recarregar a página). O resto do app segue.
+ */
+const GRUPOS_DO_EVENTO = [
+  { cols: ", envio_previsto, retorno_previsto, distancia_ida_km, distancia_volta_km", falta: /envio_previsto|retorno_previsto|distancia_ida_km|distancia_volta_km/, semAte: 0 },
+  { cols: ", contato_origem, contato_retorno, endereco_retorno, custos_extras", falta: /contato_origem|contato_retorno|endereco_retorno|custos_extras/, semAte: 0 },
+];
+const colunasEvento = () => (COLUNAS_EVENTO_BASE + GRUPOS_DO_EVENTO.filter((g) => Date.now() >= g.semAte).map((g) => g.cols).join("")) as "*";
+/** Se o erro é de coluna que falta num grupo, desliga o grupo por 20 s e devolve true (vale tentar de novo). */
+function desligaGrupoDoEvento(mensagem: string): boolean {
+  const g = GRUPOS_DO_EVENTO.find((x) => Date.now() >= x.semAte && x.falta.test(mensagem));
+  if (!g) return false; g.semAte = Date.now() + 20000; return true;
+}
 const COLUNAS_RESERVA_BASE = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios, origem, endereco_chegada, status_individual";
 /** `endereco_retorno` só existe depois da migration 0023: se o banco reclamar dele, passamos a ler sem a coluna (o resto do app segue). */
 let semEnderecoRetornoAte = 0;   // idem: volta ao normal sozinha 20 s depois
@@ -31,7 +42,7 @@ const COLUNAS_LOCAL_ANTIGAS = "id, evento_id, rotulo, endereco, cidade, estado, 
 
 export async function listarEventos(): Promise<Evento[]> {
   const { data, error } = await supabase.from("eventos").select(colunasEvento()).order("created_at", { ascending: false }).limit(2000);
-  if (error && comDatasDeRota() && faltaRota(error.message)) { semDatasDeRotaAte = Date.now() + 20000; return listarEventos(); }
+  if (error && desligaGrupoDoEvento(error.message)) return listarEventos();
   if (error) throw traduzir(error);
   return (data ?? []) as Evento[];
 }
@@ -66,8 +77,17 @@ export async function criarEvento(e: EventoNovo): Promise<Evento> {
   if (error) throw traduzir(error);
   return data as Evento;
 }
+/** O editor da tabela entrega texto ("1.234,56"): km e custos viram número antes de ir ao banco. */
+function numerosDoEvento(patch: Partial<EventoNovo>): Partial<EventoNovo> {
+  const out: Record<string, unknown> = { ...patch };
+  for (const k of ["distancia_ida_km", "distancia_volta_km", "custos_extras"]) {
+    const v = out[k]; if (typeof v !== "string") continue;
+    const n = paraNumero(v); out[k] = n === null ? null : k === "custos_extras" ? n : Math.round(n);
+  }
+  return out as Partial<EventoNovo>;
+}
 export async function atualizarEvento(id: string, patch: Partial<EventoNovo>): Promise<Evento> {
-  const { data, error } = await supabase.from("eventos").update(patch).eq("id", id).select(colunasEvento()).single();
+  const { data, error } = await supabase.from("eventos").update(numerosDoEvento(patch)).eq("id", id).select(colunasEvento()).single();
   if (error) throw traduzir(error);
   return data as Evento;
 }

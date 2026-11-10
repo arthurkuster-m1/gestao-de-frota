@@ -30,7 +30,7 @@ export function statusPelaReserva(estado: string | undefined, doEvento: StatusEv
   if (estado === "em_uso") return "em_uso";
   return doEvento;
 }
-export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista"> & { origem?: string | null; envio_previsto?: string | null; retorno_previsto?: string | null }, locais: readonly EventoLocal[]) {
+export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" | "chegada_prevista" | "retirada_prevista"> & { origem?: string | null; envio_previsto?: string | null; retorno_previsto?: string | null; endereco_retorno?: string | null }, locais: readonly EventoLocal[]) {
   const r = l.reserva;
   const principal = locais.filter((l) => l.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)[0];
   const enderecoDoEvento = principal ? principal.endereco : null;   // já é a linha completa (rua, número - cidade/UF - CEP)
@@ -43,8 +43,8 @@ export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" 
     retorno: pega(r?.retorno, evento.retorno_previsto ?? null),
     enderecoChegada: pega(r?.endereco_chegada, enderecoDoEvento),
     origem: pega(r?.origem, evento.origem ?? null),
-    /** Para onde o carro volta: o endereço de retorno dele; sem isso, volta para a origem (do carro ou do evento). */
-    enderecoRetorno: pega(r?.endereco_retorno, r?.origem ?? evento.origem ?? null),
+    /** Para onde o carro volta: o endereço de retorno dele; sem isso, o endereço de retorno do evento; sem ele, a origem (do carro ou do evento). */
+    enderecoRetorno: pega(r?.endereco_retorno, evento.endereco_retorno ?? r?.origem ?? evento.origem ?? null),
   };
 }
 

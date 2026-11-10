@@ -26,7 +26,7 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
 
   const origens = [evento.origem, ...p.origensExtras.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao).map((l) => l.endereco)].filter((x): x is string => !!x);
   const locais = p.locais.filter((l) => l.evento_id === evento.id && l.tipo !== "origem").sort((a, b) => a.posicao - b.posicao).map((l) => (l.rotulo ? `${l.rotulo}: ${l.endereco}` : l.endereco));
-  const contato = evento.contato?.trim() || "a informar";
+  const contatoEntrega = evento.contato?.trim() || "a informar", contatoColeta = evento.contato_origem?.trim() || "a informar";
   const enderecos = (lista: string[], vazio: string) => (lista.length ? lista : [vazio]);
 
   const veiculosPorId = new Map(p.veiculos.map((v) => [v.id, v]));
@@ -48,10 +48,10 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
     "",
     "",
     "Endereço de Coleta:",
-    ...enderecos(origens, "Endereço de coleta a informar").flatMap((e) => [`- ${e}`, `- Contato: ${contato}`]),
+    ...enderecos(origens, "Endereço de coleta a informar").flatMap((e) => [`- ${e}`, `- Contato: ${contatoColeta}`]),
     "",
     "Endereço de Entrega:",
-    ...enderecos(locais, "Endereço de entrega a informar").flatMap((e) => [`- ${e}`, `- Contato: ${contato}`]),
+    ...enderecos(locais, "Endereço de entrega a informar").flatMap((e) => [`- ${e}`, `- Contato: ${contatoEntrega}`]),
     "",
     "Segue os dados do(s) Veículo(s)",
     "",
@@ -61,14 +61,14 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
   ].join("\n");
 
   const par = (t: string) => `<p style="margin:0 0 8px 0;font-family:Calibri,Arial,sans-serif;font-size:11pt">${t}</p>`;
-  const lista = (titulo: string, ends: string[]) => `${par(`<b>${titulo}:</b>`)}<ul style="margin:0 0 8px 0;font-family:Calibri,Arial,sans-serif;font-size:11pt">${ends.flatMap((e) => [`<li>${esc(e)}</li>`, `<li>Contato: ${esc(contato)}</li>`]).join("")}</ul>`;
+  const lista = (titulo: string, ends: string[], contato: string) => `${par(`<b>${titulo}:</b>`)}<ul style="margin:0 0 8px 0;font-family:Calibri,Arial,sans-serif;font-size:11pt">${ends.flatMap((e) => [`<li>${esc(e)}</li>`, `<li>Contato: ${esc(contato)}</li>`]).join("")}</ul>`;
   const html = [
     par(`<b>EVENTO:</b> ${esc(evento.nome)}`),
     par(`<b>COLETA DIA ${diaMes(coleta)}</b> (DIA QUE A TRANSPORTADORA DEVE PEGAR O CARRO - DATA DO ENVIO)`),
     par(`<b>ENTREGA NO EVENTO DIA ${diaMes(entrega)}</b>`),
     par(`<b>RETORNO DIA ${diaMes(retorno)}</b>`),
-    lista("Endereço de Coleta", enderecos(origens, "Endereço de coleta a informar")),
-    lista("Endereço de Entrega", enderecos(locais, "Endereço de entrega a informar")),
+    lista("Endereço de Coleta", enderecos(origens, "Endereço de coleta a informar"), contatoColeta),
+    lista("Endereço de Entrega", enderecos(locais, "Endereço de entrega a informar"), contatoEntrega),
     par("Segue os dados do(s) Veículo(s)"),
     par("<b>Veículos:</b>"),
     tabela.html,
