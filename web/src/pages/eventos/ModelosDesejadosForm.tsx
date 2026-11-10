@@ -11,7 +11,7 @@ export function ModelosDesejadosForm({ pedidos, onChange }: { pedidos: PedidoDeC
   return (
     <div className="ds-stack" data-testid="modelos-desejados">
       <div className="ds-row" style={{ justifyContent: "space-between" }}>
-        <span className="t-body" style={{ fontWeight: 700 }}>Modelos desejados</span>
+        <span className="t-body" style={{ fontWeight: 600 }}>Modelos desejados</span>
         <Button type="button" variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => onChange([...pedidos, pedidoVazio()])} data-testid="mais-modelo">Adicionar modelo</Button>
       </div>
       {pedidos.length === 0 && <p className="t-body-sm t-muted">Escreva qual carro o evento pede (ex.: 1 S10 TRAILBOSS PITCH 2027). Na hora de reservar, só aparecem os carros que cabem no pedido.</p>}

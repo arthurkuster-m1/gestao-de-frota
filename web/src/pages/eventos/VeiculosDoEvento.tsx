@@ -317,7 +317,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const celula = (l: LinhaDoEvento, li: number, colId: string, conteudo: ReactNode) => {
     const ci = colunasSel.indexOf(colId);
     const dentro = !!faixa && multiplas(faixa) && li >= faixa.l0 && li <= faixa.l1 && ci >= faixa.c0 && ci <= faixa.c1;
-    const bordas = dentro && faixa ? cx("mt-sel", li === faixa.l0 && "mt-sel-t", li === faixa.l1 && "mt-sel-b", ci === faixa.c0 && "mt-sel-l", ci === faixa.c1 && "mt-sel-r") : "";
+    const bordas = cx(dentro && "mt-sel", !!sel && sel.a.l === li && sel.a.c === ci && "mt-sel-ancora");
     return (
       <td key={colId} className={bordas} onMouseDown={(e) => { if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, a, select, textarea")) return; const p = { l: li, c: ci }; if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); } else setSel({ a: p, b: p }); arrastandoSel.current = true; }}
         onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: li, c: ci } } : v)); }}>{conteudo}</td>
@@ -376,7 +376,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
               {INFO.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={prefs.infoCols.includes(c.id)} onChange={() => muda({ ...prefs, infoCols: prefs.infoCols.includes(c.id) ? prefs.infoCols.filter((x) => x !== c.id) : [...prefs.infoCols, c.id] })} />{c.titulo}</label>)}
               {GRUPOS_DE_COLUNAS.map((g) => (
                 <div key={g.titulo} className="mt-painel__grupo">
-                  <p className="t-body-sm t-muted" style={{ fontWeight: 700 }}>{g.titulo}</p>
+                  <p className="t-body-sm t-muted" style={{ fontWeight: 600 }}>{g.titulo}</p>
                   {g.ids.map((id) => <label key={id} className="mt-notion__linha"><input type="checkbox" checked={ordenadas.includes(id)} onChange={() => muda({ ...prefs, colunas: ordenadas.includes(id) ? ordenadas.filter((x) => x !== id) : [...ordenadas, id] })} />{tituloDe(id)}</label>)}
                 </div>
               ))}

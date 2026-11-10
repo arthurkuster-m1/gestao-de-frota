@@ -95,7 +95,7 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
                 <Field label="Nome da visualização"><Input value={nomeEditado ?? ativa.nome} aria-label="Nome da visualização" maxLength={60} onChange={(e) => setNomeEditado(e.target.value)}
                   onBlur={() => { if (nomeEditado !== null && nomeEditado.trim() && nomeEditado.trim() !== ativa.nome) void envia(() => onRenomear(ativa.id, nomeEditado.trim())); setNomeEditado(null); }}
                   onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} /></Field>
-              ) : <span className="t-body" style={{ fontWeight: 700 }}>{nomeDaBase} <span className="t-body-sm t-muted">(visualização padrão)</span></span>}
+              ) : <span className="t-body" style={{ fontWeight: 600 }}>{nomeDaBase} <span className="t-body-sm t-muted">(visualização padrão)</span></span>}
               {!layoutFixo && layoutsDisponiveis.length > 1 && (
                 <Field label="Layout"><div className="mt-layouts" role="radiogroup" aria-label="Layout">
                   {layoutsDisponiveis.map((l) => <button key={l} type="button" role="radio" aria-checked={layoutAtivo === l} className={cx("mt-layout", layoutAtivo === l && "is-on")} data-testid={`layout-${l}`} onClick={() => onPrefs({ ...prefs, visualizacao: l })}>{ICONE_GRANDE[l]}<span>{ROTULO_DO_TIPO[l]}</span></button>)}

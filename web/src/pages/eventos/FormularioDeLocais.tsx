@@ -13,7 +13,7 @@ export function FormularioDeLocais({ locais, onChange }: { locais: EventoLocalNo
       {locais.map((l, i) => (
         <div key={i} className="vei-motorista" data-testid="bloco-local">
           <div className="ds-row" style={{ justifyContent: "space-between" }}>
-            <span className="t-body" style={{ fontWeight: 700 }}>{locais.length > 1 ? `Local ${i + 1}` : "Local do evento"}</span>
+            <span className="t-body" style={{ fontWeight: 600 }}>{locais.length > 1 ? `Local ${i + 1}` : "Local do evento"}</span>
             {locais.length > 1 && <Button type="button" variant="ghost" size="icon" aria-label={`Remover local ${i + 1}`} onClick={() => onChange(locais.filter((_, k) => k !== i))}><Trash size={20} /></Button>}
           </div>
           <Field label="Nome do local"><Input value={l.rotulo ?? ""} onChange={(e) => muda(i, { rotulo: e.target.value })} placeholder="Ex.: Pavilhão de Exposições" maxLength={80} /></Field>

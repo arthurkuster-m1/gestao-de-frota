@@ -206,7 +206,8 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       ? (e: React.MouseEvent) => { e.stopPropagation(); if (campo.tipo === "caixa") void ed.confirmar(l, campo, !(campo.valorDe(l) === true), undefined, editaveis); else ed.abrir(l, campo); }
       : onAbrir ? () => onAbrir(l) : undefined;
     const dentro = !!faixa && multiplas(faixa) && r >= faixa.l0 && r <= faixa.l1 && i >= faixa.c0 && i <= faixa.c1;
-    const bordas = dentro && faixa ? cx("mt-sel", r === faixa.l0 && "mt-sel-t", r === faixa.l1 && "mt-sel-b", i === faixa.c0 && "mt-sel-l", i === faixa.c1 && "mt-sel-r") : "";
+    // estilo Notion: a 1ª célula escolhida ganha o contorno azul grosso; as demais do bloco, só o fundo azul claro
+    const bordas = cx(dentro && "mt-sel", !!sel && sel.a.l === r && sel.a.c === i && "mt-sel-ancora");
     const aoPressionar = (e: React.MouseEvent) => {
       if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, textarea, select, a")) return;
       // na 1ª coluna, apertar e arrastar para cima/baixo SELECIONA LINHAS (e não texto), como no Notion; um clique simples continua abrindo a ficha

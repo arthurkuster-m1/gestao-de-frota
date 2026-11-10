@@ -3,7 +3,7 @@
 .vei-tabela { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 300px); }
 .vei-tabela table { border-collapse: separate; border-spacing: 0; width: 100%; font-variant-numeric: tabular-nums; }
 .vei-tabela th, .vei-tabela td { padding: 10px 14px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); font-size: 13px; }
-.vei-tabela th { position: sticky; top: 0; z-index: 2; background: var(--color-surface-elevated); font-size: 12px; font-weight: 700; color: var(--color-text-muted); cursor: pointer; user-select: none; }
+.vei-tabela th { position: sticky; top: 0; z-index: 2; background: var(--color-surface-elevated); font-size: 12px; font-weight: 600; color: var(--color-text-muted); cursor: pointer; user-select: none; }
 .vei-tabela th:first-child, .vei-tabela td:first-child { position: sticky; left: 0; z-index: 1; background: var(--color-surface); border-right: 1px solid var(--color-border); font-weight: 600; }
 .vei-tabela th:first-child { z-index: 3; background: var(--color-surface-elevated); }
 .vei-tabela tbody tr { cursor: pointer; }
@@ -12,7 +12,7 @@
 .vei-form { display: grid; gap: var(--space-4); }
 .vei-form__linha { display: grid; gap: var(--space-4); grid-template-columns: repeat(2, minmax(0, 1fr)); align-items: start; }
 @media (max-width: 520px) { .vei-form__linha { grid-template-columns: minmax(0, 1fr); } }
-.vei-codigo { font-weight: 700; font-size: 20px; letter-spacing: 0.02em; }
+.vei-codigo { font-weight: 600; font-size: 20px; letter-spacing: 0.02em; }
 .vei-hist { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-3); }
 .vei-hist li { display: grid; gap: 2px; padding-left: var(--space-4); border-left: 3px solid var(--color-accent-soft); }
 .vei-colunas { display: grid; gap: var(--space-3); }
@@ -42,14 +42,14 @@
 .mt-reservas { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); }
 .mt-reserva { display: grid; gap: 2px; padding: var(--space-3) var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .mt-reserva__topo { display: flex; align-items: center; justify-content: space-between; gap: var(--space-3); }
-.mt-reserva__evento { font-weight: 700; color: var(--color-text); text-decoration: none; }
+.mt-reserva__evento { font-weight: 600; color: var(--color-text); text-decoration: none; }
 .mt-reserva__evento:hover { color: var(--color-accent); }
 
 /* reservar carros */
 .mt-escolha { list-style: none; margin: 0; padding: 0; display: grid; gap: var(--space-2); max-height: 46dvh; overflow: auto; }
 .mt-escolha__item { display: grid; gap: 4px; padding: var(--space-2) var(--space-3); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .mt-escolha__linha { display: flex; align-items: center; gap: var(--space-3); min-height: 40px; cursor: pointer; flex-wrap: wrap; }
-.mt-escolha__nome { font-weight: 700; }
+.mt-escolha__nome { font-weight: 600; }
 .mt-escolha__aviso { display: flex; gap: 6px; align-items: flex-start; margin: 0; font-size: 12px; color: var(--color-warning-fg); }
 /* janela do evento: carros reservados */
 .mt-reservas-ed { display: grid; gap: var(--space-3); }
@@ -88,7 +88,7 @@
 .mt-vde__rolar { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-width: 100%; }
 .mt-vde__tabela { border-collapse: collapse; width: 100%; font-size: 14px; }
 .mt-vde__tabela th, .mt-vde__tabela td { padding: 8px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
-.mt-vde__tabela th { font-size: 12.5px; font-weight: 700; color: var(--color-text-muted); background: var(--color-surface-elevated); }
+.mt-vde__tabela th { font-size: 12.5px; font-weight: 600; color: var(--color-text-muted); background: var(--color-surface-elevated); }
 .mt-vde__tabela tr.is-aberta td { background: color-mix(in srgb, var(--color-accent-soft) 45%, var(--color-surface)); }
 .mt-vde__tabela tr.is-falta td { background: var(--color-error-bg); }
 .mt-vde__def { width: 84px; text-align: center !important; }
@@ -97,7 +97,7 @@
 .mt-vde__acoes { text-align: right !important; white-space: nowrap; }
 .mt-vde__total { color: var(--color-text-muted); }
 .mt-herdado { color: var(--color-text-subtle); font-style: italic; }
-.mt-transp b { font-weight: 700; }
+.mt-transp b { font-weight: 600; }
 
 /* Ficha: a linha toda é o alvo do clique; o valor ocupa a largura inteira da coluna */
 .mt-ficha__linha:has(.mt-valor--edita) { cursor: pointer; }
@@ -144,7 +144,7 @@
 
 /* Agenda do carro: calendário e linha do tempo */
 .mt-cal { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); border: 1px solid var(--color-border); border-radius: var(--radius-lg); overflow: hidden; background: var(--color-surface); }
-.mt-cal__cab { padding: 6px 8px; font-size: 12px; font-weight: 700; color: var(--color-text-muted); background: var(--color-surface-elevated); border-bottom: 1px solid var(--color-border); }
+.mt-cal__cab { padding: 6px 8px; font-size: 12px; font-weight: 600; color: var(--color-text-muted); background: var(--color-surface-elevated); border-bottom: 1px solid var(--color-border); }
 .mt-cal__dia { min-height: 92px; padding: 4px; display: grid; align-content: start; gap: 3px; border-right: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); min-width: 0; }
 .mt-cal__dia:nth-child(7n) { border-right: 0; }
 .mt-cal__dia.is-fora { background: var(--color-bg); color: var(--color-text-subtle); }
@@ -165,12 +165,12 @@
 .mt-agtl__dia { flex: none; position: relative; display: grid; place-items: end center; height: 42px; padding-bottom: 4px; font-size: 11px; color: var(--color-text-muted); border-left: 1px solid var(--color-border); }
 .mt-agtl__dia b { font-size: 12px; color: var(--color-text); }
 .mt-agtl__dia.is-hoje { background: var(--color-accent-soft); }
-.mt-agtl__nome { position: absolute; top: 3px; left: 4px; font-size: 11px; font-weight: 700; text-transform: capitalize; white-space: nowrap; }
+.mt-agtl__nome { position: absolute; top: 3px; left: 4px; font-size: 11px; font-weight: 600; text-transform: capitalize; white-space: nowrap; }
 .mt-agtl__corpo { position: relative; }
 .mt-agtl__barra { position: absolute; }
 .mt-agtl__hoje { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--color-accent); opacity: 0.5; pointer-events: none; }
 .mt-janela .mt-agenda-tags, .mt-ficha .mt-agenda-tags { flex-direction: column; align-items: flex-start; flex-wrap: wrap; }
-.mt-ficha__divisor { margin: var(--space-4) 0 var(--space-1); font-size: 12px; font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-subtle); }
+.mt-ficha__divisor { margin: var(--space-4) 0 var(--space-1); font-size: 12px; font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; color: var(--color-text-subtle); }
 .mt-ficha__divisor:first-child { margin-top: 0; }
 
 /* Histórico: botões de registrar */
@@ -189,7 +189,7 @@
 .mt-evv__rolar { overflow-x: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-width: 100%; }
 .mt-evv__tabela { border-collapse: collapse; width: 100%; font-size: 14px; }
 .mt-evv__tabela th, .mt-evv__tabela td { padding: 8px 12px; text-align: left; white-space: nowrap; border-bottom: 1px solid var(--color-border); vertical-align: middle; }
-.mt-evv__tabela th { font-size: 12.5px; font-weight: 700; color: var(--color-text-muted); background: var(--color-surface-elevated); }
+.mt-evv__tabela th { font-size: 12.5px; font-weight: 600; color: var(--color-text-muted); background: var(--color-surface-elevated); }
 .mt-evv__tabela tr.is-sel td { background: var(--color-accent-soft); }
 .mt-evv__chk { width: 36px; }
 /* A tag da agenda no painel do carro: quebra de linha em vez de cortar (celular) */
@@ -197,12 +197,12 @@
 .mt-ficha .mt-agenda-link, .mt-agenda .mt-agenda-link { max-width: 100%; min-width: 0; flex: 0 1 auto; }
 .mt-ficha .mt-agenda-tags .mt-tag, .mt-agenda .mt-agenda-tags .mt-tag { white-space: normal; max-width: 100%; text-align: left; flex: 0 1 auto; }
 .mt-ficha__linha dd { overflow-wrap: anywhere; }
-.mt-sem-data { font-size: 11px; font-weight: 700; padding: 1px 8px; border-radius: 999px; background: var(--color-warning-bg); color: var(--color-warning-fg); }
+.mt-sem-data { font-size: 11px; font-weight: 600; padding: 1px 8px; border-radius: 999px; background: var(--color-warning-bg); color: var(--color-warning-fg); }
 .mt-registrar { display: grid; gap: 10px; }
 .mt-registrar .ds-btn { min-height: 56px; font-size: 16px; }
 
 /* Divisores da ficha (Uso, Dados, Datas): mais destaque e respiro em volta */
-.mt-ficha__divisor { margin: var(--space-8, 32px) 0 var(--space-2, 8px); padding-left: 10px; border-left: 3px solid var(--color-accent); font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
+.mt-ficha__divisor { margin: var(--space-8, 32px) 0 var(--space-2, 8px); padding-left: 10px; border-left: 3px solid var(--color-accent); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
 .mt-ficha__divisor:first-child, .mt-ficha > div:first-child > .mt-ficha__divisor { margin-top: var(--space-2, 8px); }
 
 /* Eventos do veículo: filtros que cabem na largura (celular incluso) em vez de empurrar o painel para o lado */
@@ -219,7 +219,7 @@
 
 /* Lançamentos */
 .mt-lanc__grupo { display: grid; gap: 6px; }
-.mt-lanc__titulo { font-weight: 700; letter-spacing: 0.04em; text-transform: uppercase; }
+.mt-lanc__titulo { font-weight: 600; letter-spacing: 0.04em; text-transform: uppercase; }
 .mt-lanc__params { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 200px), 1fr)); gap: var(--space-3); align-items: end; }
 .mt-opcao-cel { display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 100%; height: 100%; padding: 0 10px; cursor: pointer; }
 .mt-opcao-cel > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -240,7 +240,7 @@
 .mt-chk-carro { display: flex; align-items: flex-start; justify-content: space-between; gap: var(--space-3); flex-wrap: wrap; }
 .mt-chk-evento { display: grid; gap: 8px; }
 .mt-chk-evento__dados { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 8px 16px; margin: 0; }
-.mt-chk-evento__dados dt { font-size: 12px; font-weight: 700; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px; }
+.mt-chk-evento__dados dt { font-size: 12px; font-weight: 600; color: var(--color-text-muted); display: flex; align-items: center; gap: 4px; }
 .mt-chk-evento__dados dd { margin: 0; }
 @media (max-width: 480px) { .ds-nav a { min-width: 56px; padding: 6px 6px; } .ds-nav { gap: 2px; } }
 
@@ -294,7 +294,7 @@
 .mt-vde__grupo td { position: static !important; width: auto !important; text-align: left !important; padding: 0 14px !important; height: 34px !important; background: var(--color-surface-elevated) !important; font-size: 13px; box-shadow: none !important; }
 .mt-vde__codigo { flex-wrap: nowrap; min-width: 0; }
 .mt-vde__pedido { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.mt-vde__indisp { flex: none; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--color-error-bg); color: var(--color-error-fg); border: 1px solid var(--color-error-fg); }
+.mt-vde__indisp { flex: none; font-size: 12px; font-weight: 600; padding: 2px 10px; border-radius: 999px; background: var(--color-error-bg); color: var(--color-error-fg); border: 1px solid var(--color-error-fg); }
 .mt-vde__tabela tr.is-falta td { background: var(--color-surface); }
 .mt-vde__tabela tr.is-falta .mt-vde__pedido { color: var(--color-text-muted); }
 
@@ -346,7 +346,7 @@
 .mt-titulo-arrasta.is-sobre { background: var(--color-accent-soft); box-shadow: inset 3px 0 0 var(--color-accent); }
 
 /* ficha do veículo: subtítulos (divisores) como sempre foram: barra azul à esquerda, caixa alta pequena e bastante espaço entre os blocos */
-.mt-ficha__divisor { margin: 32px 0 8px; padding: 0 0 0 10px; border: 0; border-left: 3px solid var(--color-accent); font-size: 13px; line-height: 16px; font-weight: 700; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
+.mt-ficha__divisor { margin: 32px 0 8px; padding: 0 0 0 10px; border: 0; border-left: 3px solid var(--color-accent); font-size: 13px; line-height: 16px; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase; color: var(--color-text); }
 /* (cada bloco é uma <div> que começa pelo divisor: o ":first-child" antigo zerava a margem de TODOS; só o primeiro bloco fica rente ao topo) */
 .mt-ficha > div > .mt-ficha__divisor:first-child { margin-top: 32px; }
 .mt-ficha > div:first-child > .mt-ficha__divisor:first-child { margin-top: 8px; }

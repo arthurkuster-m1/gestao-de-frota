@@ -14,10 +14,10 @@ code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color
 ::selection { background: var(--color-accent-soft); }
 
 /* Escala tipográfica (minor third, igual ao CRM). Sem tamanhos fora desta lista. */
-.t-display { font-size: 28px; line-height: 36px; font-weight: 700; letter-spacing: 0; }
-.t-h1 { font-size: 20px; line-height: 28px; font-weight: 700; }
-.t-h2 { font-size: 18px; line-height: 24px; font-weight: 700; }
-.t-h3 { font-size: 16px; line-height: 22px; font-weight: 700; }
+.t-display { font-size: 28px; line-height: 36px; font-weight: 600; letter-spacing: 0; }
+.t-h1 { font-size: 20px; line-height: 28px; font-weight: 600; }
+.t-h2 { font-size: 18px; line-height: 24px; font-weight: 600; }
+.t-h3 { font-size: 16px; line-height: 22px; font-weight: 600; }
 .t-body-lg { font-size: 16px; line-height: 24px; }
 .t-body { font-size: 14px; line-height: 20px; }
 .t-body-sm { font-size: 13px; line-height: 18px; }
@@ -42,3 +42,5 @@ code { font-family: var(--font-mono); font-size: 0.92em; background: var(--color
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; animation-iteration-count: 1 !important; transition-duration: 0.01ms !important; }
 }
+/* negrito mais leve (semibold) em todo o app */
+b, strong { font-weight: 600; }

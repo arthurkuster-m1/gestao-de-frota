@@ -121,7 +121,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                     <div key={bl.titulo} style={{ display: "contents" }}>
                       <h3 className="mt-ficha__divisor" data-testid="divisor-ficha">{bl.titulo}</h3>
                       {bl.ids.map((cid) => {
-                        if (cid === "codigo") return <div key={cid} className="mt-ficha__linha"><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 700 }}>{titulo}</span></dd></div>;
+                        if (cid === "codigo") return <div key={cid} className="mt-ficha__linha"><dt>Código</dt><dd><span className="mt-valor" style={{ fontWeight: 600 }}>{titulo}</span></dd></div>;
                         const c = campos.find((x) => x.id === cid); if (!c) return null;
                         return <div key={cid} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={veiculo} campo={c} ed={ed} navegaveis={editaveis} /></dd></div>;
                       })}

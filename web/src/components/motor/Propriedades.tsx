@@ -39,7 +39,7 @@ export function Propriedades<T>({ campos, prefs, onChange, linhaDoTempo }: { cam
   };
   return (
     <div className="mt-props-bloco" data-testid="propriedades-da-visao">
-      <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 700 }}>Propriedades</span><span className="t-body-sm t-muted">{visiveis} visíveis</span></div>
+      <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 600 }}>Propriedades</span><span className="t-body-sm t-muted">{visiveis} visíveis</span></div>
       <p className="t-body-sm t-muted">Escolha o que aparece, arraste para mudar a ordem e congele colunas à esquerda.</p>
         {cols.filter((c) => c.fixa).map((c) => <ul key={c.id} className="mt-props"><Item id={c.id} titulo={tituloDe(c.id)} visivel travada onAlternar={() => undefined} /></ul>)}
         <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>

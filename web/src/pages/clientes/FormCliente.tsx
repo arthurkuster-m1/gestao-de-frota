@@ -102,7 +102,7 @@ export function FormCliente() {
             {c.motoristas.map((m, i) => (
               <div key={i} className="vei-motorista" data-testid="motorista">
                 <div className="ds-row" style={{ justifyContent: "space-between" }}>
-                  <span className="t-body" style={{ fontWeight: 700 }}>Pessoa {i + 1}</span>
+                  <span className="t-body" style={{ fontWeight: 600 }}>Pessoa {i + 1}</span>
                   <Button type="button" variant="ghost" size="icon" aria-label={`Remover pessoa ${i + 1}`} onClick={() => setC((s) => ({ ...s, motoristas: s.motoristas.filter((_, j) => j !== i) }))}><Trash size={20} /></Button>
                 </div>
                 <div className="vei-form__linha">

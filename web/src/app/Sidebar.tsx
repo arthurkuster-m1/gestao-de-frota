@@ -30,7 +30,7 @@ export function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
         <div className="ds-row">
           {eu && <Avatar nome={eu.display_name} />}
           <div style={{ minWidth: 0, flex: 1 }}>
-            <p className="t-body" style={{ fontWeight: 700 }}>{eu?.display_name ?? "…"}</p>
+            <p className="t-body" style={{ fontWeight: 600 }}>{eu?.display_name ?? "…"}</p>
           </div>
           <Button variant="ghost" size="icon" aria-label="Alternar tema" onClick={alternar}>{resolvido === "dark" ? <Sun size={22} /> : <Moon size={22} />}</Button>
         </div>
