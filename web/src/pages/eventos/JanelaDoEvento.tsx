@@ -98,7 +98,10 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       for (const c of r.porCarro) {
         const atual = reservas.find((x) => x.id === c.reservaId); if (!atual) continue;
         const envio = c.envio && c.envio !== r.envio ? c.envio : null, retorno = c.retorno && c.retorno !== r.retorno ? c.retorno : null;   // igual ao do evento = herda
-        if ((atual.envio ?? null) !== envio || (atual.retorno ?? null) !== retorno) await p.onSalvarReserva(c.reservaId, { envio, retorno });
+        // o período da reserva passa a ser envio → retorno (a logística), com chegada e retirada marcando o evento: é isso que colore a agenda do carro e a linha do tempo
+        const periodo = c.envio && c.retorno && c.chegada && c.retirada ? { reserva_inicio: c.envio, reserva_fim: c.retorno, chegada: c.chegada, retirada: c.retirada } : {};
+        const igual = (atual.envio ?? null) === envio && (atual.retorno ?? null) === retorno && (!("reserva_inicio" in periodo) || (atual.reserva_inicio === periodo.reserva_inicio && atual.reserva_fim === periodo.reserva_fim && atual.chegada === periodo.chegada && atual.retirada === periodo.retirada));
+        if (!igual) await p.onSalvarReserva(c.reservaId, { envio, retorno, ...periodo });
       }
       const dm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : "—");
       const km = (n: number | null) => (n === null ? "—" : `≈ ${n.toLocaleString("pt-BR")} km (${Math.ceil(n / 500)} dia${Math.ceil(n / 500) === 1 ? "" : "s"})`);
@@ -158,7 +161,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
             </dl>
             <div className="ds-stack" data-testid="calcular-rotas-evento">
               <div><Button variant="secondary" icon={<MapPin size={18} />} loading={calculando} onClick={() => void calcularRotas()} data-testid="calcular-rotas">Calcular km das rotas e gerar envio e retorno</Button></div>
-              <p className="t-body-sm t-muted" role="status">{resultadoRotas ?? "Mede a ida (origem → local) e a volta (local → retorno) pelo mapa. Envio = chegada menos os dias de viagem; retorno = retirada mais os dias de viagem (km ÷ 500)."}</p>
+              <p className="t-body-sm t-muted" role="status">{resultadoRotas ?? "Mede a ida (origem → local) e a volta (local → retorno) pelo mapa. Envio = chegada menos os dias de viagem; retorno = retirada mais os dias de viagem (km ÷ 500). As datas vão para a agenda do carro e para a linha do tempo."}</p>
             </div>
             <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
               onSalvar={(t) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo }]).catch(erro); }} />

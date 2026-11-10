@@ -3,7 +3,7 @@ import type { ResultadoDeDistancia } from "../transportes/rota";
 import { valoresEfetivos } from "./linhasDoEvento";
 import type { Evento, EventoLocal, ReservaDoEvento } from "./tipos";
 
-export type DatasDoCarro = { reservaId: string; envio: string | null; retorno: string | null; kmIda: number | null; kmVolta: number | null };
+export type DatasDoCarro = { reservaId: string; envio: string | null; chegada: string | null; retirada: string | null; retorno: string | null; kmIda: number | null; kmVolta: number | null };
 export type DatasDoEvento = { envio: string | null; retorno: string | null; kmIda: number | null; kmVolta: number | null; porCarro: DatasDoCarro[]; avisos: string[] };
 
 const somaDias = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`); x.setUTCDate(x.getUTCDate() + n); return x.toISOString().slice(0, 10); };
@@ -40,7 +40,7 @@ export async function calcularDatasDoEvento(p: {
     const dIda = diasDeViagem(ki, "pta"), dVolta = diasDeViagem(kv, "pta");
     const e = ef.chegada.valor ? somaDias(ef.chegada.valor, -dIda) : null, t = ef.retirada.valor ? somaDias(ef.retirada.valor, dVolta) : null;
     if (!ef.chegada.valor) semChegada = true; if (!ef.retirada.valor) semRetirada = true;
-    if (r) porCarro.push({ reservaId: r.id, envio: e, retorno: t, kmIda: ki, kmVolta: kv });
+    if (r) porCarro.push({ reservaId: r.id, envio: e, chegada: ef.chegada.valor, retirada: ef.retirada.valor, retorno: t, kmIda: ki, kmVolta: kv });
     if (e && (!envio || e < envio)) envio = e; if (t && (!retorno || t > retorno)) retorno = t;
     if (ki !== null && (kmIda === null || ki > kmIda)) kmIda = ki; if (kv !== null && (kmVolta === null || kv > kmVolta)) kmVolta = kv;
   }

@@ -159,7 +159,8 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-tl__seg { position: absolute; top: 0; bottom: 0; }
 .mt-tl__seg--neutral { background: var(--color-border-strong); } .mt-tl__seg--accent { background: var(--color-accent-soft); } .mt-tl__seg--info { background: var(--color-info-bg); }
 .mt-tl__seg--success { background: var(--color-success-bg); } .mt-tl__seg--warning { background: var(--color-warning-bg); } .mt-tl__seg--error { background: var(--color-error-bg); }
-.mt-tl__seg.is-logistica { background: var(--color-info-bg); opacity: 0.9; background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(74, 122, 147, 0.18) 5px 7px); }
+/* logística (envio → chegada e retirada → retorno): âmbar listrado, bem diferente do dia do evento */
+.mt-tl__seg.is-logistica { background: var(--color-warning-bg); opacity: 1; background-image: repeating-linear-gradient(135deg, transparent 0 5px, rgba(180, 120, 20, 0.28) 5px 7px); }
 .mt-tl__rotulo { position: sticky; left: calc(var(--esq, 0px) + 6px); z-index: 1; padding: 0 10px; font-size: 12px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; pointer-events: none; }
 .mt-tl__alca { position: absolute; top: 0; bottom: 0; width: 8px; z-index: 2; cursor: ew-resize; }
 .mt-tl__alca--ini { left: 0; } .mt-tl__alca--fim { right: 0; }

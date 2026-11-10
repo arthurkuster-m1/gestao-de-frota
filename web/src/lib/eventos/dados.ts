@@ -15,28 +15,30 @@ function traduzir(e: { code?: string; message: string }): ErroEvento {
 }
 const COLUNAS_EVENTO_BASE = "id, nome, tipo, status, solicitante, comentarios, created_at, chegada_prevista, retirada_prevista, contato, cliente_id, origem";
 /** Envio, retorno e km do evento só existem depois da migration 0024: se o banco reclamar, lemos sem eles (o resto do app segue). */
-let comDatasDeRota = true;
-const colunasEvento = () => (COLUNAS_EVENTO_BASE + (comDatasDeRota ? ", envio_previsto, retorno_previsto, distancia_ida_km, distancia_volta_km" : "")) as "*";
+let semDatasDeRotaAte = 0;   // depois da migration 0024 a leitura volta ao normal sozinha (sem recarregar a página)
+const comDatasDeRota = () => Date.now() >= semDatasDeRotaAte;
+const colunasEvento = () => (COLUNAS_EVENTO_BASE + (comDatasDeRota() ? ", envio_previsto, retorno_previsto, distancia_ida_km, distancia_volta_km" : "")) as "*";
 const faltaRota = (m: string) => /envio_previsto|retorno_previsto|distancia_ida_km|distancia_volta_km|envio|retorno/.test(m);
 const COLUNAS_RESERVA_BASE = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, chegada, retirada, estado, comentarios, origem, endereco_chegada, status_individual";
 /** `endereco_retorno` só existe depois da migration 0023: se o banco reclamar dele, passamos a ler sem a coluna (o resto do app segue). */
-let comEnderecoRetorno = true;
+let semEnderecoRetornoAte = 0;   // idem: volta ao normal sozinha 20 s depois
+const comEnderecoRetorno = () => Date.now() >= semEnderecoRetornoAte;
 /** (o tipo "*" só silencia a leitura dos nomes de coluna em tempo de compilação: a lista é montada na hora) */
-const colunasReserva = () => (COLUNAS_RESERVA_BASE + (comEnderecoRetorno ? ", endereco_retorno, envio, retorno" : "")) as "*";
+const colunasReserva = () => (COLUNAS_RESERVA_BASE + (comEnderecoRetorno() ? ", endereco_retorno, envio, retorno" : "")) as "*";
 const COLUNAS_RESERVA_ANTIGAS = "id, evento_id, veiculo_id, reserva_inicio, reserva_fim, estado, comentarios, origem, endereco_chegada, status_individual";
 const COLUNAS_LOCAL = "id, evento_id, rotulo, endereco, cidade, estado, posicao, tipo";
 const COLUNAS_LOCAL_ANTIGAS = "id, evento_id, rotulo, endereco, cidade, estado, posicao";
 
 export async function listarEventos(): Promise<Evento[]> {
   const { data, error } = await supabase.from("eventos").select(colunasEvento()).order("created_at", { ascending: false }).limit(2000);
-  if (error && comDatasDeRota && faltaRota(error.message)) { comDatasDeRota = false; return listarEventos(); }
+  if (error && comDatasDeRota() && faltaRota(error.message)) { semDatasDeRotaAte = Date.now() + 20000; return listarEventos(); }
   if (error) throw traduzir(error);
   return (data ?? []) as Evento[];
 }
 export async function listarReservas(): Promise<Reserva[]> {
   const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
   if (!error) return (data ?? []) as Reserva[];
-  if (comEnderecoRetorno && /endereco_retorno|envio|retorno/.test(error.message)) { comEnderecoRetorno = false; return listarReservas(); }
+  if (comEnderecoRetorno() && /endereco_retorno|envio|retorno/.test(error.message)) { semEnderecoRetornoAte = Date.now() + 20000; return listarReservas(); }
   // migration 0007 (chegada/retirada) ainda não aplicada: lê sem essas colunas, para Status de uso e Agenda seguirem funcionando
   if (/chegada|retirada/.test(error.message)) {
     const antigo = await supabase.from("evento_veiculos").select(COLUNAS_RESERVA_ANTIGAS).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).limit(10000);
@@ -48,7 +50,7 @@ export async function listarReservas(): Promise<Reserva[]> {
 /** Os carros que estão em eventos mas ainda sem data (a agenda e a linha do tempo não os enxergam). */
 export async function listarReservasSemData(): Promise<ReservaDoEvento[]> {
   const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).is("reserva_inicio", null).limit(10000);
-  if (error && comEnderecoRetorno && /endereco_retorno|envio|retorno/.test(error.message)) { comEnderecoRetorno = false; return listarReservasSemData(); }
+  if (error && comEnderecoRetorno() && /endereco_retorno|envio|retorno/.test(error.message)) { semEnderecoRetornoAte = Date.now() + 20000; return listarReservasSemData(); }
   if (error) throw traduzir(error);
   return (data ?? []) as ReservaDoEvento[];
 }
