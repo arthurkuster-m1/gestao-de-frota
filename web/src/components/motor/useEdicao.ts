@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useToast } from "../../ds";
 import type { Movimento } from "./EditorDeCelula";
 import { prepararEdicao, valorParaEditor, type ValorEditavel } from "./edicao";
@@ -17,7 +17,15 @@ export function useEdicao<T>(idDe: (l: T) => string, onEditar?: OnEditar<T>) {
   const [salvando, setSalvando] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
 
-  const abrir = (l: T, c: CampoDaTela<T>) => { setErro(null); setEditando({ id: idDe(l), campo: c.id }); };
+  // Clicar em outra célula com um editor aberto só FECHA o editor (como no Notion): o clique seguinte é que abre o outro campo.
+  const abertoNoClique = useRef(false); const editandoRef = useRef<Editando>(null); editandoRef.current = editando;
+  useEffect(() => {
+    const baixo = () => { abertoNoClique.current = editandoRef.current !== null; };
+    const tecla = () => { abertoNoClique.current = false; };
+    document.addEventListener("mousedown", baixo, true); document.addEventListener("keydown", tecla, true);
+    return () => { document.removeEventListener("mousedown", baixo, true); document.removeEventListener("keydown", tecla, true); };
+  }, []);
+  const abrir = (l: T, c: CampoDaTela<T>) => { if (abertoNoClique.current) { abertoNoClique.current = false; return; } setErro(null); setEditando({ id: idDe(l), campo: c.id }); };
   const cancelar = () => setEditando(null);
   const estaAberto = (l: T, campoId: string) => editando?.id === idDe(l) && editando.campo === campoId;
   const estaSalvando = (l: T, campoId: string) => salvando === `${idDe(l)}:${campoId}`;
