@@ -1,3 +1,4 @@
+import { useAgendaDeNotificacoes } from "./useAgendaDeNotificacoes";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { List, X } from "@phosphor-icons/react";
@@ -8,6 +9,7 @@ import { PaineisNoLugar } from "./PaineisNoLugar";
 import { DESTINOS, destinoDoCaminho } from "./modules";
 
 export function Shell() {
+  useAgendaDeNotificacoes();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { eu } = useEspaco();

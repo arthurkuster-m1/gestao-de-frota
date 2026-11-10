@@ -3,6 +3,8 @@ import { Card, Page, Spinner } from "../ds";
 import { useEspaco } from "../lib/espaco";
 import { DESTINOS } from "../app/modules";
 import { Link } from "react-router-dom";
+import { Clock } from "@phosphor-icons/react";
+import { lerNotificacoes, URL_DO_PONTO } from "../lib/notificacoes/notificacoes";
 import { ProximosDoInicio } from "./home/ProximosDoInicio";
 import "./veiculos/veiculos.css";
 
@@ -22,6 +24,10 @@ export function Home() {
             : espaco ? <p className="t-body" data-testid="conexao-ok"><CheckCircle size={20} weight="fill" style={{ verticalAlign: "-4px", color: "var(--color-success)" }} /> Supabase conectado · Espaço “{espaco}”</p>
             : <p className="t-body" role="alert"><WarningCircle size={20} weight="fill" style={{ verticalAlign: "-4px" }} /> Seu login ainda não foi vinculado a um espaço. Rode o <code>seed.example.sql</code> (passo 4 de <code>supabase/README.md</code>).</p>}
         </Card>
+
+        <a className="ds-btn ds-btn--primary ds-btn--lg" href={lerNotificacoes().find((n) => n.id === "bater-ponto")?.url ?? URL_DO_PONTO} target="_blank" rel="noopener noreferrer" data-testid="bater-ponto" style={{ justifySelf: "start", textDecoration: "none" }}>
+          <Clock size={22} weight="bold" /> Bater ponto
+        </a>
 
         <ProximosDoInicio />
 
