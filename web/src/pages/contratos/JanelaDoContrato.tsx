@@ -88,12 +88,6 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
           </header>
           <div className="mt-janela__conteudo">
             {(ed.erro || edAd.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro ?? edAd.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { ed.setErro(null); edAd.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
-            <dl className="mt-ficha" data-testid="ficha-dados">
-              {campos.filter((c) => c.id !== "carros" && c.id !== "aditivos").map((c) => (
-                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <LinkNoLugar to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</LinkNoLugar> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
-              ))}
-            </dl>
-
             {travado && <p className="t-body-sm t-muted" data-testid="contrato-travado">Contrato assinado: os dados não mudam mais. O que mudar no evento entra como aditivo.</p>}
             {div.length === 0 ? <p className="t-body t-muted" data-testid="confere">O evento confere com o contrato: cliente, datas e carros.</p> : (
               <section className="mt-escolha__aviso" role="alert" data-testid="dados-divergentes" style={{ display: "grid", gap: 8 }}>
@@ -103,6 +97,12 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
                 {!temPlano && <p className="t-body-sm">Cliente e datas anteriores ao início não têm aditivo automático: ajuste o evento ou fale com o jurídico.</p>}
               </section>
             )}
+
+            <dl className="mt-ficha" data-testid="ficha-dados">
+              {campos.filter((c) => c.id !== "carros" && c.id !== "aditivos").map((c) => (
+                <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd>{c.id === "evento" ? <LinkNoLugar to={`/eventos/${contrato.evento_id}`} className="mt-reserva__evento">{formatar(c, contrato)}</LinkNoLugar> : <CampoEditavel linha={contrato} campo={c} ed={ed} navegaveis={editaveis} />}</dd></div>
+              ))}
+            </dl>
 
             <h3 className="t-h3">Carros do contrato</h3>
             <ul className="mt-escolha" role="list" data-testid="carros-do-contrato">

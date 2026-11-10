@@ -18,6 +18,8 @@ import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposDeContratos";
 import { GerarContrato } from "../contratos/GerarContrato";
+import { AlertaDeDivergencia } from "../contratos/AlertaDeDivergencia";
+import { useDivergenciasDeContratos } from "../contratos/useDivergencias";
 import { JanelaDoContrato } from "../contratos/JanelaDoContrato";
 import { baixarAditivoDocx, baixarContratoDocx } from "../contratos/baixar";
 import { useContatosDosClientes } from "../contratos/useContatosDosClientes";
@@ -141,6 +143,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes, checklists: p.checklists ?? [] }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes, p.checklists]);
   const camposT = useMemo(() => camposDoTransporte(ctxT), [ctxT]);
   const contratosDoEvento = useMemo(() => k.contratos.filter((c) => c.evento_id === evento.id), [k.contratos, evento.id]);
+  const divergenciasDoEvento = useDivergenciasDeContratos().filter((a) => a.eventoId === evento.id);
   const contatos = useContatosDosClientes(k.contratos.map((c) => c.cliente_id));
   const ctxC = useMemo<ContextoDeContratos>(() => {
     const rs = new Map<string, Reserva[]>(); for (const r of p.reservas) { const l = rs.get(r.evento_id); if (l) l.push(r); else rs.set(r.evento_id, [r]); }
@@ -184,6 +187,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {ABAS.map((a) => <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className={cx("mt-aba", aba === a.id && "is-on")} onClick={() => irParaAba(a.id)} data-testid="aba-janela">{a.rotulo}</button>)}
       </div>
       <div className="mt-janela__conteudo">
+        <AlertaDeDivergencia alertas={divergenciasDoEvento} />
         {(edEvento.erro || falha) && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{edEvento.erro ?? falha}</span><button type="button" aria-label="Fechar aviso" onClick={() => { edEvento.setErro(null); setFalha(null); }}><X size={16} /></button></p>}
 
         {aba === "dados" && (

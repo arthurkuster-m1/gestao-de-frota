@@ -6,9 +6,12 @@ import { Link } from "react-router-dom";
 import { Clock } from "@phosphor-icons/react";
 import { lerNotificacoes, URL_DO_PONTO } from "../lib/notificacoes/notificacoes";
 import { ProximosDoInicio } from "./home/ProximosDoInicio";
+import { AlertaDeDivergencia } from "./contratos/AlertaDeDivergencia";
+import { useDivergenciasDeContratos } from "./contratos/useDivergencias";
 import "./veiculos/veiculos.css";
 
 export function Home() {
+  const divergencias = useDivergenciasDeContratos();
   const { carregando, erro, espaco, eu } = useEspaco();
   return (
     <Page wide>
@@ -28,6 +31,8 @@ export function Home() {
         <a className="ds-btn ds-btn--primary ds-btn--lg" href={lerNotificacoes().find((n) => n.id === "bater-ponto")?.url ?? URL_DO_PONTO} target="_blank" rel="noopener noreferrer" data-testid="bater-ponto" style={{ justifySelf: "start", textDecoration: "none" }}>
           <Clock size={22} weight="bold" /> Bater ponto
         </a>
+
+        <AlertaDeDivergencia alertas={divergencias} comEvento />
 
         <ProximosDoInicio />
 

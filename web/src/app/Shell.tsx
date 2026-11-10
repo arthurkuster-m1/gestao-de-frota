@@ -1,4 +1,5 @@
 import { useAgendaDeNotificacoes } from "./useAgendaDeNotificacoes";
+import { useAvisoDeDivergencias } from "./useAvisoDeDivergencias";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
 import { CaretDoubleLeft, List, SidebarSimple, X } from "@phosphor-icons/react";
@@ -10,6 +11,7 @@ import { DESTINOS, destinoDoCaminho } from "./modules";
 
 export function Shell() {
   useAgendaDeNotificacoes();
+  useAvisoDeDivergencias();
   const { pathname } = useLocation();
   const navigate = useNavigate();
   const { eu } = useEspaco();

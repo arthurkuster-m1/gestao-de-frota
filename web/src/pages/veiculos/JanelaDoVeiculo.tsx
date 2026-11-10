@@ -25,6 +25,8 @@ import { Button } from "../../ds";
 import { ExcluirVeiculos } from "./ExcluirVeiculos";
 import { NovaManutencao } from "../manutencoes/NovaManutencao";
 import { STATUS_MANUTENCAO, type Manutencao, type ManutencaoNova } from "../../lib/manutencoes/tipos";
+import { AlertaDeDivergencia } from "../contratos/AlertaDeDivergencia";
+import { useDivergenciasDeContratos } from "../contratos/useDivergencias";
 import "./veiculos.css";
 
 type Aba = "dados" | "agenda" | "eventos" | "manutencoes" | "multas" | "historico";
@@ -69,6 +71,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
   const ed = useEdicao<Veiculo>((v) => v.id, onEditar);
   const toast = useToast();
   const id = veiculo?.id;
+  const divergenciasDoCarro = useDivergenciasDeContratos().filter((a) => !!id && a.veiculoIds.includes(id));
   const [novaManutencao, setNovaManutencao] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
 
@@ -104,6 +107,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
             {ABAS.map((a) => <button key={a.id} type="button" role="tab" aria-selected={aba === a.id} className={cx("mt-aba", aba === a.id && "is-on")} onClick={() => setAba(a.id)} data-testid="aba-janela">{a.rotulo}</button>)}
           </div>
           <div className="mt-janela__conteudo">
+            <AlertaDeDivergencia alertas={divergenciasDoCarro} comEvento />
             {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
             {aba === "dados" && (
               <div className="ds-stack">
