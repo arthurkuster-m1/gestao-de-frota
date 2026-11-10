@@ -388,3 +388,25 @@ body.mt-arrastando-linhas * { cursor: grabbing !important; }
 /* o nome da primeira coluna abre a ficha (sem botão "Abrir" por cima do texto) */
 .mt-primeira__abre { cursor: pointer; }
 .mt-primeira__abre:hover { text-decoration: underline; text-underline-offset: 3px; }
+
+/* ===== Tabela IGUAL à do Notion: página branca, linhas finas entre colunas e entre linhas, cabeçalho em cinza e texto 14 px ===== */
+:root { --nt-linha: #e9e9e7; --nt-texto: #37352f; --nt-texto-2: #787774; --nt-hover: #f7f7f5; --nt-fundo: #ffffff; }
+html[data-theme="dark"] { --nt-linha: var(--color-border); --nt-texto: var(--color-text); --nt-texto-2: var(--color-text-subtle); --nt-hover: var(--color-surface-elevated); --nt-fundo: var(--color-bg); }
+/* as telas de tabela ficam com fundo branco (no tema claro), como a página do Notion */
+html[data-theme="light"] body:has(.mt-abas-wrap) { --color-bg: var(--nt-fundo); background: var(--nt-fundo); }
+.mt-tabela { border-top: 1px solid var(--nt-linha); border-bottom: 1px solid var(--nt-linha); }
+.mt-tabela th, .mt-tabela td { background: var(--color-bg); border-bottom: 1px solid var(--nt-linha); border-right: 1px solid var(--nt-linha); color: var(--nt-texto); }
+.mt-tabela th { color: var(--nt-texto-2); font-weight: 500; }
+.mt-tabela tbody tr:hover td { background: var(--nt-hover); }
+.mt-tabela tr.is-sel td { background: var(--color-accent-soft); }
+.mt-cong--ultima { border-right: 1px solid var(--nt-linha); box-shadow: none; }
+.mt-th__icone { color: var(--nt-texto-2); }
+/* o cabeçalho que acompanha o topo da tela fica POR CIMA das células fixas das linhas (a transformação criava uma camada abaixo delas) */
+.mt-tabela thead { position: relative; z-index: 6; }
+.mt-tabela th { z-index: 6; }
+.mt-tabela th.mt-cong { z-index: 7; }
+/* compacta = a altura e o tamanho de letra do Notion */
+[data-densidade="compacta"] .mt-tabela th, [data-densidade="compacta"] .mt-tabela td { height: 34px; font-size: 14px; }
+[data-densidade="compacta"] .mt-tabela th { height: 34px; font-size: 14px; }
+[data-densidade="compacta"] .mt-tabela .mt-th__icone { width: 16px; height: 16px; }
+.mt-tabela.mt-cab-grudado thead th { box-shadow: 0 1px 0 var(--nt-linha); }
