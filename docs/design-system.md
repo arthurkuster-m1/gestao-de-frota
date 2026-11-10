@@ -65,9 +65,9 @@ Cor nunca é a única informação: toda etiqueta tem o texto do status escrito.
 
 ## Tipografia
 
-- **Montserrat** em toda a interface, com **Atkinson Hyperlegible** de reserva (a mesma pilha do CRM M1).
-- **Montserrat também para placa, número de comodato, data, ano e documento** (decisão de 03/11/2026: sem fonte monoespaçada). Os números usam `font-variant-numeric: tabular-nums`, então continuam alinhados em coluna.
-- Os arquivos das fontes (Montserrat e Atkinson) ficam no próprio sistema (`frota/web/static/fonts/`), então a tela não depende de internet para carregar.
+- **Fonte do sistema** em toda a interface, a mesma do Notion (`ui-sans-serif, -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial`): San Francisco no Mac e iPhone, Segoe UI no Windows, Roboto no Android. Troca da Montserrat em 12/11/2026 por ser mais leve e nítida nas tabelas.
+- **A mesma fonte também para placa, número de comodato, data, ano e documento** (sem fonte monoespaçada). Os números usam `font-variant-numeric: tabular-nums`, então continuam alinhados em coluna.
+- Como é a fonte do próprio aparelho, não há arquivo de fonte para baixar: a tela abre mais rápido e funciona sem internet.
 
 | Nome | Tamanho / altura da linha | Peso | Uso |
 |---|---|---|---|
@@ -76,7 +76,7 @@ Cor nunca é a única informação: toda etiqueta tem o texto do status escrito.
 | Título de cartão (`h3`) | 15 / 22 | 600 | "Adicionar veículo", "Histórico" |
 | Texto | 14 / 20 | 400 | padrão de tudo |
 | Legenda (`.caption`) | 12 / 16 | 400 | data, ajuda, rótulo pequeno |
-| Dado (`.num`, `.mono`) | 13 | 400–600 | placa, número, data, em Montserrat com algarismos tabulares |
+| Dado (`.num`, `.mono`) | 13 | 400–600 | placa, número, data, na fonte do sistema, com algarismos tabulares |
 
 ## Largura da página
 
