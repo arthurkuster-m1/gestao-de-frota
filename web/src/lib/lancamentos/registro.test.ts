@@ -3,7 +3,7 @@ import { GRUPOS, LANCAMENTOS, lancamentoDe } from "./registro";
 import type { Dados } from "./tipos";
 
 const d = {
-  hoje: "2026-11-12", clientes: [{ id: "c1", nome: "Chevrolet Brasil" }], checklists: [],
+  hoje: "2026-11-12", clientes: [{ id: "c1", nome: "Chevrolet Brasil" }], checklists: [], transportes: [],
   veiculos: [{ id: "v1", codigo: "ONIX RS 1111", placa: "ABC1D23", vin: "11111111111111111", modelo: "Onix", status_ciclo: "disponivel_sem_faturamento", pedido: "P1", blindado: false }],
   eventos: [{ id: "e1", nome: "Feira", status: "planejado", tipo: null, solicitante: null, contato: null }],
   reservas: [],

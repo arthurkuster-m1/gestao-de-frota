@@ -2,6 +2,7 @@ import type { Checklist } from "../checklists/tipos";
 import type { ClienteResumo } from "../clientes/dados";
 import type { Evento, ReservaDoEvento } from "../eventos/tipos";
 import type { Manutencao } from "../manutencoes/tipos";
+import type { Transporte } from "../transportes/tipos";
 import type { Veiculo } from "../veiculos/tipos";
 
 /** Situação de uma linha: pronta, com erro, sem mudança (ignorada) ou vazia. */
@@ -18,7 +19,7 @@ export type Parametros = Record<string, string>;
 
 /** Tudo que as lançamentos precisam saber do banco (carregado uma vez e recarregado depois de gravar). */
 export type Dados = {
-  veiculos: Veiculo[]; eventos: Evento[]; reservas: ReservaDoEvento[]; manutencoes: Manutencao[]; clientes: ClienteResumo[]; checklists: Checklist[]; hoje: string;
+  veiculos: Veiculo[]; eventos: Evento[]; reservas: ReservaDoEvento[]; manutencoes: Manutencao[]; clientes: ClienteResumo[]; checklists: Checklist[]; transportes: Transporte[]; hoje: string;
 };
 
 export type ResultadoDaGravacao = { /** índices (das linhas) que foram gravados */ feitos: number[]; falha: string | null; aviso?: string };
