@@ -70,7 +70,7 @@ export function useDadosDeEventos() {
     setReservas((l) => l.map((x) => (x.id === linha.id ? atualizada : x)));
   };
   /** Grava campos da reserva (individualização por carro: origem, endereço de chegada, status, datas). */
-  const salvarReserva = async (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "status_individual" | "comentarios" | "reserva_inicio" | "reserva_fim">>) => {
+  const salvarReserva = async (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "status_individual" | "comentarios" | "reserva_inicio" | "reserva_fim">>) => {
     // carro sem data que ganha chegada E retirada passa a ter data (o período da reserva = chegada..retirada)
     const sem = reservasSemData.find((x) => x.id === id);
     let corpo = patch;

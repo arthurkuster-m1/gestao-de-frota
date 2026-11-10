@@ -9,7 +9,7 @@ const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
 
 /**
  * O resumo do evento para mandar à transportadora: datas de coleta, entrega e retorno, endereços com contato e a tabela dos carros.
- * Coleta = o início da reserva dos carros (o prazo de ida); sem reserva com data, chegada menos os dias de viagem do transporte de ida.
+ * Coleta = a data de envio do evento; sem ela, o início da reserva dos carros (o prazo de ida); sem reserva com data, chegada menos os dias de viagem do transporte de ida.
  * Texto puro (tabela com barras, para chat e e-mail em texto) e HTML (tabela azul, para colar no Outlook).
  */
 export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoEvento[]; veiculos: readonly Veiculo[]; locais: readonly EventoLocal[]; origensExtras: readonly EventoLocal[]; transportes: readonly Transporte[] }): { texto: string; html: string } {
@@ -22,7 +22,7 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
   const entrega = evento.chegada_prevista ?? chegadas[0] ?? null;
   const retorno = evento.retirada_prevista ?? retiradas.at(-1) ?? null;
   const diasDaIda = Math.max(0, ...p.transportes.filter((t) => t.evento_id === evento.id && t.sentido === "ida").map((t) => t.dias_viagem));
-  const coleta = inicios[0] ?? (entrega && diasDaIda > 0 ? menosDias(entrega, diasDaIda) : null);
+  const coleta = evento.envio_previsto ?? inicios[0] ?? (entrega && diasDaIda > 0 ? menosDias(entrega, diasDaIda) : null);
 
   const origens = [evento.origem, ...p.origensExtras.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao).map((l) => l.endereco)].filter((x): x is string => !!x);
   const locais = p.locais.filter((l) => l.evento_id === evento.id && l.tipo !== "origem").sort((a, b) => a.posicao - b.posicao).map((l) => (l.rotulo ? `${l.rotulo}: ${l.endereco}` : l.endereco));

@@ -27,6 +27,8 @@ import { LinhaDeEndereco } from "./LinhaDeEndereco";
 import { ORIGEM_PADRAO } from "../../lib/enderecos";
 import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
 import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
+import { calcularDatasDoEvento } from "../../lib/eventos/rotasDoEvento";
+import { distanciaEntre } from "../../lib/transportes/rota";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import "../veiculos/veiculos.css";
@@ -40,7 +42,7 @@ type Props = {
   tr: ReturnType<typeof useTransportes>; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
-  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
+  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onChecklistEmMassa?: (reservaIds: string[], dados: import("../checklists/ChecklistEmMassaSheet").DadosEmMassa) => Promise<void>;
   reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
@@ -82,6 +84,26 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   async function copiarDados() {
     const t = textoDoEvento({ evento, reservas: [...p.reservas, ...(p.reservasSemData ?? [])], veiculos: p.veiculos, locais: p.locais, origensExtras: p.origens ?? [], transportes: tr.transportes });
     toast((await copiarTabela({ html: t.html, texto: t.texto })) ? "Dados do evento copiados" : "Não consegui copiar. Libere a área de transferência no navegador.");
+  }
+  const [calculando, setCalculando] = useState(false);
+  const [resultadoRotas, setResultadoRotas] = useState<string | null>(null);
+  /** Mede a ida e a volta, gera o envio (chegada − dias da ida) e o retorno (retirada + dias da volta) do evento e de cada carro. */
+  async function calcularRotas() {
+    setCalculando(true); setResultadoRotas(null); setFalha(null);
+    try {
+      const reservas = [...p.reservas, ...(p.reservasSemData ?? [])];
+      const r = await calcularDatasDoEvento({ evento, reservas, locais: p.locais, distancia: (o, d) => distanciaEntre(o, d) });
+      const grava = async (id: string, valor: string | number | null) => { const c = campos.find((x) => x.id === id); if (c && valor !== null) await p.onEditarEvento(evento, c, valor as never); };
+      await grava("distIda", r.kmIda); await grava("distVolta", r.kmVolta); await grava("envio", r.envio); await grava("retorno", r.retorno);
+      for (const c of r.porCarro) {
+        const atual = reservas.find((x) => x.id === c.reservaId); if (!atual) continue;
+        const envio = c.envio && c.envio !== r.envio ? c.envio : null, retorno = c.retorno && c.retorno !== r.retorno ? c.retorno : null;   // igual ao do evento = herda
+        if ((atual.envio ?? null) !== envio || (atual.retorno ?? null) !== retorno) await p.onSalvarReserva(c.reservaId, { envio, retorno });
+      }
+      const dm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : "—");
+      const km = (n: number | null) => (n === null ? "—" : `≈ ${n.toLocaleString("pt-BR")} km (${Math.ceil(n / 500)} dia${Math.ceil(n / 500) === 1 ? "" : "s"})`);
+      setResultadoRotas([`Ida ${km(r.kmIda)} → envio ${dm(r.envio)}`, `Volta ${km(r.kmVolta)} → retorno ${dm(r.retorno)}`, ...r.avisos].join(" · "));
+    } catch (e) { setFalha((e as Error).message); } finally { setCalculando(false); }
   }
   const erro = (e: unknown) => setFalha((e as Error).message);
   /** Salvar um endereço de local ou origem extra: texto novo troca, vazio remove. */
@@ -134,6 +156,10 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
                 </Fragment>
               ) : <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div>)}
             </dl>
+            <div className="ds-stack" data-testid="calcular-rotas-evento">
+              <div><Button variant="secondary" icon={<MapPin size={18} />} loading={calculando} onClick={() => void calcularRotas()} data-testid="calcular-rotas">Calcular km das rotas e gerar envio e retorno</Button></div>
+              <p className="t-body-sm t-muted" role="status">{resultadoRotas ?? "Mede a ida (origem → local) e a volta (local → retorno) pelo mapa. Envio = chegada menos os dias de viagem; retorno = retirada mais os dias de viagem (km ÷ 500)."}</p>
+            </div>
             <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
               onSalvar={(t) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo }]).catch(erro); }} />
 

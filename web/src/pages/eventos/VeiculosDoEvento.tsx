@@ -33,14 +33,14 @@ import { OPCOES_STATUS_EVENTO } from "./camposDoEvento";
 import { TransporteDoCarroSheet } from "./TransporteDoCarroSheet";
 
 type Tr = ReturnType<typeof useTransportes>;
-type ColunaOpcional = "status" | "transporteIda" | "transporteVolta" | "origem" | "chegada" | "enderecoChegada" | "retirada" | "enderecoRetorno" | "comentarios";
+type ColunaOpcional = "status" | "transporteIda" | "transporteVolta" | "origem" | "chegada" | "enderecoChegada" | "retirada" | "enderecoRetorno" | "comentarios" | "envio" | "retorno";
 const COLUNAS_OPCIONAIS: { id: ColunaOpcional; titulo: string }[] = [
   { id: "status", titulo: "Status do carro" }, { id: "transporteIda", titulo: "Transporte de ida" }, { id: "transporteVolta", titulo: "Transporte de volta" },
-  { id: "origem", titulo: "Origem" }, { id: "chegada", titulo: "Data de chegada" }, { id: "enderecoChegada", titulo: "Endereço de chegada" }, { id: "retirada", titulo: "Data de retirada" },
+  { id: "origem", titulo: "Origem" }, { id: "envio", titulo: "Data de envio" }, { id: "chegada", titulo: "Data de chegada" }, { id: "retirada", titulo: "Data de retirada" }, { id: "retorno", titulo: "Data de retorno" }, { id: "enderecoChegada", titulo: "Endereço de chegada" },
   { id: "enderecoRetorno", titulo: "Endereço de retorno" }, { id: "comentarios", titulo: "Comentários" },
 ];
 const INFO = [{ id: "placa", titulo: "Placa" }, { id: "vin", titulo: "VIN" }, { id: "modelo", titulo: "Modelo" }, { id: "cor", titulo: "Cor" }, { id: "my", titulo: "MY" }] as const;
-const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "origem", "chegada", "enderecoChegada", "retirada", "enderecoRetorno", "comentarios"];
+const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "origem", "chegada", "enderecoChegada", "retirada", "enderecoRetorno", "comentarios", "envio", "retorno"];
 const CHAVE = "frota:evento-veiculos:v2";
 /** `colunas` = as colunas ligadas, NA ORDEM em que aparecem (arrastar o título muda a ordem). `infoCols` = quais dados do veículo aparecem ao lado do código. `ordem`/`agrupar` = ordenar e agrupar as linhas. */
 type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null };
@@ -63,7 +63,7 @@ const COLUNAS_DE_ORDEM = [{ id: "codigo", titulo: "Código" }, ...INFO, ...COLUN
 type Props = {
   evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; /** carros no evento ainda sem data */ reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[]; tr: Tr;
   checklists?: Checklist[]; onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
-  onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
+  onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
   onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
   /** Checklist (envio) do mesmo jeito para vários carros: ids das reservas e os dados comuns. */
@@ -120,6 +120,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const campos = useMemo(() => ({
     status: campo("status", "Status do carro", "opcao", "status_individual", (l) => valoresEfetivos(l, evento, locaisDoEvento).status),
     origem: campo("origem", "Origem", "texto", "origem", (l) => valoresEfetivos(l, evento, locaisDoEvento).origem),
+    envio: campo("envio", "Data de envio", "data", "envio", (l) => valoresEfetivos(l, evento, locaisDoEvento).envio),
+    retorno: campo("retorno", "Data de retorno", "data", "retorno", (l) => valoresEfetivos(l, evento, locaisDoEvento).retorno),
     chegada: campo("chegada", "Data de chegada", "data", "chegada", (l) => valoresEfetivos(l, evento, locaisDoEvento).chegada),
     enderecoChegada: campo("enderecoChegada", "Endereço de chegada", "texto", "endereco_chegada", (l) => valoresEfetivos(l, evento, locaisDoEvento).enderecoChegada),
     retirada: campo("retirada", "Data de retirada", "data", "retirada", (l) => valoresEfetivos(l, evento, locaisDoEvento).retirada),
@@ -140,6 +142,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       case "codigo": return codigoDaLinha(l);
       case "origem": return ef.origem.valor ?? ""; case "enderecoChegada": return ef.enderecoChegada.valor ?? "";
       case "enderecoRetorno": return ef.enderecoRetorno.valor ?? ""; case "comentarios": return l.reserva?.comentarios ?? "";
+      case "envio": return ef.envio.valor ? formatarDiaBr(ef.envio.valor) : ""; case "retorno": return ef.retorno.valor ? formatarDiaBr(ef.retorno.valor) : "";
       case "chegada": return ef.chegada.valor ? formatarDiaBr(ef.chegada.valor) : ""; case "retirada": return ef.retirada.valor ? formatarDiaBr(ef.retirada.valor) : "";
       case "transporteIda": return resumoTexto(transporteDe(l, "ida")); case "transporteVolta": return resumoTexto(transporteDe(l, "volta"));
       default: return "";
@@ -150,6 +153,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const chaveDeOrdem = (colId: string, l: LinhaDoEvento): string => {
     const ef = valoresEfetivos(l, evento, locaisDoEvento);
     if (colId === "chegada") return ef.chegada.valor ?? ""; if (colId === "retirada") return ef.retirada.valor ?? "";
+    if (colId === "envio") return ef.envio.valor ?? ""; if (colId === "retorno") return ef.retorno.valor ?? "";
     return textoDaCelula(colId, l);
   };
   const rotuloDoGrupo = (colId: string, l: LinhaDoEvento) => textoDaCelula(colId, l).trim() || "(vazio)";
