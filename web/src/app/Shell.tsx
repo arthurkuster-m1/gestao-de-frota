@@ -1,7 +1,7 @@
 import { useAgendaDeNotificacoes } from "./useAgendaDeNotificacoes";
 import { useEffect, useRef, useState } from "react";
 import { Outlet, useLocation, useNavigate } from "react-router-dom";
-import { List, X } from "@phosphor-icons/react";
+import { CaretDoubleLeft, List, SidebarSimple, X } from "@phosphor-icons/react";
 import { Avatar, Button, FloatingNav } from "../ds";
 import { useEspaco } from "../lib/espaco";
 import { SidebarContent } from "./Sidebar";
@@ -14,6 +14,14 @@ export function Shell() {
   const navigate = useNavigate();
   const { eu } = useEspaco();
   const [gaveta, setGaveta] = useState(false);
+  /** Menu lateral recolhido (computador), como no Notion: fica guardado neste aparelho; Ctrl + \ alterna; o mouse na borda esquerda mostra o menu por cima. */
+  const [recolhido, setRecolhido] = useState(() => { try { return localStorage.getItem("frota:menu-recolhido") === "1"; } catch { return false; } });
+  const alternarMenu = () => { (document.activeElement as HTMLElement | null)?.blur?.(); setRecolhido((r) => { const n = !r; try { localStorage.setItem("frota:menu-recolhido", n ? "1" : "0"); } catch { /* sem armazenamento */ } return n; }); };
+  useEffect(() => {
+    const tecla = (e: KeyboardEvent) => { if ((e.ctrlKey || e.metaKey) && e.key === "\\") { e.preventDefault(); alternarMenu(); } };
+    document.addEventListener("keydown", tecla);
+    return () => document.removeEventListener("keydown", tecla);
+  }, []);
   const ref = useRef<HTMLDialogElement>(null);
   const titulo = destinoDoCaminho(pathname)?.label ?? "Início";
   const principais = DESTINOS.filter((d) => d.principal);
@@ -31,8 +39,13 @@ export function Shell() {
   const ativo = principais.find((d) => (d.path === "/" ? caminhoDoMenu === "/" : caminhoDoMenu.startsWith(d.path)))?.path ?? "";
 
   return (
-    <div className="ds-shell">
-      <aside className="ds-sidebar" aria-label="Menu lateral"><SidebarContent /></aside>
+    <div className={recolhido ? "ds-shell is-recolhido" : "ds-shell"}>
+      <div className="ds-borda-do-menu" aria-hidden />
+      <aside className="ds-sidebar" aria-label="Menu lateral">
+        <button type="button" className="ds-sidebar__recolher" aria-label="Fechar o menu lateral" title="Fechar o menu (Ctrl + \)" onClick={alternarMenu} data-testid="recolher-menu"><CaretDoubleLeft size={18} /></button>
+        <SidebarContent />
+      </aside>
+      <button type="button" className="ds-shell__abrir-menu" aria-label="Abrir o menu lateral" title="Abrir o menu (Ctrl + \)" onClick={alternarMenu} data-testid="abrir-menu"><SidebarSimple size={20} /></button>
 
       <div className="ds-shell__main">
         <header className="ds-topbar">

@@ -1232,3 +1232,23 @@ html:root.tr-sam { --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "H
 .ds-sheet, .ds-sheet__body { overscroll-behavior: contain; }
 html:has(dialog[open]), body:has(dialog[open]) { overscroll-behavior-y: contain; }
 @media (min-width: 640px) { .ds-sheet__alca { display: none; } }
+
+/* Menu lateral que recolhe (computador), como no Notion */
+.ds-sidebar__recolher, .ds-shell__abrir-menu { display: none; }
+@media (min-width: 900px) {
+  .ds-sidebar { position: sticky; }
+  .ds-sidebar__recolher { display: grid; place-items: center; position: absolute; top: 18px; right: 12px; z-index: 2; width: 32px; height: 32px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); cursor: pointer; opacity: 0; transition: opacity var(--dur-base) var(--ease-out), background-color var(--dur-base); }
+  .ds-sidebar:hover .ds-sidebar__recolher, .ds-sidebar__recolher:focus-visible { opacity: 1; }
+  .ds-sidebar__recolher:hover { background: var(--color-surface-elevated); color: var(--color-text); }
+  .ds-shell { transition: grid-template-columns var(--dur-slow) var(--ease-out-slow); }
+  .ds-borda-do-menu { display: none; }
+  /* recolhido: o menu sai do fluxo, a tela usa a largura toda; passar o mouse na borda esquerda mostra o menu por cima */
+  .ds-shell.is-recolhido { grid-template-columns: minmax(0, 1fr); }
+  .ds-shell.is-recolhido .ds-borda-do-menu { display: block; position: fixed; left: 0; top: 0; bottom: 0; width: 10px; z-index: 39; }
+  .ds-shell.is-recolhido .ds-sidebar { position: fixed; left: 0; top: 0; width: 272px; z-index: 40; transform: translateX(-102%); transition: transform var(--dur-slow) var(--ease-out-slow), box-shadow var(--dur-slow); border-right: 1px solid var(--color-border); }
+  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { transform: none; }
+  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { box-shadow: var(--shadow-lg); }
+  .ds-shell.is-recolhido .ds-shell__abrir-menu { display: grid; place-items: center; position: fixed; left: 10px; top: 10px; z-index: 30; width: 36px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); cursor: pointer; }
+  .ds-shell.is-recolhido .ds-shell__abrir-menu:hover { background: var(--color-surface-elevated); color: var(--color-text); }
+  .ds-shell.is-recolhido .ds-shell__main { padding-top: 40px; }
+}
