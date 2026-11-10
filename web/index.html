@@ -18,6 +18,19 @@
         } catch (e) {}
       })();
     </script>
+    <script>
+      /* Rede de segurança: se o app não aparecer em 8 s (ex.: versão antiga guardada no aparelho), limpa service worker e caches e recarrega UMA vez. */
+      (function () {
+        setTimeout(function () {
+          var r = document.getElementById("root");
+          if (!r || r.childElementCount > 0) return;
+          try { if (sessionStorage.getItem("frota.recuperou")) { r.innerHTML = '<p style="font:16px sans-serif;padding:24px;text-align:center">Não consegui abrir o app. Tente Ctrl + Shift + R.</p>'; return; } sessionStorage.setItem("frota.recuperou", "1"); } catch (e) {}
+          var fim = function () { location.reload(); };
+          var apagar = function () { if (!window.caches) return fim(); caches.keys().then(function (ks) { return Promise.all(ks.map(function (k) { return caches.delete(k); })); }).then(fim, fim); };
+          if (navigator.serviceWorker) navigator.serviceWorker.getRegistrations().then(function (rs) { return Promise.all(rs.map(function (x) { return x.unregister(); })); }).then(apagar, apagar); else apagar();
+        }, 8000);
+      })();
+    </script>
     <title>Frota</title>
   </head>
   <body>

@@ -241,7 +241,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       </Sheet>
       <Sheet open={excluindo} onClose={() => setExcluindo(false)} title="Excluir evento">
         <div className="ds-stack">
-          <p className="t-body">Excluir <b>{evento.nome}</b>? As reservas dele também somem e os carros ficam livres dessas datas. Não dá para desfazer.</p>
+          <p className="t-body">Excluir <b>{evento.nome}</b>? Tudo o que é dele também some: reservas e checklists dos carros, transportes e pagamentos, contratos, locais e pedidos de modelo. Os carros ficam livres dessas datas. Não dá para desfazer.</p>
           <Button variant="danger" size="lg" block onClick={() => void p.onExcluir(evento).then(() => setExcluindo(false)).catch((e: Error) => { setFalha(e.message); setExcluindo(false); })} data-testid="confirmar-excluir">Excluir evento</Button>
         </div>
       </Sheet>

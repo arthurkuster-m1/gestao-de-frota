@@ -93,6 +93,7 @@ export async function atualizarEvento(id: string, patch: Partial<EventoNovo>): P
 }
 export async function excluirEvento(id: string): Promise<void> {
   const { error } = await supabase.from("eventos").delete().eq("id", id);
+  if (error?.code === "23503") throw new ErroEvento("Não consegui excluir: ainda há dados ligados a este evento que travam a exclusão (o contrato, por exemplo). Falta aplicar a migration 0027 no banco.");
   if (error) throw traduzir(error);
 }
 const SEM_COLUNAS_NOVAS = /chegada|retirada/;
