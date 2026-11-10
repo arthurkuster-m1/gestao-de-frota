@@ -17,7 +17,8 @@ import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tip
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposDeContratos";
-import { NovoContrato } from "../contratos/NovoContrato";
+import { GerarContrato } from "../contratos/GerarContrato";
+import { useContatosDosClientes } from "../contratos/useContatosDosClientes";
 import { useContratos } from "../contratos/useContratos";
 import { camposDoTransporte, type ContextoDeTransportes } from "../transportes/camposDeTransportes";
 import type { useTransportes } from "../transportes/useTransportes";
@@ -134,11 +135,26 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes, checklists: p.checklists ?? [] }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes, p.checklists]);
   const camposT = useMemo(() => camposDoTransporte(ctxT), [ctxT]);
   const contratosDoEvento = useMemo(() => k.contratos.filter((c) => c.evento_id === evento.id), [k.contratos, evento.id]);
+  const contatos = useContatosDosClientes(k.contratos.map((c) => c.cliente_id));
   const ctxC = useMemo<ContextoDeContratos>(() => {
     const rs = new Map<string, Reserva[]>(); for (const r of p.reservas) { const l = rs.get(r.evento_id); if (l) l.push(r); else rs.set(r.evento_id, [r]); }
-    return { eventos: new Map(p.eventos.map((e) => [e.id, e])), clientes: new Map(clientes.map((c) => [c.id, c.nome])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservasDoEvento: rs, emVigor: k.emVigor };
-  }, [p.eventos, p.reservas, p.veiculos, clientes, k.emVigor]);
+    return { eventos: new Map(p.eventos.map((e) => [e.id, e])), clientes: new Map(clientes.map((c) => [c.id, c.nome])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservasDoEvento: rs, emVigor: k.emVigor, locais: p.locais, contatos };
+  }, [p.eventos, p.reservas, p.veiculos, p.locais, clientes, k.emVigor, contatos]);
   const camposC = useMemo(() => camposDoContrato(ctxC), [ctxC]);
+  // Enquanto o contrato não é assinado, ele acompanha o evento (cliente, vigência e carros); depois de assinado, o que mudar vira "dados divergentes" e aditivo.
+  const sincronizando = useRef(false);
+  useEffect(() => {
+    if (!k.carregado || sincronizando.current) return;
+    const abertos = contratosDoEvento.filter((c) => c.status !== "assinado" && c.status !== "encerrado");
+    if (abertos.length === 0) return;
+    sincronizando.current = true;
+    void (async () => {
+      for (const c of abertos) {
+        try { await k.sincronizar(c, { evento, clienteId: evento.cliente_id ?? c.cliente_id, reservas: p.reservas.filter((r) => r.evento_id === evento.id), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), locais: p.locais }); } catch { /* tenta de novo na próxima mudança */ }
+      }
+    })().finally(() => { sincronizando.current = false; });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [k.carregado, k.contratos, k.carros, evento, p.reservas, p.locais]);
 
   return (
     <div className="mt-janela__corpo" data-testid="janela-evento">
@@ -226,13 +242,14 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
         {aba === "contratos" && (
           <TelaDoMotor<Contrato> tela="evento-contratos" titulo="Contratos" subtitulo="" compacta
-            acoes={contratosDoEvento.length === 0 ? <Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)} data-testid="novo-contrato">Novo contrato</Button> : undefined}
+            acoes={contratosDoEvento.length === 0 ? <Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)} data-testid="novo-contrato">Gerar contrato</Button> : undefined}
             linhas={k.carregado ? contratosDoEvento : null} erro={k.erro} campos={camposC} idDe={(c) => c.id} onEditar={k.editar} onAbrir={(c) => navigate(`/contratos/${c.id}`)}
             rotuloDoTotal={(n) => `${n} contrato${n === 1 ? "" : "s"} deste evento`} placeholderDaBusca="Buscar contrato…"
-            vazio={<EmptyState icon={<FileText size={30} />} title="Este evento ainda não tem contrato" action={<Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)}>Criar contrato</Button>}>O contrato de comodato nasce deste evento: cliente, vigência e carros vêm das reservas.</EmptyState>} />
+            vazio={<EmptyState icon={<FileText size={30} />} title="Este evento ainda não tem contrato" action={<Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)}>Gerar contrato</Button>}>O contrato de comodato nasce deste evento: cliente, vigência e carros vêm do evento, e o DOCX sai pronto do modelo das Configurações.</EmptyState>} />
         )}
       </div>
-      <NovoContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} eventos={[evento]} eventosComContrato={new Set(k.contratos.map((c) => c.evento_id))} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} onCriar={k.criar} onCriado={(c) => navigate(`/contratos/${c.id}`)} />
+      <GerarContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} evento={evento} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} locais={p.locais} k={k}
+        onEscolherCliente={async (id) => { const c = campos.find((x) => x.id === "cliente"); if (c) await p.onEditarEvento(evento, c, id); }} onGerado={(c) => navigate(`/contratos/${c.id}`)} />
       <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos" wide>
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido) return; void p.onAdicionarDesejados(evento.id, novoPedido.filter((x) => x.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
           <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />

@@ -5,13 +5,14 @@ export class ErroContrato extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroContrato {
   if (/contratos_comodato|contrato_aditivos|contrato_veiculos/.test(e.message) && /schema cache|does not exist/.test(e.message) && !/violates/.test(e.message)) return new ErroContrato("Os contratos ainda não foram ativados no banco (falta aplicar a migration 0011).");
   if (e.code === "23505") return new ErroContrato(/contratos_evento_uidx/.test(e.message) ? "Esse evento já tem contrato. O que mudar depois entra como aditivo." : "Esse carro já está no contrato.");
+  if (/contrato_assinado/.test(e.message)) return new ErroContrato("Contrato assinado não muda. O que mudou no evento entra como aditivo.");
   if (e.code === "23514") return new ErroContrato(/vigencia|check/.test(e.message) && !/extensao/.test(e.message) ? "O fim da vigência não pode ser antes do início." : "A extensão de prazo precisa da nova data de fim.");
   if (e.code === "23503") return new ErroContrato(/delete|still referenced/.test(e.message) ? "Não dá para apagar: o evento ou o cliente tem contrato." : "O evento, o cliente ou o carro não existe mais.");
   if (e.code === "42501") return new ErroContrato("Sem permissão. Entre de novo na conta.");
   return new ErroContrato(e.message);
 }
-const COL_C = "id, evento_id, cliente_id, status, vigencia_inicio, vigencia_fim, assinado_em, observacoes, created_at";
-const COL_A = "id, contrato_id, tipo, status, motivo, vigencia_fim_anterior, vigencia_fim_nova, assinado_em, created_at";
+const COL_C = "id, evento_id, cliente_id, status, vigencia_inicio, vigencia_fim, assinado_em, observacoes, snapshot, created_at";
+const COL_A = "id, contrato_id, tipo, status, motivo, vigencia_fim_anterior, vigencia_fim_nova, assinado_em, titulo, data_efeito, snapshot, created_at";
 
 export async function listarContratos(): Promise<Contrato[]> { const { data, error } = await supabase.from("contratos_comodato").select(COL_C).order("created_at", { ascending: false }).order("id", { ascending: true }).limit(5000); if (error) throw traduzir(error); return (data ?? []) as Contrato[]; }
 export async function listarCarrosDosContratos(): Promise<ContratoVeiculo[]> { const { data, error } = await supabase.from("contrato_veiculos").select("id, contrato_id, veiculo_id").limit(20000); if (error) throw traduzir(error); return (data ?? []) as ContratoVeiculo[]; }
@@ -41,5 +42,5 @@ export async function criarAditivo(a: AditivoNovo, itens: { veiculo_id: string; 
   if (r.error) throw new ErroContrato(`Aditivo criado, mas os carros não foram ligados: ${traduzir(r.error).message}`);
   return { aditivo, itens: (r.data ?? []) as AditivoVeiculo[] };
 }
-export async function atualizarAditivo(id: string, patch: Partial<Pick<Aditivo, "status" | "motivo" | "vigencia_fim_nova" | "assinado_em">>): Promise<Aditivo> { const { data, error } = await supabase.from("contrato_aditivos").update(patch as never).eq("id", id).select(COL_A).single(); if (error) throw traduzir(error); return data as Aditivo; }
+export async function atualizarAditivo(id: string, patch: Partial<Pick<Aditivo, "status" | "motivo" | "vigencia_fim_nova" | "assinado_em" | "titulo" | "data_efeito" | "snapshot">>): Promise<Aditivo> { const { data, error } = await supabase.from("contrato_aditivos").update(patch as never).eq("id", id).select(COL_A).single(); if (error) throw traduzir(error); return data as Aditivo; }
 export async function excluirAditivo(id: string): Promise<void> { const { error } = await supabase.from("contrato_aditivos").delete().eq("id", id); if (error) throw traduzir(error); }

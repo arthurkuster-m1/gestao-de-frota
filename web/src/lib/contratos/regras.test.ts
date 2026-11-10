@@ -3,7 +3,7 @@ import type { Reserva } from "../eventos/tipos";
 import { carrosEmVigor, divergencias, vigenciaEmVigor, vigenciaSugerida } from "./regras";
 import type { Aditivo, AditivoVeiculo } from "./tipos";
 
-const ad = (p: Partial<Aditivo>): Aditivo => ({ id: "a1", contrato_id: "k", tipo: "extensao_prazo", status: "assinado", motivo: null, vigencia_fim_anterior: null, vigencia_fim_nova: null, assinado_em: "2026-11-12", created_at: "2026-11-12T10:00:00Z", ...p });
+const ad = (p: Partial<Aditivo>): Aditivo => ({ id: "a1", contrato_id: "k", tipo: "extensao_prazo", status: "assinado", motivo: null, vigencia_fim_anterior: null, vigencia_fim_nova: null, assinado_em: "2026-11-12", titulo: null, data_efeito: null, snapshot: null, created_at: "2026-11-12T10:00:00Z", ...p });
 const item = (aditivo_id: string, veiculo_id: string, acao: "sai" | "entra"): AditivoVeiculo => ({ id: aditivo_id + veiculo_id, aditivo_id, veiculo_id, acao });
 const res = (p: Partial<Reserva>): Reserva => ({ id: "r", evento_id: "e", veiculo_id: "v1", reserva_inicio: "2026-11-08", reserva_fim: "2026-11-22", chegada: "2026-11-10", retirada: "2026-11-20", estado: "reservado", comentarios: null, ...p });
 const nome = (id: string) => id.toUpperCase();
@@ -43,5 +43,25 @@ describe("vigência sugerida", () => {
   it("da primeira chegada à última retirada", () => {
     expect(vigenciaSugerida([res({}), res({ id: "r2", veiculo_id: "v2", chegada: "2026-11-09", retirada: "2026-11-24" })])).toEqual({ inicio: "2026-11-09", fim: "2026-11-24" });
     expect(vigenciaSugerida([])).toEqual({ inicio: null, fim: null });
+  });
+});
+
+import { divergenciasDoEvento, planoDeAditivos } from "./regras";
+import { vigenciaDoEvento } from "./montar";
+
+describe("contrato nascido do evento", () => {
+  const ev = { chegada_prevista: "2026-11-10", retirada_prevista: "2026-11-20" };
+  it("a vigência engloba o evento e as datas dos carros", () => {
+    expect(vigenciaDoEvento(ev, [res({ chegada: "2026-11-08", retirada: "2026-11-18" }), res({ id: "r2", veiculo_id: "v2", chegada: "2026-11-12", retirada: "2026-11-25" })])).toEqual({ inicio: "2026-11-08", fim: "2026-11-25" });
+    expect(vigenciaDoEvento(ev, [])).toEqual({ inicio: "2026-11-10", fim: "2026-11-20" });
+  });
+  it("dados divergentes: cliente, datas do evento e carros", () => {
+    const d = divergenciasDoEvento({ contratoClienteId: "c1", eventoClienteId: "c2", vigencia: { inicio: "2026-11-10", fim: "2026-11-20" }, carros: new Set(["v1"]), reservas: [res({ veiculo_id: "v2", chegada: "2026-11-12", retirada: "2026-11-19" })], evento: { chegada_prevista: "2026-11-09", retirada_prevista: "2026-11-22" }, nomeDoCarro: (id) => id });
+    expect(d.map((x) => x.tipo).sort()).toEqual(["carro_sem_contrato", "carro_sem_reserva", "cliente", "evento_fora_da_vigencia", "evento_fora_da_vigencia"]);
+    expect(divergenciasDoEvento({ contratoClienteId: "c1", eventoClienteId: "c1", vigencia: { inicio: "2026-11-10", fim: "2026-11-20" }, carros: new Set(["v1"]), reservas: [res({ veiculo_id: "v1" })], evento: ev, nomeDoCarro: (id) => id })).toEqual([]);
+  });
+  it("o plano de aditivos pede extensão só se o fim passou e troca quando os carros mudaram", () => {
+    expect(planoDeAditivos({ vigenciaFim: "2026-11-20", carros: new Set(["v1"]), reservas: [res({ veiculo_id: "v2", retirada: "2026-11-25" })], evento: { retirada_prevista: "2026-11-22" } })).toEqual({ novoFim: "2026-11-25", sai: ["v1"], entra: ["v2"] });
+    expect(planoDeAditivos({ vigenciaFim: "2026-11-20", carros: new Set(["v1"]), reservas: [res({})], evento: { retirada_prevista: "2026-11-20" } })).toEqual({ novoFim: null, sai: [], entra: [] });
   });
 });

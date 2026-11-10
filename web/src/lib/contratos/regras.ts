@@ -20,7 +20,7 @@ export function carrosEmVigor(carros: readonly Pick<ContratoVeiculo, "veiculo_id
   return set;
 }
 
-export type Divergencia = { tipo: "carro_sem_contrato" | "carro_sem_reserva" | "fora_da_vigencia"; veiculoId: string | null; texto: string };
+export type Divergencia = { tipo: "carro_sem_contrato" | "carro_sem_reserva" | "fora_da_vigencia" | "evento_fora_da_vigencia" | "cliente"; veiculoId: string | null; texto: string };
 
 /**
  * Conferência do contrato com o evento. Compara os carros e as datas das reservas (não canceladas) com os carros e a vigência EM VIGOR:
@@ -46,4 +46,26 @@ const br = (iso: string) => iso.slice(0, 10).split("-").reverse().join("/");
 export function vigenciaSugerida(reservas: readonly Reserva[]): { inicio: string | null; fim: string | null } {
   const ativas = reservas.filter((r) => r.estado !== "cancelado"); if (!ativas.length) return { inicio: null, fim: null };
   return { inicio: ativas.map((r) => r.chegada ?? r.reserva_inicio).sort()[0]!, fim: ativas.map((r) => r.retirada ?? r.reserva_fim).sort().at(-1)! };
+}
+
+/**
+ * "Dados divergentes": o que o EVENTO é hoje contra o que o contrato diz. Soma à conferência de carros e datas das reservas o cliente
+ * (o do evento mudou) e as datas do próprio evento fora da vigência. Depois de assinado, nada disso muda o contrato: vira aditivo.
+ */
+export function divergenciasDoEvento(p: { contratoClienteId: string; eventoClienteId: string | null | undefined; vigencia: { inicio: string | null; fim: string | null }; carros: ReadonlySet<string>; reservas: readonly Reserva[]; evento: { chegada_prevista: string | null; retirada_prevista: string | null }; nomeDoCarro: (id: string) => string; nomeDoCliente?: (id: string) => string }): Divergencia[] {
+  const out = divergencias(p.carros, p.vigencia, p.reservas, p.nomeDoCarro);
+  if (p.eventoClienteId && p.eventoClienteId !== p.contratoClienteId) out.push({ tipo: "cliente", veiculoId: null, texto: `O cliente do evento (${p.nomeDoCliente?.(p.eventoClienteId) ?? "outro"}) não é o do contrato (${p.nomeDoCliente?.(p.contratoClienteId) ?? "?"}).` });
+  const { chegada_prevista: ini, retirada_prevista: fim } = p.evento;
+  if (fim && p.vigencia.fim && fim > p.vigencia.fim) out.push({ tipo: "evento_fora_da_vigencia", veiculoId: null, texto: `O evento termina em ${br(fim)}, depois do fim da vigência (${br(p.vigencia.fim)}).` });
+  if (ini && p.vigencia.inicio && ini < p.vigencia.inicio) out.push({ tipo: "evento_fora_da_vigencia", veiculoId: null, texto: `O evento começa em ${br(ini)}, antes do início da vigência (${br(p.vigencia.inicio)}).` });
+  return out;
+}
+
+/** O que cada divergência pede: extensão de prazo (novo fim) e/ou troca de carros (quais saem, quais entram). */
+export function planoDeAditivos(p: { vigenciaFim: string | null; carros: ReadonlySet<string>; reservas: readonly Reserva[]; evento: { retirada_prevista: string | null } }): { novoFim: string | null; sai: string[]; entra: string[] } {
+  const rs = p.reservas.filter((r) => r.estado !== "cancelado");
+  const fins = [p.evento.retirada_prevista, ...rs.map((r) => r.retirada ?? r.reserva_fim)].filter((x): x is string => !!x).sort();
+  const maior = fins.at(-1) ?? null;
+  const reservados = new Set(rs.map((r) => r.veiculo_id));
+  return { novoFim: maior && p.vigenciaFim && maior > p.vigenciaFim ? maior : null, sai: [...p.carros].filter((id) => !reservados.has(id)), entra: [...reservados].filter((id) => !p.carros.has(id)) };
 }
