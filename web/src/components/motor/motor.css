@@ -410,3 +410,7 @@ html[data-theme="light"] body:has(.mt-abas-wrap) { --color-bg: var(--nt-fundo); 
 [data-densidade="compacta"] .mt-tabela th { height: 34px; font-size: 14px; }
 [data-densidade="compacta"] .mt-tabela .mt-th__icone { width: 16px; height: 16px; }
 .mt-tabela.mt-cab-grudado thead th { box-shadow: 0 1px 0 var(--nt-linha); }
+
+/* a tabela ocupa a largura toda da página: o espaço que sobra à direita das colunas é uma coluna vazia, com as linhas continuando (como no Notion) */
+.mt-tabela th.mt-enchimento, .mt-tabela td.mt-enchimento { padding: 0; cursor: default; border-right: 0; }
+.mt-tabela th.mt-enchimento { pointer-events: none; }

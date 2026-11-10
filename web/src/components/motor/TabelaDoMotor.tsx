@@ -247,6 +247,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   const linha = (l: T) => (
     <tr key={idDe(l)} data-id={idDe(l)} data-testid="linha-motor" className={selecao?.ids.has(idDe(l)) ? "is-sel" : undefined}>
       {colunas.map((c, i) => celula(l, c, i, indiceDe.get(idDe(l)) ?? 0))}
+      <td className="mt-enchimento" aria-hidden />
     </tr>
   );
   const semLinhas = resultado.linhas.length === 0;
@@ -258,8 +259,8 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       {coresDe && <EditorDeCores aberto onFechar={() => setCoresDe(null)} campoId={coresDe.id} titulo={coresDe.titulo} opcoes={opcoesDoCampo(coresDe, linhas)} />}
       {semLinhas ? <div className="mt-sem">{linhas.length === 0 ? vazio : <p className="t-body t-muted">Nada bate com os filtros desta visualização.</p>}</div> : (
         <div className={cx("mt-tabela", !!selecao && selecao.ids.size > 0 && "tem-sel", arrastandoSel.current && sel && multiplas(intervaloDe(sel.a, sel.b)) && "mt-selecionando")} data-testid="tabela-motor" ref={caixa}>
-          <table style={{ width: total, tableLayout: "fixed" }}>
-            <colgroup>{colunas.map((c) => <col key={c.id} style={{ width: larguraDe(c) }} />)}</colgroup>
+          <table style={{ width: "100%", minWidth: total, tableLayout: "fixed" }}>
+            <colgroup>{colunas.map((c) => <col key={c.id} style={{ width: larguraDe(c) }} />)}<col /></colgroup>
             <thead>
               <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
                 <SortableContext items={colunas.map((c) => c.id)} strategy={horizontalListSortingStrategy}>
@@ -272,7 +273,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                         <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} title="Arraste para mudar a largura · duplo clique ajusta ao texto" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); ajustarAoTexto(c.id); }} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
                       </ThOrdenavel>
                     );
-                  })}</tr>
+                  })}<th className="mt-enchimento" aria-hidden /></tr>
                 </SortableContext>
               </DndContext>
             </thead>
@@ -282,7 +283,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                 const campoG = campoPorId.get(prefs.agrupar ?? "");
                 return [
                   <tr key={`g-${g.chave}`} className="mt-grupo" data-testid="grupo-motor">
-                    <td colSpan={colunas.length}><button type="button" className="mt-grupo__btn" aria-expanded={!fechado} onClick={() => setFechados((s) => { const n = new Set(s); if (n.has(g.chave)) n.delete(g.chave); else n.add(g.chave); return n; })}>
+                    <td colSpan={colunas.length + 1}><button type="button" className="mt-grupo__btn" aria-expanded={!fechado} onClick={() => setFechados((s) => { const n = new Set(s); if (n.has(g.chave)) n.delete(g.chave); else n.add(g.chave); return n; })}>
                       {fechado ? <CaretRight size={14} weight="bold" /> : <CaretDown size={14} weight="bold" />}<b>{g.rotulo || `Sem ${campoG?.titulo.toLowerCase() ?? "valor"}`}</b><span className="mt-grupo__n">{g.linhas.length}</span></button></td>
                   </tr>,
                   ...(fechado ? [] : g.linhas.map(linha)),
