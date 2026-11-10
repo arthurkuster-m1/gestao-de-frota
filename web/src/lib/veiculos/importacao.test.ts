@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linhasDeMatriz, validarTudo, type Existentes } from "./importacao";
+import { analisarMatriz, linhasDeMatriz, validarTudo, type Existentes } from "./importacao";
 import { normalizarPlaca } from "./tipos";
 
 const nada = (): Existentes => ({ vins: new Set(), placas: new Set() });
@@ -42,4 +42,26 @@ describe("validarTudo", () => {
     expect(r.map((x) => x.tom)).toEqual(["dup", "ok", "erro"]);
   });
   it("linha vazia é ignorada", () => { expect(validarTudo([{}], nada())[0].tom).toBe("ign"); });
+});
+
+describe("colunas extras (datas) e ordem das colunas", () => {
+  const ex = { vins: new Set<string>(), placas: new Set<string>() };
+  it("reconhece o cabeçalho das datas e devolve quais colunas vieram", () => {
+    const r = analisarMatriz([["Modelo", "Data de Faturamento", "Emplacamento"], ["Onix", "10/11/2026", "2026-11-12"]]);
+    expect(r.campos).toEqual(["modelo", "data_faturamento", "data_emplacamento"]);
+    expect(r.linhas[0]).toEqual({ modelo: "Onix", data_faturamento: "10/11/2026", data_emplacamento: "2026-11-12" });
+  });
+  it("sem cabeçalho, vale a ordem das colunas que estão na tabela", () => {
+    const r = analisarMatriz([["Onix", "10/11/2026", "Preto"]], ["modelo", "data_faturamento", "cor"]);
+    expect(r.linhas[0]).toEqual({ modelo: "Onix", data_faturamento: "10/11/2026", cor: "Preto" });
+  });
+  it("as datas válidas vão para o veículo (em ISO) e a inválida é erro", () => {
+    const ok = validarTudo([{ modelo: "Onix", data_faturamento: "10/11/2026", data_liberacao: "2026-11-01" }], ex)[0]!;
+    expect(ok.tom).toBe("ok");
+    expect(ok.veiculo).toMatchObject({ data_faturamento: "2026-11-10", data_liberacao: "2026-11-01" });
+    expect(ok.veiculo).not.toHaveProperty("data_pedido");
+    const ruim = validarTudo([{ modelo: "Onix", data_emplacamento: "31/02/2026" }], ex)[0]!;
+    expect(ruim.tom).toBe("erro");
+    expect(ruim.texto).toMatch(/Data de emplacamento inválida/);
+  });
 });

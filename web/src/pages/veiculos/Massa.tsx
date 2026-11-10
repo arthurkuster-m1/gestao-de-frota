@@ -3,10 +3,12 @@ import { Link, useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { DataSheetGrid, keyColumn, textColumn } from "react-datasheet-grid";
 import "react-datasheet-grid/dist/style.css";
-import { ArrowLeft, CheckCircle, FileCsv, Minus, ArrowsClockwise, Warning, XCircle, ClipboardText } from "@phosphor-icons/react";
+import { ArrowLeft, CheckCircle, Columns, FileCsv, Minus, ArrowsClockwise, Warning, XCircle, ClipboardText } from "@phosphor-icons/react";
+import { Painel } from "../../components/motor/Painel";
+import { SeletorDeColunas } from "./SeletorDeColunas";
 import { Button, Card, Page, Sheet, Textarea, useToast } from "../../ds";
 import { criarVeiculos, listarVeiculos } from "../../lib/veiculos/dados";
-import { CAMPOS, linhaVazia, linhasDeMatriz, validarTudo, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
+import { CAMPOS, CAMPOS_PADRAO, analisarMatriz, linhaVazia, validarTudo, type CampoLinha, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
 import "./veiculos.css";
 
 type LinhaGrade = LinhaCrua & { __tom?: Tom; __texto?: string };
@@ -24,6 +26,23 @@ const COLUNA_SITUACAO = {
   isCellEmpty: ({ rowData }: { rowData: LinhaGrade }) => !rowData.__tom,
 };
 
+const CHAVE_COLUNAS = "frota:massa-veiculos:colunas";
+type PrefsDeColunas = { ordem: CampoLinha[]; ligadas: CampoLinha[] };
+const TODOS_OS_IDS = CAMPOS.map((c) => c.id);
+const PADRAO: PrefsDeColunas = { ordem: [...CAMPOS_PADRAO, ...TODOS_OS_IDS.filter((i) => !CAMPOS_PADRAO.includes(i))], ligadas: [...CAMPOS_PADRAO] };
+/** Colunas escolhidas (fica guardado neste navegador): coluna nova que passe a existir entra no fim, desligada. */
+function lerColunas(): PrefsDeColunas {
+  try {
+    const p = JSON.parse(localStorage.getItem(CHAVE_COLUNAS) ?? "null") as PrefsDeColunas | null;
+    if (p && Array.isArray(p.ordem) && Array.isArray(p.ligadas)) {
+      const ordem = [...p.ordem.filter((i) => TODOS_OS_IDS.includes(i)), ...TODOS_OS_IDS.filter((i) => !p.ordem.includes(i))];
+      const ligadas = p.ligadas.filter((i) => TODOS_OS_IDS.includes(i));
+      if (ligadas.length) return { ordem, ligadas };
+    }
+  } catch { /* sem armazenamento */ }
+  return PADRAO;
+}
+
 export function Massa() {
   const navigate = useNavigate();
   const toast = useToast();
@@ -34,6 +53,9 @@ export function Massa() {
   const [texto, setTexto] = useState("");
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [prefs, setPrefs] = useState<PrefsDeColunas>(lerColunas);
+  const mudaColunas = (p: PrefsDeColunas) => { setPrefs(p); try { localStorage.setItem(CHAVE_COLUNAS, JSON.stringify(p)); } catch { /* sem armazenamento */ } };
+  const visiveis = useMemo(() => prefs.ordem.filter((i) => prefs.ligadas.includes(i)), [prefs]);
 
   useEffect(() => {
     listarVeiculos().then((l) => {
@@ -47,14 +69,16 @@ export function Massa() {
   const cont = useMemo(() => { const c: Record<Tom, number> = { ok: 0, erro: 0, dup: 0, ign: 0 }; for (const r of resultados) c[r.tom]++; return c; }, [resultados]);
 
   const colunas = useMemo(() => [
-    ...CAMPOS.map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, textColumn as never), title: c.titulo, minWidth: c.largura, basis: c.largura, grow: 0 })),
+    ...visiveis.map((id) => CAMPOS.find((c) => c.id === id)!).map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, textColumn as never), title: c.titulo, minWidth: c.largura, basis: c.largura, grow: 0 })),
     { ...COLUNA_SITUACAO, minWidth: 360, basis: 360, grow: 1 },   // a situação da linha fica por último
-  ], []);
+  ], [visiveis]);
 
   function adicionar(matriz: string[][]) {
-    const novas = linhasDeMatriz(matriz);
+    const { linhas: novas, campos: doCabecalho } = analisarMatriz(matriz, visiveis);
     if (novas.length === 0) { setErro("Não encontrei linhas nesse texto."); return; }
     setErro(null);
+    const escondidas = doCabecalho.filter((c) => !prefs.ligadas.includes(c));   // a planilha trouxe colunas que estavam desligadas: liga para os dados aparecerem
+    if (escondidas.length) { mudaColunas({ ...prefs, ligadas: [...prefs.ligadas, ...escondidas] }); toast(`Colunas ligadas: ${escondidas.map((c) => CAMPOS.find((x) => x.id === c)!.titulo).join(", ")}`); }
     setLinhas((atual) => { const base = atual.filter((l) => !linhaVazia(l)); return [...base, ...novas, ...vazias(3)]; });
   }
   async function arquivo(f: File | undefined) {
@@ -81,6 +105,9 @@ export function Massa() {
         <div className="ds-row" style={{ flexWrap: "wrap" }}>
           <Button variant="secondary" icon={<ClipboardText size={20} />} onClick={() => setColando(true)}>Colar texto</Button>
           <label className="ds-btn ds-btn--secondary" style={{ cursor: "pointer" }}><FileCsv size={20} />Abrir CSV<input type="file" accept=".csv,.txt,.tsv" hidden onChange={(e) => { void arquivo(e.target.files?.[0]); e.target.value = ""; }} /></label>
+          <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={visiveis.length} largura={340} testid="colunas-da-importacao">
+            <SeletorDeColunas ordem={prefs.ordem} titulos={CAMPOS} ligadas={new Set(prefs.ligadas)} onChange={(ordem, ligadas) => mudaColunas({ ordem: ordem as CampoLinha[], ligadas: ordem.filter((i) => ligadas.has(i)) as CampoLinha[] })} onPadrao={() => mudaColunas(PADRAO)} />
+          </Painel>
           <Button variant="ghost" onClick={() => setLinhas(vazias(8))}>Limpar</Button>
         </div>
 
@@ -104,7 +131,7 @@ export function Massa() {
 
       <Sheet open={colando} onClose={() => setColando(false)} title="Colar do Excel">
         <div className="ds-stack">
-          <p className="t-body-sm t-muted">Copie as células no Excel (com ou sem a linha de títulos) e cole aqui. Escreva a versão junto do modelo (Onix RS). Colunas aceitas: Modelo, Cor, MY, Pedido, VIN/Chassi, Placa, Blindado, Seguro, Ciclo de vida, Comentários.</p>
+          <p className="t-body-sm t-muted">Copie as células no Excel (com ou sem a linha de títulos) e cole aqui. Escreva a versão junto do modelo (Onix RS). Colunas aceitas: Modelo, Cor, MY, Pedido, VIN/Chassi, Placa, Blindado, Seguro, Ciclo de vida, Comentários e as datas (do pedido, liberação, faturamento, emplacamento, devolução, em dd/mm/aaaa). Sem títulos, vale a ordem das colunas da tabela.</p>
           <Textarea rows={8} value={texto} onChange={(e) => setTexto(e.target.value)} aria-label="Texto colado" />
           <Button size="lg" block disabled={!texto.trim()} onClick={() => { adicionar(Papa.parse<string[]>(texto, { delimiter: "\t", skipEmptyLines: true }).data); setTexto(""); setColando(false); }}>Adicionar à grade</Button>
         </div>
