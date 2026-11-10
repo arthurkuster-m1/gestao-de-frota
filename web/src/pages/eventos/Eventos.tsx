@@ -38,7 +38,7 @@ export function Eventos() {
 
   return (
     <>
-      <TelaDoMotor<Evento> tela="eventos" visoesFixas={VISOES_FIXAS_DE_EVENTOS} acoesDaSelecao={({ ids }) => <><Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={() => void copiarCarros(ids)} data-testid="sel-copiar">Copiar tabela dos carros</Button><Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button></>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
+      <TelaDoMotor<Evento> tela="eventos" iconeDaPrimeira={<CalendarCheck size={16} />} visoesFixas={VISOES_FIXAS_DE_EVENTOS} acoesDaSelecao={({ ids }) => <><Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={() => void copiarCarros(ids)} data-testid="sel-copiar">Copiar tabela dos carros</Button><Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button></>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
         acoes={<NovoMenuDeEventos aoNovo={() => setCriando(true)} />}
         linhas={d.eventos} erro={d.erro} campos={d.campos} idDe={(x) => x.id} onEditar={d.editarEvento} onAbrir={(x) => navigate(`/eventos/${x.id}`)}
         linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => navigate(`/eventos/${e.id}`) }}

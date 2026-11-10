@@ -24,6 +24,7 @@ import { Clientes } from "./pages/clientes/Clientes";
 import { FormCliente } from "./pages/clientes/FormCliente";
 import { DESTINOS } from "./app/modules";
 import { Button, useTheme } from "./ds";
+import { useDensidade } from "./lib/densidade";
 
 /** Faixa "nova versão pronta": aparece quando o app é atualizado enquanto alguém está usando. */
 function AvisoAtualizacao() {
@@ -72,6 +73,7 @@ function Autenticado() {
 
 export function App() {
   useTheme();
+  useDensidade();
   const { session, carregando } = useAuth();
   return (
     <>

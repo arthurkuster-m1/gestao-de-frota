@@ -10,6 +10,7 @@ import { BarraDeConsulta, ChipsDeFiltro } from "./BarraDeConsulta";
 import { ChipsRapidos, filtrarPorChips, type ConfigDeChips, type SelecaoDeChips } from "./ChipsRapidos";
 import { CartoesDoMotor } from "./CartoesDoMotor";
 import { TabelaDoMotor } from "./TabelaDoMotor";
+import { BotaoDeDensidade } from "./BotaoDeDensidade";
 import { LinhaDoTempoDoMotor } from "./LinhaDoTempoDoMotor";
 import { useEixoDoTempo, type EixoDoTempo } from "./useEixoDoTempo";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
@@ -24,6 +25,8 @@ type Props<T> = {
   acoesDaSelecao?: (c: { ids: string[]; itens: T[]; limpar: () => void }) => ReactNode;
   /** Algo no canto do título da primeira coluna (botões de copiar…): recebe as linhas que estão filtradas. */
   extrasDaPrimeira?: (linhas: T[]) => ReactNode;
+  /** Ícone na primeira coluna da tabela (o carro, o evento…). */
+  iconeDaPrimeira?: ReactNode;
   /** Abre a tela já filtrada por estes ids (ex.: "Visualizar no Planejamento"). */
   selecaoInicial?: readonly string[];
   /** Canto superior direito do cabeçalho (ex.: o seletor de subpáginas de Eventos). */ cabecalhoDireita?: ReactNode;
@@ -59,7 +62,7 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, extrasDaPrimeira, visoesFixas, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, extrasDaPrimeira, iconeDaPrimeira, visoesFixas, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
@@ -135,6 +138,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           acoes={acoes} fixas={[...(chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []), ...(visoesFixas ?? []).map((f) => ({ id: f.id, rotulo: f.rotulo }))]} nomeDaBase={naFixa ? chipsRapidos!.rotulo : fixaDeFabrica ? fixaDeFabrica.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
+            <BotaoDeDensidade />
             <div className="mt-busca">
               {buscando || busca ? (
                 <input value={busca} autoFocus={buscando} onChange={(e) => setBusca(e.target.value)} onBlur={(e) => { const campo = e.currentTarget; window.setTimeout(() => { if (!campo.value) setBuscando(false); }, 250); }} onKeyDown={(e) => { if (e.key === "Escape") { setBusca(""); setBuscando(false); } }}
@@ -167,7 +171,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
             ? <LinhaDoTempoDoMotor extrasDaPrimeira={extrasDaPrimeira} selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={compacta ? undefined : onPrefs} idDe={idDe} eixo={eixo} barrasDe={linhaDoTempo.barrasDe} onAlterarBarra={linhaDoTempo.onAlterarBarra} onAbrirBarra={linhaDoTempo.onAbrirBarra} onCriarNaData={linhaDoTempo.onCriarNaData} onAbrir={onAbrir} onEditar={onEditar} vazio={vazio} rotuloDoTotal={rotuloDoTotal} selecionadoId={selecionadoId} aoSelecionar={aoSelecionar} comControles={!eixoExterno} alturaMax={alturaDaLinhaDoTempo} larguraEsquerda={larguraEsquerda} />
           : modo === "cards"
             ? <CartoesDoMotor linhas={buscadas} campos={campos} prefs={prefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} />
-            : <TabelaDoMotor extrasDaPrimeira={extrasDaPrimeira} selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
+            : <TabelaDoMotor iconeDaPrimeira={iconeDaPrimeira} extrasDaPrimeira={extrasDaPrimeira} selecao={selecao} linhas={buscadas} campos={campos} prefs={prefs} onPrefs={onPrefs} idDe={idDe} onAbrir={onAbrir} rotuloDoTotal={rotuloDoTotal} onEditar={onEditar} vazio={vazio} aoNovoFiltro={setFiltroNovo} />}
       </div>
       {filhos}
     </Casca>
