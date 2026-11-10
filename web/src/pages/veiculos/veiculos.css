@@ -354,3 +354,7 @@
 /* valores que não se editam (calculados) alinhados ao meio da linha, como os editáveis */
 .mt-ficha__linha dd .mt-valor { display: flex; align-items: center; min-height: 36px; width: 100%; }
 @media (min-width: 721px) { .mt-ficha__linha { grid-template-columns: 210px minmax(0, 1fr); } }
+
+/* tabela de veículos do evento: blocos de transporte (Transporte IDA / RETORNO) com os campos ao lado quando abertos */
+.mt-vde__tabela th.mt-vde__bloco { border-left: 2px solid var(--color-accent); }
+.mt-vde__tabela th.mt-vde__sub { font-weight: 500; color: var(--color-text-subtle); }

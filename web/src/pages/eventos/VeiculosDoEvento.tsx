@@ -2,7 +2,7 @@ import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
 import { Link } from "react-router-dom";
-import { CaretLeft, CaretRight, ClipboardText, Columns, CopySimple, ListChecks, Lock, Plus, SortAscending, Trash, Warning, X } from "@phosphor-icons/react";
+import { CaretDown, CaretLeft, CaretRight, ClipboardText, Columns, CopySimple, ListChecks, Lock, Plus, SortAscending, Trash, Warning, X } from "@phosphor-icons/react";
 import { Button, Field, Segmented, Select, Sheet, Switch, cx, useToast } from "../../ds";
 import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
@@ -22,7 +22,8 @@ import type { Evento, EventoLocal, ModeloDesejado, Reserva, ReservaDoEvento } fr
 import { conflitos, reservasPorVeiculo, agendaTexto } from "../../lib/eventos/uso";
 import { reais } from "../../lib/transportes/regras";
 import { rotaDoTransporte } from "../../lib/transportes/rota";
-import type { Sentido, Transporte } from "../../lib/transportes/tipos";
+import { MODALIDADES, type Sentido, type Transporte } from "../../lib/transportes/tipos";
+import { idDoTransporteDaReserva, reservasDoTransporte, type CampoDeTransporte } from "../../lib/transportes/porCarro";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tipos";
@@ -32,41 +33,52 @@ import { ChecklistsDaReserva } from "../checklists/ChecklistsDaReserva";
 import type { useTransportes } from "../transportes/useTransportes";
 import { AdicionarVeiculos } from "./AdicionarVeiculos";
 import { OPCOES_STATUS_EVENTO } from "./camposDoEvento";
-import { TransporteDoCarroSheet } from "./TransporteDoCarroSheet";
 
 type Tr = ReturnType<typeof useTransportes>;
-type ColunaOpcional = "status" | "transporteIda" | "transporteVolta" | "origem" | "chegada" | "enderecoChegada" | "retirada" | "enderecoRetorno" | "comentarios" | "envio" | "retorno" | "kmIda" | "kmVolta";
-const COLUNAS_OPCIONAIS: { id: ColunaOpcional; titulo: string }[] = [
-  { id: "status", titulo: "Status do carro" }, { id: "comentarios", titulo: "Comentários" },
-  { id: "envio", titulo: "Data de envio" }, { id: "chegada", titulo: "Data de chegada" }, { id: "transporteIda", titulo: "Transporte de ida" },
-  { id: "origem", titulo: "Endereço de origem" }, { id: "enderecoChegada", titulo: "Endereço do evento" }, { id: "kmIda", titulo: "KM de distância (ida)" },
-  { id: "retirada", titulo: "Data de retirada" }, { id: "retorno", titulo: "Data de retorno" }, { id: "transporteVolta", titulo: "Transporte de volta" },
-  { id: "enderecoRetorno", titulo: "Endereço de retorno" }, { id: "kmVolta", titulo: "KM de distância (volta)" },
+/** Colunas que se ligam e desligam no painel "Colunas" (os endereços moram dentro dos blocos de transporte). */
+type ColunaOpcional = "status" | "comentarios" | "origem" | "enderecoChegada" | "enderecoEventoVolta" | "enderecoRetorno";
+/** Os blocos de transporte são colunas FIXAS: "Transporte IDA" e "Transporte RETORNO" (o código do transporte) e, ao expandir, os demais campos. */
+const SUBCOLUNAS: Record<Sentido, string[]> = {
+  ida: ["origem", "enderecoChegada", "kmIda", "envio", "chegada", "modalidadeIda", "transportadoraIda", "valorIda"],
+  volta: ["enderecoEventoVolta", "enderecoRetorno", "kmVolta", "retirada", "retorno", "modalidadeVolta", "transportadoraVolta", "valorVolta"],
+};
+const ENDERECOS: string[] = ["origem", "enderecoChegada", "enderecoEventoVolta", "enderecoRetorno"];
+const TITULOS: Record<string, string> = {
+  status: "Status do carro", comentarios: "Comentários", transporteIda: "Transporte IDA", transporteVolta: "Transporte RETORNO",
+  origem: "Endereço de origem", enderecoChegada: "Endereço do evento", enderecoEventoVolta: "Endereço do evento", enderecoRetorno: "Endereço do retorno",
+  kmIda: "KM", kmVolta: "KM", envio: "Data de envio", chegada: "Data de chegada", retirada: "Data de retirada", retorno: "Data do retorno",
+  modalidadeIda: "Modalidade", modalidadeVolta: "Modalidade", transportadoraIda: "Transportadora", transportadoraVolta: "Transportadora", valorIda: "Valor planejado (R$)", valorVolta: "Valor planejado (R$)",
+};
+const COLUNAS_OPCIONAIS: { id: string; titulo: string }[] = [
+  { id: "status", titulo: TITULOS.status! }, { id: "comentarios", titulo: TITULOS.comentarios! },
+  ...[...SUBCOLUNAS.ida.map((id) => ({ id, s: "ida" })), ...SUBCOLUNAS.volta.map((id) => ({ id, s: "volta" }))].map(({ id, s: sentido }) => ({ id, titulo: `${TITULOS[id]} (${sentido === "ida" ? "ida" : "retorno"})` })),
+  { id: "transporteIda", titulo: "Transporte IDA" }, { id: "transporteVolta", titulo: "Transporte RETORNO" },
 ];
-/** Os interruptores do painel "Colunas", em blocos. */
-const GRUPOS_DE_COLUNAS: { titulo: string; ids: ColunaOpcional[] }[] = [
+const PAINEL_DE_COLUNAS: { titulo: string; ids: ColunaOpcional[] }[] = [
   { titulo: "Carro", ids: ["status", "comentarios"] },
-  { titulo: "Ida", ids: ["envio", "chegada", "transporteIda", "origem", "enderecoChegada", "kmIda"] },
-  { titulo: "Retorno", ids: ["retirada", "retorno", "transporteVolta", "enderecoRetorno", "kmVolta"] },
+  { titulo: "Transporte IDA: endereços", ids: ["origem", "enderecoChegada"] },
+  { titulo: "Transporte RETORNO: endereços", ids: ["enderecoEventoVolta", "enderecoRetorno"] },
 ];
 const INFO = [{ id: "placa", titulo: "Placa" }, { id: "vin", titulo: "VIN" }, { id: "modelo", titulo: "Modelo" }, { id: "cor", titulo: "Cor" }, { id: "my", titulo: "MY" }] as const;
-const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "origem", "chegada", "enderecoChegada", "retirada", "enderecoRetorno", "comentarios", "envio", "retorno"];
-const CHAVE = "frota:evento-veiculos:v2";
+const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "comentarios"];
+const COLUNAS_DO_PAINEL: string[] = ["status", "comentarios", ...ENDERECOS];
+const CHAVE = "frota:evento-veiculos:v3";
 /** `colunas` = as colunas ligadas, NA ORDEM em que aparecem (arrastar o título muda a ordem). `infoCols` = quais dados do veículo aparecem ao lado do código. `ordem`/`agrupar` = ordenar e agrupar as linhas. */
-type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null; /** largura de cada coluna (px), ajustada arrastando a borda do título */ larguras: Record<string, number> };
+type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null; /** largura de cada coluna (px), ajustada arrastando a borda do título */ larguras: Record<string, number>; /** blocos de transporte abertos (mostrando os campos) */ abertos: { ida: boolean; volta: boolean } };
 const TODAS_INFO = INFO.map((c) => c.id as string);
 function lerPrefs(): Prefs {
   try {
     const p = JSON.parse(localStorage.getItem(CHAVE) ?? "null") as (Partial<Prefs> & { info?: boolean }) | null;
     if (p && Array.isArray(p.colunas)) return {
       infoCols: Array.isArray(p.infoCols) ? p.infoCols.filter((c) => TODAS_INFO.includes(c)) : p.info ? TODAS_INFO : [],
-      colunas: p.colunas.filter((c) => COLUNAS_OPCIONAIS.some((o) => o.id === c)),
+      colunas: p.colunas.filter((c) => COLUNAS_DO_PAINEL.includes(c)),
+      abertos: { ida: !!p.abertos?.ida, volta: !!p.abertos?.volta },
       ordem: p.ordem && typeof p.ordem.col === "string" ? { col: p.ordem.col, dir: p.ordem.dir === "desc" ? "desc" : "asc" } : null,
       agrupar: typeof p.agrupar === "string" ? p.agrupar : null,
       larguras: p.larguras && typeof p.larguras === "object" ? Object.fromEntries(Object.entries(p.larguras).filter(([, v]) => typeof v === "number" && v >= 60 && v <= 900)) : {},
     };
   } catch { /* sem armazenamento */ }
-  return { infoCols: [], colunas: [], ordem: null, agrupar: null, larguras: {} };
+  return { infoCols: [], colunas: ["origem", "enderecoChegada", "enderecoEventoVolta", "enderecoRetorno"], ordem: null, agrupar: null, larguras: {}, abertos: { ida: false, volta: false } };
 }
 function gravarPrefs(p: Prefs) { try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento */ } }
 const COLUNAS_DE_ORDEM = [{ id: "codigo", titulo: "Código" }, ...INFO, ...COLUNAS_OPCIONAIS] as { id: string; titulo: string }[];
@@ -74,7 +86,8 @@ const COLUNAS_DE_ORDEM = [{ id: "codigo", titulo: "Código" }, ...INFO, ...COLUN
 /** Largura inicial de cada coluna (px); o título se arrasta pela borda para mudar. */
 const LARGURA_PADRAO: Record<string, number> = {
   codigo: 230, placa: 100, vin: 190, modelo: 220, cor: 170, my: 70, status: 170, comentarios: 240, envio: 140, chegada: 140, retirada: 140, retorno: 140,
-  transporteIda: 240, transporteVolta: 240, origem: 260, enderecoChegada: 260, enderecoRetorno: 260, kmIda: 150, kmVolta: 150, acoes: 120,
+  transporteIda: 230, transporteVolta: 230, origem: 260, enderecoChegada: 260, enderecoEventoVolta: 260, enderecoRetorno: 260, kmIda: 100, kmVolta: 100,
+  modalidadeIda: 130, modalidadeVolta: 130, transportadoraIda: 160, transportadoraVolta: 160, valorIda: 150, valorVolta: 150, acoes: 120,
 };
 const LARGURA_MIN = 70, LARGURA_MAX = 700, LARGURA_SEL = 44;
 
@@ -100,7 +113,6 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
   const [individual, setIndividual] = useState(false);
   const [escolhendo, setEscolhendo] = useState<{ pedido: ModeloDesejado | null } | null>(null);
-  const [transporte, setTransporte] = useState<{ reservaIds: string[]; sentido: Sentido; rotulo: string; atual: Transporte | null } | null>(null);
   const [checklist, setChecklist] = useState<LinhaDoEvento | null>(null);
   const [loteDeChecklist, setLoteDeChecklist] = useState<LinhaDoEvento[] | null>(null);
   const [arrastoDeLargura, setArrastoDeLargura] = useState<{ id: string; w: number } | null>(null);
@@ -137,11 +149,18 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     return id ? (tr.transportes.find((t) => t.id === id) ?? null) : null;
   };
   const custo = custoDoEvento(tr.transportes, evento.id);
-  const ordenadas = prefs.colunas;                                           // colunas opcionais ligadas, em ordem
+  const livres: ColunaOpcional[] = prefs.colunas.filter((c) => c === "status" || c === "comentarios");   // colunas soltas (arrastáveis), em ordem
+  const visivelNoBloco = (c: string) => !ENDERECOS.includes(c) || prefs.colunas.includes(c as ColunaOpcional);
+  /** Todas as colunas de dados na ordem da tabela: soltas, bloco IDA (código + campos quando aberto) e bloco RETORNO. */
+  const ordenadas: string[] = [
+    ...livres,
+    "transporteIda", ...(prefs.abertos.ida ? SUBCOLUNAS.ida.filter(visivelNoBloco) : []),
+    "transporteVolta", ...(prefs.abertos.volta ? SUBCOLUNAS.volta.filter(visivelNoBloco) : []),
+  ];
   const colunasInfo = INFO.map((c) => c.id as string).filter((c) => prefs.infoCols.includes(c));
   /** Colunas selecionáveis (por células), na ordem em que aparecem. */
   const colunasSel = useMemo(() => [...colunasInfo, ...ordenadas] as string[], [colunasInfo.join(","), ordenadas.join(",")]);  // eslint-disable-line react-hooks/exhaustive-deps
-  const tituloDe = (id: string) => INFO.find((c) => c.id === id)?.titulo ?? COLUNAS_OPCIONAIS.find((c) => c.id === id)?.titulo ?? id;
+  const tituloDe = (id: string) => INFO.find((c) => c.id === id)?.titulo ?? TITULOS[id] ?? id;
 
   // edição individual: só com o interruptor ligado (clicar numa célula herdada liga e já abre o editor)
   const [pendente, setPendente] = useState<{ l: LinhaDoEvento; id: string } | null>(null);
@@ -164,15 +183,60 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     enderecoChegada: campo("enderecoChegada", "Endereço de chegada", "texto", "endereco_chegada", (l) => valoresEfetivos(l, evento, locaisDoEvento).enderecoChegada),
     retirada: campo("retirada", "Data de retirada", "data", "retirada", (l) => valoresEfetivos(l, evento, locaisDoEvento).retirada),
     enderecoRetorno: campo("enderecoRetorno", "Endereço de retorno", "texto", "endereco_retorno", (l) => valoresEfetivos(l, evento, locaisDoEvento).enderecoRetorno),
+    enderecoEventoVolta: campo("enderecoEventoVolta", "Endereço do evento", "texto", "endereco_chegada", (l) => valoresEfetivos(l, evento, locaisDoEvento).enderecoChegada),
     comentarios: campo("comentarios", "Comentários", "texto", "comentarios", (l) => ({ valor: l.reserva?.comentarios ?? null, herdado: false })),
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }), [evento, locaisDoEvento]);
-  const navegaveis = Object.keys(campos);
+  const navegaveis = ["status", "comentarios"];
   useEffect(() => { if (individual && pendente) { ed.abrir(pendente.l, campos[pendente.id as keyof typeof campos]); setPendente(null); } }, [individual, pendente]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const reservaDe = (l: LinhaDoEvento) => l.reserva as Reserva | undefined;
+  /** Campos dos blocos de transporte: o código, o que é do transporte (modalidade, transportadora, valor, km) e o que é do carro (datas e endereços). */
+  const camposDoBloco = useMemo(() => {
+    const T = (s: Sentido, id: string, titulo: string, tipo: "texto" | "numero" | "opcao", coluna: CampoDeTransporte, valorDe: (l: LinhaDoEvento) => string | number | null, extra: Partial<CampoDaTela<LinhaDoEvento>> = {}): CampoDaTela<LinhaDoEvento> => ({
+      id, titulo, tipo, largura: LARGURA_PADRAO[id] ?? 150, valorDe, edicao: { coluna, ...(coluna === "referencia" || coluna === "transportadora" ? { maxLength: 80 } : {}) }, ...extra,
+    });
+    const ex = (s: Sentido, l: LinhaDoEvento) => transporteDe(l, s);
+    const opcaoMod = MODALIDADES.map((m) => ({ value: m.value, label: m.value === "pta" ? "PTA" : m.value === "tso" ? "TSO" : "Retirada", tom: m.tom }));
+    const porSentido = (s: Sentido) => {
+      const suf = s === "ida" ? "Ida" : "Volta";
+      const km = (l: LinhaDoEvento) => ex(s, l)?.distancia_km ?? (s === "ida" ? evento.distancia_ida_km : evento.distancia_volta_km) ?? null;
+      return {
+        [s === "ida" ? "transporteIda" : "transporteVolta"]: T(s, s === "ida" ? "transporteIda" : "transporteVolta", TITULOS[`transporte${suf}`]!, "texto", "referencia", (l) => ex(s, l)?.referencia ?? null, { celula: (l) => { const t = ex(s, l); return t?.referencia ? <span className="mt-transp"><b>{t.referencia}</b></span> : <span className="mt-vazio">—</span>; } }),
+        [`km${suf}`]: T(s, `km${suf}`, "KM", "numero", "distancia_km", km, { celula: (l) => { const k = km(l); return k == null ? <span className="mt-vazio">—</span> : <span className={cx(ex(s, l)?.distancia_km == null && "mt-herdado")} title={ex(s, l)?.distancia_km == null ? "Vem do evento" : undefined}>{k.toLocaleString("pt-BR")} km</span>; } }),
+        [`modalidade${suf}`]: T(s, `modalidade${suf}`, "Modalidade", "opcao", "modalidade", (l) => ex(s, l)?.modalidade ?? null, { opcoes: opcaoMod }),
+        [`transportadora${suf}`]: T(s, `transportadora${suf}`, "Transportadora", "texto", "transportadora", (l) => ex(s, l)?.transportadora ?? null),
+        [`valor${suf}`]: T(s, `valor${suf}`, "Valor planejado (R$)", "numero", "valor_planejado", (l) => ex(s, l)?.valor_planejado ?? null, { celula: (l) => { const v = ex(s, l)?.valor_planejado; return v == null ? <span className="mt-vazio">—</span> : <span>{reais(v)}</span>; } }),
+      };
+    };
+    return { ...porSentido("ida"), ...porSentido("volta"), envio: campos.envio, chegada: campos.chegada, retirada: campos.retirada, retorno: campos.retorno, origem: campos.origem, enderecoChegada: campos.enderecoChegada, enderecoEventoVolta: campos.enderecoEventoVolta, enderecoRetorno: campos.enderecoRetorno } as Record<string, CampoDaTela<LinhaDoEvento>>;
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [campos, evento, tr.transportes, tr.vinculos]);
+  /** Grava o valor de uma célula de bloco de transporte. Datas valem para TODOS os carros do mesmo transporte; endereços são de cada carro. */
+  const gravarNoBloco = async (l: LinhaDoEvento, cp: CampoDaTela<LinhaDoEvento>, bruto: string | number | boolean | null) => {
+    const r = reservaDe(l); if (!r) throw new Error("Defina o veículo desta linha primeiro.");
+    const col = cp.edicao!.coluna; const valor = typeof bruto === "boolean" ? null : bruto;
+    const sentido: Sentido = cp.id.endsWith("Volta") || col === "retirada" || col === "retorno" || cp.id === "enderecoEventoVolta" || cp.id === "enderecoRetorno" ? "volta" : "ida";
+    if (["referencia", "modalidade", "transportadora", "valor_planejado", "distancia_km"].includes(col)) {
+      const numero = col === "valor_planejado" || col === "distancia_km";
+      let v: string | number | null = valor;
+      if (numero && valor !== null) { const n = Number(String(valor).replace(/^R\$\s*/i, "").replace(/\s*km$/i, "").replace(/\./g, "").replace(",", ".")); if (!Number.isFinite(n) || n < 0) throw new Error("Digite um número."); v = col === "distancia_km" ? Math.round(n) : n; }
+      await tr.gravarCampo(evento.id, r.id, sentido, col as CampoDeTransporte, v, rotaDoTransporte(sentido, r, evento, locaisDoEvento));
+      return;
+    }
+    if (col === "envio" || col === "chegada" || col === "retirada" || col === "retorno") {
+      const tid = idDoTransporteDaReserva(tr.vinculos.find((x) => x.id === r.id), col === "envio" || col === "chegada" ? "ida" : "volta");
+      const ids = tid ? reservasDoTransporte(tr.vinculos, col === "envio" || col === "chegada" ? "ida" : "volta", tid) : [];
+      await Promise.all([...new Set([r.id, ...ids])].map((id) => onSalvarReserva(id, { [col]: valor } as never)));
+      return;
+    }
+    await onSalvarReserva(r.id, { [col]: valor } as never);
+  };
+  const edT = useEdicao<LinhaDoEvento>((l) => l.key, async (l, cp, valor) => { await gravarNoBloco(l, cp, valor as string | number | null); });
+  const idsDoBloco = ordenadas.filter((c) => c in camposDoBloco);
 
   /** KM do carro: o do transporte dele (ida ou volta); sem transporte, o do evento. */
   const kmDe = (l: LinhaDoEvento, s: Sentido): number | null => transporteDe(l, s)?.distancia_km ?? (s === "ida" ? evento.distancia_ida_km : evento.distancia_volta_km) ?? null;
-  const resumoTexto = (t: Transporte | null) => (t ? [t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada", t.referencia, t.transportadora, t.valor_planejado != null ? reais(t.valor_planejado) : null].filter(Boolean).join(" · ") : "");
   /** O texto de uma célula como aparece (é o que vai para a área de transferência). */
   const textoDaCelula = (colId: string, l: LinhaDoEvento): string => {
     const v = l.veiculo; const ef = valoresEfetivos(l, evento, locaisDoEvento);
@@ -180,13 +244,16 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       case "placa": return v?.placa ?? ""; case "vin": return v?.vin ?? ""; case "modelo": return v?.modelo ?? ""; case "cor": return v?.cor ?? ""; case "my": return v?.my ?? "";
       case "status": return OPCOES_STATUS_EVENTO.find((o) => o.value === ef.status.valor)?.label ?? ef.status.valor ?? "";
       case "codigo": return codigoDaLinha(l);
-      case "kmIda": { const k = kmDe(l, "ida"); return k == null ? "" : `${k.toLocaleString("pt-BR")} km`; }
-      case "kmVolta": { const k = kmDe(l, "volta"); return k == null ? "" : `${k.toLocaleString("pt-BR")} km`; }
+      case "kmIda": return String(kmDe(l, "ida") ?? ""); case "kmVolta": return String(kmDe(l, "volta") ?? "");
+      case "enderecoEventoVolta": return ef.enderecoChegada.valor ?? "";
+      case "modalidadeIda": case "modalidadeVolta": { const m = transporteDe(l, colId === "modalidadeIda" ? "ida" : "volta")?.modalidade; return m ? (MODALIDADES.find((x) => x.value === m) ? (m === "pta" ? "PTA" : m === "tso" ? "TSO" : "Retirada") : m) : ""; }
+      case "transportadoraIda": case "transportadoraVolta": return transporteDe(l, colId === "transportadoraIda" ? "ida" : "volta")?.transportadora ?? "";
+      case "valorIda": case "valorVolta": { const x = transporteDe(l, colId === "valorIda" ? "ida" : "volta")?.valor_planejado; return x == null ? "" : String(x).replace(".", ","); }
       case "origem": return ef.origem.valor ?? ""; case "enderecoChegada": return ef.enderecoChegada.valor ?? "";
       case "enderecoRetorno": return ef.enderecoRetorno.valor ?? ""; case "comentarios": return l.reserva?.comentarios ?? "";
       case "envio": return ef.envio.valor ? formatarDiaBr(ef.envio.valor) : ""; case "retorno": return ef.retorno.valor ? formatarDiaBr(ef.retorno.valor) : "";
       case "chegada": return ef.chegada.valor ? formatarDiaBr(ef.chegada.valor) : ""; case "retirada": return ef.retirada.valor ? formatarDiaBr(ef.retirada.valor) : "";
-      case "transporteIda": return resumoTexto(transporteDe(l, "ida")); case "transporteVolta": return resumoTexto(transporteDe(l, "volta"));
+      case "transporteIda": return transporteDe(l, "ida")?.referencia ?? ""; case "transporteVolta": return transporteDe(l, "volta")?.referencia ?? "";
       default: return "";
     }
   };
@@ -223,48 +290,36 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
 
   // ---- seleção de células: copiar, colar e duplicar para baixo
   const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
-  const copiaInterna = useRef<{ tsv: string; ids: (string | null | undefined)[][] } | null>(null);   // o que a última cópia levou além do texto: o transporte de cada célula
-  const idDoTransporte = (colId: string, l: LinhaDoEvento): string | null | undefined => (colId === "transporteIda" || colId === "transporteVolta" ? (transporteDe(l, colId === "transporteIda" ? "ida" : "volta")?.id ?? null) : undefined);
-  const ref = useRef({ faixa, linhas: visiveis, colunasSel, texto: textoDaCelula, idDoTransporte });
-  ref.current = { faixa, linhas: visiveis, colunasSel, texto: textoDaCelula, idDoTransporte };   // os ouvintes do documento leem sempre o estado de agora
+  const ref = useRef({ faixa, linhas: visiveis, colunasSel, texto: textoDaCelula });
+  ref.current = { faixa, linhas: visiveis, colunasSel, texto: textoDaCelula };   // os ouvintes do documento leem sempre o estado de agora
   const fazer = useRef<{ colar: (m: string[][]) => void; duplicar: () => void }>({ colar: () => undefined, duplicar: () => undefined });
   fazer.current = {
     colar: (m) => void (async () => {
       const { faixa: f, linhas: ls, colunasSel: cs } = ref.current; if (!f) return;
       if (!individual) setIndividual(true);
-      const encher = m.length === 1 && m[0]!.length === 1 && multiplas(f);
-      const nl = encher ? f.l1 - f.l0 + 1 : m.length; let ok = 0, pulados = 0, erro: string | null = null;
-      // colando o que ACABOU de ser copiado daqui: as células de transporte levam o próprio transporte (não só o texto)
-      const interna = copiaInterna.current && copiaInterna.current.tsv === paraTsv(m) ? copiaInterna.current : null;
-      const lotes = new Map<string, { sentido: Sentido; id: string | null; reservas: string[] }>();
+      // o que foi copiado se repete quando a seleção é múltipla dele (ex.: 2 colunas copiadas, 30 linhas selecionadas)
+      const sr = f.l1 - f.l0 + 1, sc = f.c1 - f.c0 + 1, mr = m.length, mc = Math.max(...m.map((x) => x.length));
+      const repeteLinhas = sr > mr && sr % mr === 0, repeteColunas = sc > mc && sc % mc === 0;
+      const nl = repeteLinhas ? sr : mr; let ok = 0, pulados = 0, erro: string | null = null;
       const tarefas: { chave: string; executar: () => Promise<void> }[] = [];
       for (let dr = 0; dr < nl; dr++) {
-        const l = ls[f.l0 + dr]; if (!l) break; const linhaM = encher ? m[0]! : m[dr]!; const nc = encher ? f.c1 - f.c0 + 1 : linhaM.length;
+        const l = ls[f.l0 + dr]; if (!l) break; const linhaM = m[dr % mr]!; const nc = repeteColunas ? sc : linhaM.length;
         for (let dc = 0; dc < nc; dc++) {
           const colId = cs[f.c0 + dc];
-          if ((colId === "transporteIda" || colId === "transporteVolta") && interna && l.reserva) {
-            const sentido: Sentido = colId === "transporteIda" ? "ida" : "volta";
-            const idOrigem = interna.ids[encher ? 0 : dr]?.[encher ? 0 : dc];
-            const dele = idOrigem ? tr.transportes.find((t) => t.id === idOrigem) : null;
-            if (idOrigem === undefined || (dele && dele.sentido !== sentido)) { pulados++; continue; }   // outra coluna ou outro sentido (ida não vira volta)
-            const k = `${sentido}|${idOrigem ?? ""}`; const lote = lotes.get(k) ?? { sentido, id: idOrigem, reservas: [] }; lote.reservas.push(l.reserva.id); lotes.set(k, lote); ok++; continue;
-          }
-          const cp = colId && (CAMPOS_EDITAVEIS as string[]).includes(colId) ? campos[colId as keyof typeof campos] : null;
+          const noBloco = colId ? camposDoBloco[colId] : undefined;
+          const cp = noBloco ?? (colId && (CAMPOS_EDITAVEIS as string[]).includes(colId) ? campos[colId as keyof typeof campos] : null);
           if (!cp || !l.reserva) { pulados++; continue; }
-          const bruto = converterColado(cp, encher ? m[0]![0]! : linhaM[dc]!);
+          const bruto = converterColado(cp, linhaM[dc % linhaM.length]!);
           if (bruto === undefined) { pulados++; continue; }
           const prep = prepararEdicao(cp.tipo, cp.edicao!, bruto);
           if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
           const reservaId = l.reserva.id;
-          tarefas.push({ chave: reservaId, executar: async () => { try { await onSalvarReserva(reservaId, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
+          tarefas.push({ chave: reservaId, executar: async () => { try { if (noBloco) await gravarNoBloco(l, cp, prep.valor); else await onSalvarReserva(reservaId, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
         }
       }
       // tudo de uma vez: grava as linhas em paralelo, com a ordem congelada até o fim
-      if (tarefas.length + lotes.size > 1) setOrdemCongelada(ls.map((x) => x.key));
-      try {
-        tarefas.push(...[...lotes.values()].map((lote) => ({ chave: `transporte|${lote.sentido}|${lote.id ?? ""}`, executar: async () => { try { await tr.ligarCarros(lote.reservas, lote.sentido, lote.id); } catch (x) { erro ??= (x as Error).message; } } })));
-        await executarEmLote(tarefas);
-      } finally { setOrdemCongelada(null); }
+      if (tarefas.length > 1) setOrdemCongelada(ls.map((x) => x.key));
+      try { await executarEmLote(tarefas); } finally { setOrdemCongelada(null); }
       if (erro) onErro(erro);
       toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
     })(),
@@ -275,10 +330,9 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       try {
         for (let c = f.c0; c <= f.c1; c++) {
           const colId = cs[c]; if (!colId) continue;
-          if (colId === "transporteIda" || colId === "transporteVolta") {
-            const s: Sentido = colId === "transporteIda" ? "ida" : "volta"; const t = transporteDe(origem, s);
-            if (destinos.length) { await tr.ligarCarros(destinos.map((l) => l.reserva!.id), s, t?.id ?? null); n += destinos.length; }
-          } else if ((CAMPOS_EDITAVEIS as string[]).includes(colId)) {
+          const noBloco = camposDoBloco[colId];
+          if (noBloco) { const valor = noBloco.valorDe(origem); for (const l of destinos) { await gravarNoBloco(l, noBloco, (valor ?? null) as string | number | null); n++; } }
+          else if ((CAMPOS_EDITAVEIS as string[]).includes(colId)) {
             const cp = campos[colId as keyof typeof campos]; const valor = cp.valorDe(origem);
             for (const l of destinos) { await onSalvarReserva(l.reserva!.id, { [cp.edicao!.coluna]: (valor ?? null) } as never); n++; }
           }
@@ -291,11 +345,10 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     const solta = () => { arrastandoSel.current = false; };
     const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-vde__tabela")) setSel(null); };
     const copiar = (e: ClipboardEvent) => {
-      const { faixa: f, linhas: ls, colunasSel: cs, texto, idDoTransporte } = ref.current;
+      const { faixa: f, linhas: ls, colunasSel: cs, texto } = ref.current;
       if (!f || (!multiplas(f) && window.getSelection()?.toString())) return;
-      const m: string[][] = []; const ids: (string | null | undefined)[][] = [];
-      for (let r = f.l0; r <= f.l1; r++) { const l = ls[r]; if (l) { m.push(cs.slice(f.c0, f.c1 + 1).map((c) => texto(c, l))); ids.push(cs.slice(f.c0, f.c1 + 1).map((c) => idDoTransporte(c, l))); } }
-      copiaInterna.current = { tsv: paraTsv(m), ids };
+      const m: string[][] = [];
+      for (let r = f.l0; r <= f.l1; r++) { const l = ls[r]; if (l) m.push(cs.slice(f.c0, f.c1 + 1).map((c) => texto(c, l))); }
       e.clipboardData?.setData("text/plain", paraTsv(m)); e.preventDefault();
       toast(multiplas(f) ? `${m.length * (f.c1 - f.c0 + 1)} células copiadas` : "Célula copiada");
     };
@@ -329,22 +382,19 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     if (individual) return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;
     return <button type="button" className="mt-valor mt-valor--edita" title="Clique para editar este carro (liga a Edição individual)" onClick={() => { setIndividual(true); setPendente({ l, id }); toast("Edição individual ligada"); }}>{c.celula?.(l)}</button>;
   };
-  const botaoTransporte = (l: LinhaDoEvento, s: Sentido): ReactNode => {
-    const t = transporteDe(l, s);
-    const m = t ? (t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada") : null;
-    return (
-      <button type="button" className="mt-valor mt-valor--edita" disabled={!l.reserva} onClick={() => l.reserva && setTransporte({ reservaIds: [l.reserva.id], sentido: s, rotulo: codigoDaLinha(l), atual: t })}>
-        {t ? <span className="mt-transp"><b>{m}</b>{t.referencia ? ` ${t.referencia}` : ""}{t.transportadora ? ` · ${t.transportadora}` : ""}{t.valor_planejado != null ? ` · ${reais(t.valor_planejado)}` : ""}</span> : <span className="mt-vazio">{l.reserva ? "＋ Definir" : "—"}</span>}
-      </button>
-    );
+  /** Célula de um bloco de transporte: sempre editável direto (não depende da Edição individual). */
+  const editavelNoBloco = (l: LinhaDoEvento, id: string): ReactNode => {
+    const c = camposDoBloco[id]!;
+    if (!l.reserva) return <span className="mt-valor">—</span>;
+    return <CampoEditavel linha={l} campo={c} ed={edT} navegaveis={idsDoBloco} />;
   };
 
   // ---- ordem das colunas (arrastando o título) e seleção em massa
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }), useSensor(TouchSensor, { activationConstraint: { delay: 250, tolerance: 6 } }), useSensor(KeyboardSensor, { coordinateGetter: sortableKeyboardCoordinates }));
   const aoSoltarColuna = (e: DragEndEvent) => {
     if (!e.over || e.active.id === e.over.id) return;
-    const de = ordenadas.indexOf(e.active.id as ColunaOpcional), para = ordenadas.indexOf(e.over.id as ColunaOpcional);
-    if (de >= 0 && para >= 0) muda({ ...prefs, colunas: arrayMove(ordenadas, de, para) });
+    const de = livres.indexOf(e.active.id as ColunaOpcional), para = livres.indexOf(e.over.id as ColunaOpcional);
+    if (de >= 0 && para >= 0) muda({ ...prefs, colunas: [...arrayMove(livres, de, para), ...prefs.colunas.filter((c) => c !== "status" && c !== "comentarios")] });
   };
   const semData = linhas.filter((l) => l.reserva && !l.reserva.reserva_inicio);
   async function aplicarDatasDoEvento() {
@@ -356,7 +406,6 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const todosMarcados = definidas.length > 0 && definidas.every((l) => marcados.has(l.key));
   const alternar = (k: string) => setMarcados((s) => { const n = new Set(s); if (n.has(k)) n.delete(k); else n.add(k); return n; });
   const marcadas = definidas.filter((l) => marcados.has(l.key));
-  const emMassa = (s: Sentido) => { const ids = marcadas.map((l) => l.reserva!.id); const primeiro = transporteDe(marcadas[0]!, s); setTransporte({ reservaIds: ids, sentido: s, rotulo: `${ids.length} carros`, atual: marcadas.every((l) => transporteDe(l, s)?.id === primeiro?.id) ? primeiro : null }); };
 
   const semSaida = new Set(reservasSemChecklist(definidas.map((l) => l.reserva!), checklists, "saida"));
   const linhasSemSaida = definidas.filter((l) => semSaida.has(l.reserva!.id));
@@ -370,17 +419,17 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
         <div className="mt-vde__titulo"><h3 className="t-h3">Carros</h3><span className="mt-vde__contagem" title="Carros já escolhidos / pedidos ainda sem carro">{definidos} definido{definidos === 1 ? "" : "s"}{linhas.length - definidos > 0 ? ` · ${linhas.length - definidos} a definir` : ""}</span></div>
         <div className="mt-vde__ferramentas">
           <span title="Liga a edição de status, transporte, origem, datas e endereço de cada carro"><Switch checked={individual} onChange={setIndividual} label="Edição individual" /></span>
-          <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={ordenadas.length} largura={280} testid="colunas-do-evento">
+          <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={prefs.colunas.length} largura={280} testid="colunas-do-evento">
             <div className="mt-painel__corpo">
               <p className="t-body-sm t-muted">Dados do veículo</p>
               {INFO.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={prefs.infoCols.includes(c.id)} onChange={() => muda({ ...prefs, infoCols: prefs.infoCols.includes(c.id) ? prefs.infoCols.filter((x) => x !== c.id) : [...prefs.infoCols, c.id] })} />{c.titulo}</label>)}
-              {GRUPOS_DE_COLUNAS.map((g) => (
+              {PAINEL_DE_COLUNAS.map((g) => (
                 <div key={g.titulo} className="mt-painel__grupo">
                   <p className="t-body-sm t-muted" style={{ fontWeight: 600 }}>{g.titulo}</p>
-                  {g.ids.map((id) => <label key={id} className="mt-notion__linha"><input type="checkbox" checked={ordenadas.includes(id)} onChange={() => muda({ ...prefs, colunas: ordenadas.includes(id) ? ordenadas.filter((x) => x !== id) : [...ordenadas, id] })} />{tituloDe(id)}</label>)}
+                  {g.ids.map((id) => <label key={id} className="mt-notion__linha"><input type="checkbox" checked={prefs.colunas.includes(id)} onChange={() => muda({ ...prefs, colunas: prefs.colunas.includes(id) ? prefs.colunas.filter((x) => x !== id) : [...prefs.colunas, id] })} />{tituloDe(id)}</label>)}
                 </div>
               ))}
-              <p className="t-body-sm t-muted">Arraste o título da coluna para mudar a ordem e a borda do título para mudar a largura.</p>
+              <p className="t-body-sm t-muted">Os campos do transporte aparecem ao abrir "Transporte IDA" e "Transporte RETORNO" no título da tabela. Arraste a borda do título para mudar a largura.</p>
             </div>
           </Painel>
           <Painel rotulo="Ordenar e agrupar" icone={<SortAscending size={18} />} contagem={(prefs.ordem ? 1 : 0) + (prefs.agrupar ? 1 : 0)} largura={300} testid="ordenar-agrupar-evento">
@@ -408,8 +457,6 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
         <div className="mt-vde__massa" role="toolbar" aria-label="Ações em massa" data-testid="barra-em-massa">
           {marcadas.length > 0 && <>
             <b>{marcadas.length} carro{marcadas.length === 1 ? "" : "s"} marcado{marcadas.length === 1 ? "" : "s"}</b>
-            <Button size="sm" variant="secondary" onClick={() => emMassa("ida")} data-testid="massa-ida">Transporte de ida…</Button>
-            <Button size="sm" variant="secondary" onClick={() => emMassa("volta")} data-testid="massa-volta">Transporte de volta…</Button>
             {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => setLoteDeChecklist(marcadas.filter((l) => semSaida.has(l.reserva!.id)))} data-testid="massa-checklist">Checklist de envio…</Button>}
             <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setMarcados(new Set())}>Limpar</Button>
           </>}
@@ -422,14 +469,18 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
           <colgroup><col style={{ width: LARGURA_SEL }} /><col style={{ width: larguraDe("codigo") }} />{colunasInfo.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}{ordenadas.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}<col style={{ width: larguraDe("acoes") }} /></colgroup>
           <thead>
             <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
-              <SortableContext items={ordenadas} strategy={horizontalListSortingStrategy}>
+              <SortableContext items={livres} strategy={horizontalListSortingStrategy}>
                 <tr>
                   <th className="mt-vde__sel"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(definidas.map((l) => l.key)))} aria-label="Marcar todos os carros" disabled={definidas.length === 0} data-testid="marcar-todos" /></th>
                   <th><span className="mt-vde__cod">Código
                     <button type="button" className="mt-btn mt-btn--icone" aria-label={prefs.infoCols.length ? "Esconder placa, VIN, modelo, cor e MY" : "Mostrar placa, VIN, modelo, cor e MY"} aria-expanded={prefs.infoCols.length > 0} onClick={() => muda({ ...prefs, infoCols: prefs.infoCols.length ? [] : TODAS_INFO })} data-testid="toggle-info">{prefs.infoCols.length ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button>
                     <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiarOutlook()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span>{alca("codigo")}</th>
                   {colunasInfo.map((c) => <th key={c}>{tituloDe(c)}{alca(c)}</th>)}
-                  {ordenadas.map((c) => <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel>)}
+                  {ordenadas.map((c) => c === "transporteIda" || c === "transporteVolta" ? (
+                    <th key={c} className="mt-vde__bloco"><span className="mt-vde__cod">{tituloDe(c)}
+                      <button type="button" className="mt-btn mt-btn--icone" aria-expanded={prefs.abertos[c === "transporteIda" ? "ida" : "volta"]} aria-label={`${prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? "Recolher" : "Expandir"} ${tituloDe(c)}`} title="Mostrar ou esconder os campos do transporte" data-testid={`expandir-${c}`}
+                        onClick={() => { const k = c === "transporteIda" ? "ida" : "volta"; muda({ ...prefs, abertos: { ...prefs.abertos, [k]: !prefs.abertos[k] } }); }}>{prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? <CaretDown size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button></span>{alca(c)}</th>
+                  ) : livres.includes(c as ColunaOpcional) ? <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel> : <th key={c} className="mt-vde__sub">{tituloDe(c)}{alca(c)}</th>)}
                   <th className="mt-vde__acoes" aria-label="Ações" />
                 </tr>
               </SortableContext>
@@ -459,7 +510,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
                     </span>
                   </td>
                   {colunasInfo.map((c) => celula(l, li, c, textoDaCelula(c, l) || <span className="mt-vazio">—</span>))}
-                  {ordenadas.map((c) => !r ? <td key={c}><span className="mt-vazio">—</span></td> : celula(l, li, c, c === "transporteIda" ? botaoTransporte(l, "ida") : c === "transporteVolta" ? botaoTransporte(l, "volta") : c === "kmIda" || c === "kmVolta" ? <span className="mt-valor">{textoDaCelula(c, l) || <span className="mt-vazio">—</span>}</span> : editavel(l, c as keyof typeof campos)))}
+                  {ordenadas.map((c) => !r ? <td key={c}><span className="mt-vazio">—</span></td> : celula(l, li, c, c in camposDoBloco ? editavelNoBloco(l, c) : editavel(l, c as keyof typeof campos)))}
                   <td className="mt-vde__acoes">
                     {r && onSalvarChecklist && <Button variant="ghost" size="icon" aria-label={`Checklists de ${codigoDaLinha(l)}`} title="Checklists" onClick={() => setChecklist(l)}><ListChecks size={20} /></Button>}
                     {r && <Button variant="ghost" size="icon" aria-label={`Remover ${codigoDaLinha(l)} do evento`} onClick={() => void onRemoverReserva(r).catch((e: Error) => onErro(e.message))}><Trash size={20} /></Button>}
@@ -479,9 +530,6 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
         pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)}
         onReservarSemData={onReservarSemData ? (ids) => onReservarSemData(evento.id, ids, pedidoAlvo?.id) : undefined} />
-      <TransporteDoCarroSheet aberto={!!transporte} onFechar={() => { setTransporte(null); setMarcados(new Set()); }} tr={tr} eventoId={evento.id} reservaIds={transporte?.reservaIds ?? []}
-        carro={transporte?.rotulo ?? ""} sentido={transporte?.sentido ?? "ida"} atual={transporte?.atual ?? null}
-        rota={transporte ? rotaDoTransporte(transporte.sentido, [...reservas, ...reservasSemData].find((r) => r.id === transporte.reservaIds[0]) as Reserva | undefined, evento, locaisDoEvento) : { origem: null, destino: null }} />
       {onChecklistEmMassa && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento="saida" carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={onChecklistEmMassa} />}
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}

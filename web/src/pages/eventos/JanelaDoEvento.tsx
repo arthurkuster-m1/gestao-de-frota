@@ -130,8 +130,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   }
 
   // transportes e contratos DESTE evento
-  const transportesDoEvento = useMemo(() => tr.transportes.filter((t) => t.evento_id === evento.id), [tr.transportes, evento.id]);
-  const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes]);
+  const transportesDoEvento = useMemo(() => tr.transportes.filter((t) => t.evento_id === evento.id && !!t.referencia), [tr.transportes, evento.id]);
+  const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes, checklists: p.checklists ?? [] }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes, p.checklists]);
   const camposT = useMemo(() => camposDoTransporte(ctxT), [ctxT]);
   const contratosDoEvento = useMemo(() => k.contratos.filter((c) => c.evento_id === evento.id), [k.contratos, evento.id]);
   const ctxC = useMemo<ContextoDeContratos>(() => {

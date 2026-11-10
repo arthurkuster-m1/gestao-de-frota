@@ -66,7 +66,7 @@ export function PainelFinanceiro({ d }: { d: ReturnType<typeof useDadosDeEventos
                   {itens.map((i) => (
                     <tr key={i.transporte.id} data-testid="fin-linha">
                       <td><LinkNoLugar to={`/eventos/${i.transporte.evento_id}`} className="mt-reserva__evento">{eventos.get(i.transporte.evento_id) ?? "?"}</LinkNoLugar></td>
-                      <td><Link to={`/transportes/${i.transporte.id}`} className="mt-reserva__evento">{i.transporte.sentido === "ida" ? "Ida" : "Volta"} · {i.transporte.modalidade.toUpperCase()}{i.transporte.referencia ? ` ${i.transporte.referencia}` : ""}</Link></td>
+                      <td><Link to={`/transportes/${i.transporte.id}`} className="mt-reserva__evento">{i.transporte.sentido === "ida" ? "Ida" : "Volta"} · {(i.transporte.modalidade ?? "").toUpperCase()}{i.transporte.referencia ? ` ${i.transporte.referencia}` : ""}</Link></td>
                       <td>{ROTULO[i.situacao]}</td>
                       <td>{i.transporte.status_pagamento ? rotuloStatusPagamento(i.transporte.status_pagamento) : "—"}</td>
                       <td style={{ textAlign: "right" }}>{i.semValor ? <span className="mt-vazio">sem valor</span> : reais(i.valor)}</td>

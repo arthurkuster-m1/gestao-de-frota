@@ -21,7 +21,7 @@ export const TODOS_STATUS_PAGAMENTO = [...STATUS_DA_MODALIDADE.pta, ...STATUS_DA
 export const rotuloStatusPagamento = (v: string) => TODOS_STATUS_PAGAMENTO.find((s) => s.value === v)?.label ?? v;
 
 export type Transporte = {
-  id: string; evento_id: string; sentido: Sentido; modalidade: Modalidade; distancia_km: number | null; dias_viagem: number;
+  id: string; evento_id: string; sentido: Sentido; modalidade: Modalidade | null; distancia_km: number | null; dias_viagem: number;
   referencia: string | null; transportadora: string | null; valor_planejado: number | null; comentarios: string | null; created_at: string;
   /** De onde o carro sai e para onde vai: vêm do evento. */
   origem: string | null; destino: string | null;
@@ -29,7 +29,7 @@ export type Transporte = {
   status_pagamento: string | null; valor_real: number | null; data_pagamento: string | null; departamento: string | null;
 };
 export type TransporteNovo = {
-  evento_id: string; sentido: Sentido; modalidade: Modalidade; distancia_km?: number | null; dias_viagem?: number; referencia?: string | null;
+  evento_id: string; sentido: Sentido; modalidade?: Modalidade | null; distancia_km?: number | null; dias_viagem?: number; referencia?: string | null;
   transportadora?: string | null; valor_planejado?: number | null; comentarios?: string | null;
   origem?: string | null; destino?: string | null; status_pagamento?: string | null; valor_real?: number | null; data_pagamento?: string | null; departamento?: string | null;
 };

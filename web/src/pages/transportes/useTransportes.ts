@@ -1,9 +1,10 @@
 import { useVersaoDosDados } from "../../lib/sincronia";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarTransporte, criarTransporte, definirTransporteDasReservas, excluirTransporte, listarTransportes, listarVinculos } from "../../lib/transportes/dados";
 import { valorPorEvento } from "../../lib/transportes/regras";
+import { planejarCampo, type CampoDeTransporte, type Operacao } from "../../lib/transportes/porCarro";
 import type { Sentido, Transporte, TransporteNovo, VinculoDaReserva } from "../../lib/transportes/tipos";
 
 /** Transportes (com rota e pagamento dentro) e quem usa o quê. Sem a migration 0009 tudo fica vazio e o resto do app segue funcionando. */
@@ -18,6 +19,38 @@ export function useTransportes() {
   useEffect(() => {
     Promise.all([listarTransportes(), listarVinculos()]).then(([t, v]) => { setTransportes(t); setVinculos(v); setCarregado(true); }, (e: Error) => { setErro(e.message); setCarregado(true); });
   }, [versao]);
+
+  // espelho síncrono do estado: várias gravações coladas de uma vez (uma fila só) enxergam o resultado das anteriores
+  const espelho = useRef({ transportes, vinculos }); espelho.current = { transportes, vinculos };
+  const fila = useRef<Promise<void>>(Promise.resolve());
+  async function executar(op: Operacao) {
+    if (op.tipo === "criar") {
+      const criado = await criarTransporte(op.novo);
+      espelho.current = { ...espelho.current, transportes: [criado, ...espelho.current.transportes] }; setTransportes((l) => [criado, ...l]);
+      if (op.reservaIds.length) { const v = await definirTransporteDasReservas(op.reservaIds, op.novo.sentido, criado.id); espelho.current = { ...espelho.current, vinculos: espelho.current.vinculos.map((x) => v.find((y) => y.id === x.id) ?? x) }; setVinculos((l) => l.map((x) => v.find((y) => y.id === x.id) ?? x)); }
+    } else if (op.tipo === "vincular") {
+      const v = await definirTransporteDasReservas(op.reservaIds, op.sentido, op.transporteId);
+      espelho.current = { ...espelho.current, vinculos: espelho.current.vinculos.map((x) => v.find((y) => y.id === x.id) ?? x) }; setVinculos((l) => l.map((x) => v.find((y) => y.id === x.id) ?? x));
+    } else if (op.tipo === "atualizar") {
+      // o valor aparece na hora; a gravação confere e, se falhar, volta o anterior
+      const antes = espelho.current.transportes.find((x) => x.id === op.id);
+      if (antes) { const otimista = { ...antes, ...op.patch } as Transporte; espelho.current = { ...espelho.current, transportes: espelho.current.transportes.map((x) => (x.id === op.id ? otimista : x)) }; setTransportes((l) => l.map((x) => (x.id === op.id ? otimista : x))); }
+      let n: Transporte;
+      try { n = await atualizarTransporte(op.id, op.patch); }
+      catch (e) { if (antes) { espelho.current = { ...espelho.current, transportes: espelho.current.transportes.map((x) => (x.id === op.id ? antes : x)) }; setTransportes((l) => l.map((x) => (x.id === op.id ? antes : x))); } throw e; }
+      espelho.current = { ...espelho.current, transportes: espelho.current.transportes.map((x) => (x.id === n.id ? n : x)) }; setTransportes((l) => l.map((x) => (x.id === n.id ? n : x)));
+    } else {
+      await excluirTransporte(op.id);
+      const solta = (v: VinculoDaReserva): VinculoDaReserva => ({ ...v, transporte_ida_id: v.transporte_ida_id === op.id ? null : v.transporte_ida_id, transporte_volta_id: v.transporte_volta_id === op.id ? null : v.transporte_volta_id });
+      espelho.current = { transportes: espelho.current.transportes.filter((x) => x.id !== op.id), vinculos: espelho.current.vinculos.map(solta) };
+      setTransportes((l) => l.filter((x) => x.id !== op.id)); setVinculos((l) => l.map(solta));
+    }
+  }
+  /** Edita um campo do transporte de um carro (código, modalidade, transportadora, valor, km), na fila; o plano vem do estado de agora. */
+  const gravarCampo = (eventoId: string, reservaId: string, sentido: Sentido, campo: CampoDeTransporte, valor: string | number | null, rota: { origem: string | null; destino: string | null }): Promise<void> => {
+    const rodar = async () => { for (const op of planejarCampo({ ...espelho.current, eventoId, sentido, reservaId, campo, valor, rota })) await executar(op); };
+    const p = fila.current.then(rodar); fila.current = p.catch(() => undefined); return p;
+  };
 
   const valorDoEvento = useMemo(() => valorPorEvento(transportes), [transportes]);
   const trocar = <T extends { id: string }>(l: T[], novo: T) => l.map((x) => (x.id === novo.id ? novo : x));
@@ -39,5 +72,5 @@ export function useTransportes() {
     setVinculos((l) => l.map((x) => v.find((y) => y.id === x.id) ?? x));
   };
 
-  return { transportes, vinculos, carregado, erro, valorDoEvento, editarTransporte, criarT, excluirT, ligarCarros, gravarRota };
+  return { transportes, vinculos, carregado, erro, valorDoEvento, gravarCampo, editarTransporte, criarT, excluirT, ligarCarros, gravarRota };
 }

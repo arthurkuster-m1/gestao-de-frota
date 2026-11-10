@@ -4,6 +4,7 @@ import { reais, reservasDoTransporte } from "../../lib/transportes/regras";
 import { nomeCurtoDoLugar } from "../../lib/transportes/rota";
 import { MODALIDADES, SENTIDOS, TODOS_STATUS_PAGAMENTO, type Transporte, type VinculoDaReserva } from "../../lib/transportes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
+import type { Checklist } from "../../lib/checklists/tipos";
 
 const op = (l: readonly { value: string; label: string; tom: OpcaoDoCampo["tom"] }[]): OpcaoDoCampo[] => l.map((x) => ({ value: x.value, label: x.label, tom: x.tom }));
 export const OPCOES_SENTIDO = op(SENTIDOS);
@@ -13,8 +14,14 @@ const rotulo = (o: OpcaoDoCampo[], x: string) => o.find((y) => y.value === x)?.l
 const dinheiro = (n: number | null) => (n === null || n === undefined ? <span className="mt-vazio">—</span> : reais(n));
 
 export type ContextoDeTransportes = {
-  eventos: Map<string, Evento>; veiculos: Map<string, Veiculo>; reservas: Reserva[]; vinculos: VinculoDaReserva[]; transportes: Transporte[];
+  eventos: Map<string, Evento>; veiculos: Map<string, Veiculo>; reservas: Reserva[]; vinculos: VinculoDaReserva[]; transportes: Transporte[]; checklists: readonly Checklist[];
 };
+/** Agendado: já tem o código do transporte. Realizado: todos os carros dele têm o checklist (de saída na ida, de retorno na volta). */
+export const OPCOES_EXECUCAO: OpcaoDoCampo[] = [{ value: "agendado", label: "Agendado", tom: "warning" }, { value: "realizado", label: "Realizado", tom: "success" }];
+export function execucaoDoTransporte(t: Transporte, ctx: Pick<ContextoDeTransportes, "vinculos" | "checklists">): "agendado" | "realizado" {
+  const ids = reservasDoTransporte(t, ctx.vinculos); const momento = t.sentido === "ida" ? "saida" : "retorno";
+  return ids.length > 0 && ids.every((id) => ctx.checklists.some((c) => c.reserva_id === id && c.momento === momento)) ? "realizado" : "agendado";
+}
 const codigo = (v: Veiculo | undefined) => (v ? (v.codigo ?? v.modelo.toUpperCase()) : "?");
 
 /** Os campos de transporte (rota e pagamento dentro). Evento, Origem, Destino e Carros vêm do evento (só leitura); o resto se edita no lugar. */
@@ -22,9 +29,10 @@ export const camposDoTransporte = (ctx: ContextoDeTransportes): CampoDaTela<Tran
   const carros = (t: Transporte) => reservasDoTransporte(t, ctx.vinculos).map((id) => ctx.reservas.find((r) => r.id === id)).filter((r): r is Reserva => !!r).map((r) => codigo(ctx.veiculos.get(r.veiculo_id)));
   return [
     { id: "referencia", titulo: "Referência", tipo: "texto", valorDe: (t) => t.referencia, largura: 190, fixa: true, edicao: { coluna: "referencia", maxLength: 60, placeholder: "PTAS00666314" } },
+    { id: "execucao", titulo: "Execução", tipo: "opcao", valorDe: (t) => execucaoDoTransporte(t, ctx), opcoes: OPCOES_EXECUCAO, rotuloDoValor: (x) => rotulo(OPCOES_EXECUCAO, x), largura: 140 },
     { id: "evento", titulo: "Evento", tipo: "texto", valorDe: (t) => ctx.eventos.get(t.evento_id)?.nome ?? "?", largura: 220 },
     { id: "sentido", titulo: "Sentido", tipo: "opcao", valorDe: (t) => t.sentido, opcoes: OPCOES_SENTIDO, rotuloDoValor: (x) => rotulo(OPCOES_SENTIDO, x), largura: 120, edicao: { coluna: "sentido", obrigatorio: true } },
-    { id: "modalidade", titulo: "Modalidade", tipo: "opcao", valorDe: (t) => t.modalidade, opcoes: OPCOES_MODALIDADE, rotuloDoValor: (x) => rotulo(OPCOES_MODALIDADE, x), largura: 160, edicao: { coluna: "modalidade", obrigatorio: true } },
+    { id: "modalidade", titulo: "Modalidade", tipo: "opcao", valorDe: (t) => t.modalidade, opcoes: OPCOES_MODALIDADE, rotuloDoValor: (x) => rotulo(OPCOES_MODALIDADE, x), largura: 160, edicao: { coluna: "modalidade" } },
     { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (t) => t.origem, celula: (t) => (t.origem ? <span title={t.origem}>{nomeCurtoDoLugar(t.origem)}</span> : <span className="mt-vazio">—</span>), largura: 200 },
     { id: "destino", titulo: "Destino", tipo: "texto", valorDe: (t) => t.destino, celula: (t) => (t.destino ? <span title={t.destino}>{nomeCurtoDoLugar(t.destino)}</span> : <span className="mt-vazio">—</span>), largura: 200 },
     { id: "carros", titulo: "Carros", tipo: "texto", valorDe: (t) => { const c = carros(t); return c.length ? `${c.length} · ${c.join(", ")}` : null; }, largura: 300 },
