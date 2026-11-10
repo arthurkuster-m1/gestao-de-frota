@@ -297,3 +297,16 @@
 .mt-vde__indisp { flex: none; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--color-error-bg); color: var(--color-error-fg); border: 1px solid var(--color-error-fg); }
 .mt-vde__tabela tr.is-falta td { background: var(--color-surface); }
 .mt-vde__tabela tr.is-falta .mt-vde__pedido { color: var(--color-text-muted); }
+
+/* Início: próximos envios e retornos */
+.mt-proximos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.mt-proximos li { display: grid; grid-template-columns: minmax(160px, 1.4fr) 1fr 1.4fr; gap: 4px 16px; align-items: center; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
+.mt-proximos li.is-alerta { border-color: var(--color-warning-fg, #b45309); background: var(--color-warning-bg, rgba(245, 158, 11, 0.12)); }
+@media (max-width: 720px) { .mt-proximos li { grid-template-columns: 1fr; } }
+
+/* carros do evento: colunas de largura fixa (ajustável), texto longo com reticências */
+.mt-vde__tabela th, .mt-vde__tabela td { overflow: hidden; text-overflow: ellipsis; }
+.mt-vde__tabela th .mt-alca { z-index: 5; }
+.mt-vde__tabela td > .mt-valor, .mt-vde__tabela td > .mt-valor--edita { display: block; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-align: left; }
+.mt-vde__tabela td > .mt-vde__codigo { max-width: 100%; }
+.mt-painel__grupo { display: grid; gap: 2px; margin-bottom: 6px; }

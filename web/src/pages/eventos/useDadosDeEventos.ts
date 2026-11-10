@@ -4,6 +4,8 @@ import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { listarReservasSemData, reservarSemData, atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
 import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
+import { fatosDosEventos, statusAutomatico } from "../../lib/eventos/automacaoDeStatus";
+import { hojeLocal } from "../../lib/motor/datas";
 import { reservasSemChecklist } from "../../lib/checklists/regras";
 import { pedidoQueAtende } from "../../lib/eventos/desejados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
@@ -11,10 +13,14 @@ import { useManutencoes } from "../manutencoes/useManutencoes";
 import { useTransportes } from "../transportes/useTransportes";
 import { useChecklists } from "../checklists/useChecklists";
 import type { ReservaDoEvento, AnotacaoDoCarro, AnotacaoNova, Evento, EventoLocal, EventoLocalNovo, EventoNovo, ModeloDesejado, ModeloDesejadoNovo, Reserva } from "../../lib/eventos/tipos";
+import { rotuloStatusEvento } from "../../lib/eventos/tipos";
 import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import { listarVeiculos } from "../../lib/veiculos/dados";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoEvento, type ContextoDeEventos, type ReservaLinha } from "./camposDoEvento";
+
+/** Status que a automação já tentou aplicar nesta sessão ("id:status"), compartilhado entre as telas abertas. */
+const jaAutomatizados = new Set<string>();
 
 /** Os dados de eventos, reservas, locais e veículos e todas as ações sobre eles. Usado pela tela Eventos e pelo Planejamento. */
 export function useDadosDeEventos() {
@@ -31,16 +37,31 @@ export function useDadosDeEventos() {
   const tr = useTransportes();
   const ck = useChecklists((id, estado) => setReservas((l) => l.map((r) => (r.id === id ? { ...r, estado } : r))), (id) => reservas.find((r) => r.id === id)?.estado);
   const [erro, setErro] = useState<string | null>(null);
+  const [semDataOk, setSemDataOk] = useState(false);
 
   const versao = useVersaoDosDados();
   useEffect(() => {
     Promise.all([listarEventos(), listarReservas(), listarVeiculos()]).then(([e, r, v]) => { setEventos(e); setReservas(r); setVeiculos(v); }, (e: Error) => setErro(e.message));
-    listarReservasSemData().then(setReservasSemData, () => setReservasSemData([]));
+    listarReservasSemData().then((l) => { setReservasSemData(l); setSemDataOk(true); }, () => { setReservasSemData([]); setSemDataOk(true); });
     listarClientes().then(setClientes, () => setClientes([]));
     listarDesejados().then(setDesejados, () => setDesejados([]));
     listarAnotacoes().then(setAnotacoes, () => setAnotacoes([]));
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
   }, [versao]);
+
+  // Automação do status do evento (regras em lib/eventos/automacaoDeStatus.ts). Roda quando os dados mudam e a cada virada de dia; só anda para a frente.
+  const hoje = hojeLocal();
+  useEffect(() => {
+    if (eventos === null || !tr.carregado || !ck.carregado || !semDataOk) return;
+    const fatos = fatosDosEventos({ reservas: [...reservas, ...reservasSemData], vinculos: tr.vinculos, checklists: ck.checklists });
+    for (const e of eventos) {
+      const novo = statusAutomatico(e, fatos.get(e.id) ?? { carros: 0, comTransporteIda: 0, comTransporteVolta: 0, comChecklistSaida: 0, comChecklistRetorno: 0 }, hoje);
+      const chave = `${e.id}:${novo}`;
+      if (novo === e.status || jaAutomatizados.has(chave)) continue;
+      jaAutomatizados.add(chave);   // uma tentativa por mudança (se o banco recusar, não fica tentando em loop)
+      void atualizarEvento(e.id, { status: novo }).then((a) => { setEventos((l) => (l ?? []).map((x) => (x.id === a.id ? a : x))); toast(`${a.nome}: agora em “${rotuloStatusEvento(novo)}”`); }, () => undefined);
+    }
+  }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, ck.carregado, ck.checklists, semDataOk, hoje]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const ctx = useMemo<ContextoDeEventos>(() => {
     const m = new Map<string, Reserva[]>();

@@ -10,8 +10,9 @@ import type { Reserva } from "../../lib/eventos/tipos";
 export function useChecklists(aoMudarReserva: (reservaId: string, estado: Reserva["estado"]) => void, estadoDe: (reservaId: string) => Reserva["estado"] | undefined) {
   const toast = useToast();
   const [checklists, setChecklists] = useState<Checklist[]>([]);
+  const [carregado, setCarregado] = useState(false);
   const versao = useVersaoDosDados();
-  useEffect(() => { listarChecklists().then(setChecklists, () => setChecklists([])); }, [versao]);
+  useEffect(() => { listarChecklists().then((l) => { setChecklists(l); setCarregado(true); }, () => { setChecklists([]); setCarregado(true); }); }, [versao]);
 
   const salvar = async (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => {
     if (existente) {
@@ -32,5 +33,5 @@ export function useChecklists(aoMudarReserva: (reservaId: string, estado: Reserv
     for (const c of novos) { const antes = estadoDe(c.reserva_id); if (antes) { const depois = estadoAposChecklist(antes, momento); if (depois !== antes) aoMudarReserva(c.reserva_id, depois); } }
     toast(`Checklist de ${momento === "saida" ? "envio" : "retorno"} registrado para ${novos.length} carro${novos.length === 1 ? "" : "s"}`);
   };
-  return { checklists, salvar, salvarEmMassa };
+  return { carregado, checklists, salvar, salvarEmMassa };
 }

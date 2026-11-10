@@ -2,9 +2,10 @@
 type Tom = "success" | "warning" | "error" | "info" | "neutral" | "accent";
 
 export const STATUS_EVENTO = [
-  { value: "planejado", label: "Planejado", tom: "neutral" },
+  { value: "recebido", label: "Recebido", tom: "neutral" },
+  { value: "planejado", label: "Planejado", tom: "info" },
   { value: "solicitar_transporte", label: "Solicitar transporte", tom: "warning" },
-  { value: "envio_solicitado", label: "Envio solicitado", tom: "info" },
+  { value: "envio_agendado", label: "Envio agendado", tom: "info" },
   { value: "em_uso", label: "Em uso", tom: "accent" },
   { value: "solicitar_retorno", label: "Solicitar retorno", tom: "warning" },
   { value: "retorno_solicitado", label: "Retorno solicitado", tom: "info" },

@@ -33,17 +33,25 @@ import { OPCOES_STATUS_EVENTO } from "./camposDoEvento";
 import { TransporteDoCarroSheet } from "./TransporteDoCarroSheet";
 
 type Tr = ReturnType<typeof useTransportes>;
-type ColunaOpcional = "status" | "transporteIda" | "transporteVolta" | "origem" | "chegada" | "enderecoChegada" | "retirada" | "enderecoRetorno" | "comentarios" | "envio" | "retorno";
+type ColunaOpcional = "status" | "transporteIda" | "transporteVolta" | "origem" | "chegada" | "enderecoChegada" | "retirada" | "enderecoRetorno" | "comentarios" | "envio" | "retorno" | "kmIda" | "kmVolta";
 const COLUNAS_OPCIONAIS: { id: ColunaOpcional; titulo: string }[] = [
-  { id: "status", titulo: "Status do carro" }, { id: "transporteIda", titulo: "Transporte de ida" }, { id: "transporteVolta", titulo: "Transporte de volta" },
-  { id: "origem", titulo: "Origem" }, { id: "envio", titulo: "Data de envio" }, { id: "chegada", titulo: "Data de chegada" }, { id: "retirada", titulo: "Data de retirada" }, { id: "retorno", titulo: "Data de retorno" }, { id: "enderecoChegada", titulo: "Endereço de chegada" },
-  { id: "enderecoRetorno", titulo: "Endereço de retorno" }, { id: "comentarios", titulo: "Comentários" },
+  { id: "status", titulo: "Status do carro" }, { id: "comentarios", titulo: "Comentários" },
+  { id: "envio", titulo: "Data de envio" }, { id: "chegada", titulo: "Data de chegada" }, { id: "transporteIda", titulo: "Transporte de ida" },
+  { id: "origem", titulo: "Endereço de origem" }, { id: "enderecoChegada", titulo: "Endereço do evento" }, { id: "kmIda", titulo: "KM de distância (ida)" },
+  { id: "retirada", titulo: "Data de retirada" }, { id: "retorno", titulo: "Data de retorno" }, { id: "transporteVolta", titulo: "Transporte de volta" },
+  { id: "enderecoRetorno", titulo: "Endereço de retorno" }, { id: "kmVolta", titulo: "KM de distância (volta)" },
+];
+/** Os interruptores do painel "Colunas", em blocos. */
+const GRUPOS_DE_COLUNAS: { titulo: string; ids: ColunaOpcional[] }[] = [
+  { titulo: "Carro", ids: ["status", "comentarios"] },
+  { titulo: "Ida", ids: ["envio", "chegada", "transporteIda", "origem", "enderecoChegada", "kmIda"] },
+  { titulo: "Retorno", ids: ["retirada", "retorno", "transporteVolta", "enderecoRetorno", "kmVolta"] },
 ];
 const INFO = [{ id: "placa", titulo: "Placa" }, { id: "vin", titulo: "VIN" }, { id: "modelo", titulo: "Modelo" }, { id: "cor", titulo: "Cor" }, { id: "my", titulo: "MY" }] as const;
 const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "origem", "chegada", "enderecoChegada", "retirada", "enderecoRetorno", "comentarios", "envio", "retorno"];
 const CHAVE = "frota:evento-veiculos:v2";
 /** `colunas` = as colunas ligadas, NA ORDEM em que aparecem (arrastar o título muda a ordem). `infoCols` = quais dados do veículo aparecem ao lado do código. `ordem`/`agrupar` = ordenar e agrupar as linhas. */
-type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null };
+type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null; /** largura de cada coluna (px), ajustada arrastando a borda do título */ larguras: Record<string, number> };
 const TODAS_INFO = INFO.map((c) => c.id as string);
 function lerPrefs(): Prefs {
   try {
@@ -53,12 +61,20 @@ function lerPrefs(): Prefs {
       colunas: p.colunas.filter((c) => COLUNAS_OPCIONAIS.some((o) => o.id === c)),
       ordem: p.ordem && typeof p.ordem.col === "string" ? { col: p.ordem.col, dir: p.ordem.dir === "desc" ? "desc" : "asc" } : null,
       agrupar: typeof p.agrupar === "string" ? p.agrupar : null,
+      larguras: p.larguras && typeof p.larguras === "object" ? Object.fromEntries(Object.entries(p.larguras).filter(([, v]) => typeof v === "number" && v >= 60 && v <= 900)) : {},
     };
   } catch { /* sem armazenamento */ }
-  return { infoCols: [], colunas: [], ordem: null, agrupar: null };
+  return { infoCols: [], colunas: [], ordem: null, agrupar: null, larguras: {} };
 }
 function gravarPrefs(p: Prefs) { try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento */ } }
 const COLUNAS_DE_ORDEM = [{ id: "codigo", titulo: "Código" }, ...INFO, ...COLUNAS_OPCIONAIS] as { id: string; titulo: string }[];
+
+/** Largura inicial de cada coluna (px); o título se arrasta pela borda para mudar. */
+const LARGURA_PADRAO: Record<string, number> = {
+  codigo: 230, placa: 100, vin: 190, modelo: 220, cor: 170, my: 70, status: 170, comentarios: 240, envio: 140, chegada: 140, retirada: 140, retorno: 140,
+  transporteIda: 240, transporteVolta: 240, origem: 260, enderecoChegada: 260, enderecoRetorno: 260, kmIda: 150, kmVolta: 150, acoes: 120,
+};
+const LARGURA_MIN = 70, LARGURA_MAX = 700, LARGURA_SEL = 44;
 
 type Props = {
   evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; /** carros no evento ainda sem data */ reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[]; tr: Tr;
@@ -85,6 +101,20 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const [transporte, setTransporte] = useState<{ reservaIds: string[]; sentido: Sentido; rotulo: string; atual: Transporte | null } | null>(null);
   const [checklist, setChecklist] = useState<LinhaDoEvento | null>(null);
   const [loteDeChecklist, setLoteDeChecklist] = useState<LinhaDoEvento[] | null>(null);
+  const [arrastoDeLargura, setArrastoDeLargura] = useState<{ id: string; w: number } | null>(null);
+  const prefsAgora = useRef(prefs); prefsAgora.current = prefs;
+  const larguraDe = (id: string) => (arrastoDeLargura?.id === id ? arrastoDeLargura.w : prefs.larguras[id] ?? LARGURA_PADRAO[id] ?? 160);
+  /** Arrastar a borda direita do título muda a largura da coluna (duplo clique volta ao padrão). */
+  const redimensionar = (e: React.PointerEvent<HTMLElement>, id: string) => {
+    e.preventDefault(); e.stopPropagation();
+    const alvo = e.currentTarget; alvo.setPointerCapture(e.pointerId);
+    const x0 = e.clientX, w0 = larguraDe(id); let w = w0;
+    const mover = (ev: PointerEvent) => { w = Math.round(Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, w0 + ev.clientX - x0))); setArrastoDeLargura({ id, w }); };
+    const soltar = () => { alvo.removeEventListener("pointermove", mover); alvo.removeEventListener("pointerup", soltar); alvo.removeEventListener("pointercancel", soltar); setArrastoDeLargura(null); if (w !== w0) muda({ ...prefsAgora.current, larguras: { ...prefsAgora.current.larguras, [id]: w } }); };
+    alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar); alvo.addEventListener("pointercancel", soltar);
+  };
+  const alca = (id: string) => <span className="mt-alca" role="separator" aria-label={`Largura de ${tituloDe(id)}`} title="Arraste para mudar a largura (duplo clique: padrão)" onPointerDown={(e) => redimensionar(e, id)} onClick={(e) => e.stopPropagation()}
+    onDoubleClick={() => { const { [id]: _, ...resto } = prefsAgora.current.larguras; void _; muda({ ...prefsAgora.current, larguras: resto }); }} />;
   const [marcados, setMarcados] = useState<Set<string>>(new Set());          // carros marcados (caixinha) para ações em massa
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);      // bloco de células selecionado
   const arrastandoSel = useRef(false);
@@ -132,6 +162,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const navegaveis = Object.keys(campos);
   useEffect(() => { if (individual && pendente) { ed.abrir(pendente.l, campos[pendente.id as keyof typeof campos]); setPendente(null); } }, [individual, pendente]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  /** KM do carro: o do transporte dele (ida ou volta); sem transporte, o do evento. */
+  const kmDe = (l: LinhaDoEvento, s: Sentido): number | null => transporteDe(l, s)?.distancia_km ?? (s === "ida" ? evento.distancia_ida_km : evento.distancia_volta_km) ?? null;
   const resumoTexto = (t: Transporte | null) => (t ? [t.modalidade === "pta" ? "PTA" : t.modalidade === "tso" ? "TSO" : "Retirada", t.referencia, t.transportadora, t.valor_planejado != null ? reais(t.valor_planejado) : null].filter(Boolean).join(" · ") : "");
   /** O texto de uma célula como aparece (é o que vai para a área de transferência). */
   const textoDaCelula = (colId: string, l: LinhaDoEvento): string => {
@@ -140,6 +172,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       case "placa": return v?.placa ?? ""; case "vin": return v?.vin ?? ""; case "modelo": return v?.modelo ?? ""; case "cor": return v?.cor ?? ""; case "my": return v?.my ?? "";
       case "status": return OPCOES_STATUS_EVENTO.find((o) => o.value === ef.status.valor)?.label ?? ef.status.valor ?? "";
       case "codigo": return codigoDaLinha(l);
+      case "kmIda": { const k = kmDe(l, "ida"); return k == null ? "" : `${k.toLocaleString("pt-BR")} km`; }
+      case "kmVolta": { const k = kmDe(l, "volta"); return k == null ? "" : `${k.toLocaleString("pt-BR")} km`; }
       case "origem": return ef.origem.valor ?? ""; case "enderecoChegada": return ef.enderecoChegada.valor ?? "";
       case "enderecoRetorno": return ef.enderecoRetorno.valor ?? ""; case "comentarios": return l.reserva?.comentarios ?? "";
       case "envio": return ef.envio.valor ? formatarDiaBr(ef.envio.valor) : ""; case "retorno": return ef.retorno.valor ? formatarDiaBr(ef.retorno.valor) : "";
@@ -322,9 +356,13 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
             <div className="mt-painel__corpo">
               <p className="t-body-sm t-muted">Dados do veículo</p>
               {INFO.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={prefs.infoCols.includes(c.id)} onChange={() => muda({ ...prefs, infoCols: prefs.infoCols.includes(c.id) ? prefs.infoCols.filter((x) => x !== c.id) : [...prefs.infoCols, c.id] })} />{c.titulo}</label>)}
-              <p className="t-body-sm t-muted">Dados do carro neste evento</p>
-              {COLUNAS_OPCIONAIS.map((c) => <label key={c.id} className="mt-notion__linha"><input type="checkbox" checked={ordenadas.includes(c.id)} onChange={() => muda({ ...prefs, colunas: ordenadas.includes(c.id) ? ordenadas.filter((x) => x !== c.id) : [...ordenadas, c.id] })} />{c.titulo}</label>)}
-              <p className="t-body-sm t-muted">Arraste o título da coluna na tabela para mudar a ordem.</p>
+              {GRUPOS_DE_COLUNAS.map((g) => (
+                <div key={g.titulo} className="mt-painel__grupo">
+                  <p className="t-body-sm t-muted" style={{ fontWeight: 700 }}>{g.titulo}</p>
+                  {g.ids.map((id) => <label key={id} className="mt-notion__linha"><input type="checkbox" checked={ordenadas.includes(id)} onChange={() => muda({ ...prefs, colunas: ordenadas.includes(id) ? ordenadas.filter((x) => x !== id) : [...ordenadas, id] })} />{tituloDe(id)}</label>)}
+                </div>
+              ))}
+              <p className="t-body-sm t-muted">Arraste o título da coluna para mudar a ordem e a borda do título para mudar a largura.</p>
             </div>
           </Painel>
           <Painel rotulo="Ordenar e agrupar" icone={<SortAscending size={18} />} contagem={(prefs.ordem ? 1 : 0) + (prefs.agrupar ? 1 : 0)} largura={300} testid="ordenar-agrupar-evento">
@@ -362,7 +400,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       )}
 
       <div className="mt-vde__rolar">
-        <table className="mt-vde__tabela">
+        <table className="mt-vde__tabela" style={{ width: LARGURA_SEL + [larguraDe("codigo"), ...colunasInfo.map(larguraDe), ...ordenadas.map(larguraDe), larguraDe("acoes")].reduce((a, b) => a + b, 0), tableLayout: "fixed" }}>
+          <colgroup><col style={{ width: LARGURA_SEL }} /><col style={{ width: larguraDe("codigo") }} />{colunasInfo.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}{ordenadas.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}<col style={{ width: larguraDe("acoes") }} /></colgroup>
           <thead>
             <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
               <SortableContext items={ordenadas} strategy={horizontalListSortingStrategy}>
@@ -370,9 +409,9 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
                   <th className="mt-vde__sel"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(definidas.map((l) => l.key)))} aria-label="Marcar todos os carros" disabled={definidas.length === 0} data-testid="marcar-todos" /></th>
                   <th><span className="mt-vde__cod">Código
                     <button type="button" className="mt-btn mt-btn--icone" aria-label={prefs.infoCols.length ? "Esconder placa, VIN, modelo, cor e MY" : "Mostrar placa, VIN, modelo, cor e MY"} aria-expanded={prefs.infoCols.length > 0} onClick={() => muda({ ...prefs, infoCols: prefs.infoCols.length ? [] : TODAS_INFO })} data-testid="toggle-info">{prefs.infoCols.length ? <CaretLeft size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button>
-                    <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiarOutlook()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span></th>
-                  {colunasInfo.map((c) => <th key={c}>{tituloDe(c)}</th>)}
-                  {ordenadas.map((c) => <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}</ThOrdenavel>)}
+                    <button type="button" className="mt-btn mt-btn--icone" aria-label="Copiar tabela para o Outlook" title="Copiar para o Outlook" onClick={() => void copiarOutlook()} data-testid="copiar-outlook"><ClipboardText size={16} /></button></span>{alca("codigo")}</th>
+                  {colunasInfo.map((c) => <th key={c}>{tituloDe(c)}{alca(c)}</th>)}
+                  {ordenadas.map((c) => <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel>)}
                   <th className="mt-vde__acoes" aria-label="Ações" />
                 </tr>
               </SortableContext>
@@ -402,7 +441,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
                     </span>
                   </td>
                   {colunasInfo.map((c) => celula(l, li, c, textoDaCelula(c, l) || <span className="mt-vazio">—</span>))}
-                  {ordenadas.map((c) => !r ? <td key={c}><span className="mt-vazio">—</span></td> : celula(l, li, c, c === "transporteIda" ? botaoTransporte(l, "ida") : c === "transporteVolta" ? botaoTransporte(l, "volta") : editavel(l, c as keyof typeof campos)))}
+                  {ordenadas.map((c) => !r ? <td key={c}><span className="mt-vazio">—</span></td> : celula(l, li, c, c === "transporteIda" ? botaoTransporte(l, "ida") : c === "transporteVolta" ? botaoTransporte(l, "volta") : c === "kmIda" || c === "kmVolta" ? <span className="mt-valor">{textoDaCelula(c, l) || <span className="mt-vazio">—</span>}</span> : editavel(l, c as keyof typeof campos)))}
                   <td className="mt-vde__acoes">
                     {r && onSalvarChecklist && <Button variant="ghost" size="icon" aria-label={`Checklists de ${codigoDaLinha(l)}`} title="Checklists" onClick={() => setChecklist(l)}><ListChecks size={20} /></Button>}
                     {r && <Button variant="ghost" size="icon" aria-label={`Remover ${codigoDaLinha(l)} do evento`} onClick={() => void onRemoverReserva(r).catch((e: Error) => onErro(e.message))}><Trash size={20} /></Button>}

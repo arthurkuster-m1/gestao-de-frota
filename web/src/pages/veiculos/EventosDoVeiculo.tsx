@@ -7,7 +7,7 @@ import { formatarDiaBr } from "../../lib/motor/datas";
 import { ESTADOS_RESERVA, STATUS_EVENTO, type Evento, type EventoLocal, type ReservaDoEvento } from "../../lib/eventos/tipos";
 
 /** Eventos mais "vivos" primeiro: o que está acontecendo, depois o que vem, e por fim os concluídos. */
-const ORDEM_DOS_GRUPOS = ["em_uso", "retorno_solicitado", "solicitar_retorno", "envio_solicitado", "solicitar_transporte", "planejado", "concluido"];
+const ORDEM_DOS_GRUPOS = ["em_uso", "retorno_solicitado", "solicitar_retorno", "envio_agendado", "solicitar_transporte", "planejado", "recebido", "concluido"];
 const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 type Linha = { r: ReservaDoEvento; e: Evento; cliente: string; local: string; texto: string };
 
