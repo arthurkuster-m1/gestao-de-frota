@@ -75,6 +75,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
   const selecao = useMemo(() => ({
     ids: selecionados,
     alternar: (id: string) => setSelecionados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; }),
+    definir: (ids: Set<string>) => setSelecionados(new Set(ids)),
     alternarVarios: (ids: string[], marcar: boolean) => setSelecionados((s) => { const n = new Set(s); for (const id of ids) { if (marcar) n.add(id); else n.delete(id); } return n; }),
   }), [selecionados]);
   const [abaId, setAbaId] = useState("todas");
@@ -119,7 +120,14 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
         {!compacta && <div className="mt-cabecalho"><div><h1 className="t-h1">{titulo}</h1><p className="t-body t-muted">{subtitulo}</p></div>{cabecalhoDireita}</div>}
         {avisos}
 
-        <BarraDeVisualizacoes<T> visoes={abas} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
+        <BarraDeVisualizacoes<T> sobreposto={selecionados.size > 0 ? (
+          <div className="mt-selbar" role="toolbar" aria-label="Ações da seleção" data-testid="barra-selecao">
+            <b>{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</b>
+            <Button size="sm" onClick={() => { setSoSelecao(new Set(selecionados)); setSelecionados(new Set()); }} data-testid="filtrar-selecao">Filtrar seleção</Button>
+            {acoesDaSelecao?.({ ids: [...selecionados], itens: (linhas ?? []).filter((x) => selecionados.has(idDe(x))) as T[], limpar: () => setSelecionados(new Set()) })}
+            <Button size="sm" variant="ghost" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
+          </div>
+        ) : undefined} visoes={abas} abaId={abaId} onAba={irParaAba} alterada={alterada} ocupado={ocupado} erro={erroVisao ?? v.erro}
           layoutAtivo={modo === "cards" ? "galeria" : modo === "timeline" ? "timeline" : "tabela"} layoutsDisponiveis={layouts} layoutFixo={!!modoFixo}
           campos={campos} prefs={prefs} onPrefs={onPrefs}
           onNovoLayout={async (layout: Layout, nome: string) => { const nova = await comAviso(() => v.criar(nome, layout, { visualizacao: layout })); if (nova) irParaAba(nova.id); }}
@@ -156,15 +164,6 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           <div className="mt-chips" data-testid="chip-selecao"><span className="mt-chip is-on"><b>Seleção</b><span className="mt-chip__valor">{soSelecao.size} {soSelecao.size === 1 ? "item" : "itens"}</span>
             <button type="button" className="mt-chip__lixo" aria-label="Tirar o filtro da seleção" title="Mostrar tudo de novo" onClick={() => setSoSelecao(null)} data-testid="tirar-filtro-selecao">✕</button></span></div>
         )}
-        {selecionados.size > 0 && (
-          <div className="mt-selbar" role="toolbar" aria-label="Ações da seleção" data-testid="barra-selecao">
-            <b>{selecionados.size} selecionado{selecionados.size === 1 ? "" : "s"}</b>
-            <Button size="sm" onClick={() => { setSoSelecao(new Set(selecionados)); setSelecionados(new Set()); }} data-testid="filtrar-selecao">Filtrar seleção</Button>
-            {acoesDaSelecao?.({ ids: [...selecionados], itens: (linhas ?? []).filter((x) => selecionados.has(idDe(x))) as T[], limpar: () => setSelecionados(new Set()) })}
-            <Button size="sm" variant="ghost" onClick={() => setSelecionados(new Set())}>Limpar seleção</Button>
-          </div>
-        )}
-
         {erro ? <Card><p className="t-body" role="alert">Não consegui carregar {titulo.toLowerCase()}: {erro}</p></Card>
           : !linhas ? <Card><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /><div style={{ height: 8 }} /><Skeleton h={24} /></Card>
           : modo === "timeline" && linhaDoTempo

@@ -7,7 +7,8 @@ import { empilhar, totalDeFaixas } from "../../lib/linhaDoTempo/faixas";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { diaDaSemanaDaChave, diferencaEmDias, hojeLocal, somarDias } from "../../lib/motor/datas";
-import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { LARGURA_MAXIMA, LARGURA_MINIMA, limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { larguraIdeal } from "./larguraIdeal";
 import { CampoEditavel } from "./CampoEditavel";
 import { CaixaDeSelecao, type Selecao } from "./CaixaDeSelecao";
 import { formatar } from "./formatar";
@@ -106,6 +107,12 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
     alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar);
   };
 
+  /** Duplo clique na borda da coluna da parte fixa: ajusta ao maior texto (como no Excel). */
+  const ajustarAoTexto = (id: string) => {
+    const raiz = rolagem.current?.closest<HTMLElement>(".mt-tl-wrap") ?? rolagem.current; if (!raiz || !onPrefs) return;
+    const celulas = [...raiz.querySelectorAll<HTMLElement>(`.mt-tl__celula[data-campo="${id}"], .mt-tl__celula[data-cab="${id}"]`)];
+    if (celulas.length) onPrefs({ ...prefs, larguras: { ...prefs.larguras, [id]: limitarLargura(larguraIdeal(celulas, raiz, LARGURA_MINIMA, LARGURA_MAXIMA)) } });
+  };
   const aoRolarDoUsuario = () => { const el = rolagem.current; if (!el || ignorar.current) return; eixo.aoRolar(el.scrollLeft, Math.max(0, el.clientWidth - larguraEsq)); };
 
   function comecarArrasto(e: React.PointerEvent, linha: T, barra: Barra) {
@@ -204,7 +211,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
         <div className="mt-tl" ref={rolagem} onScroll={aoRolarDoUsuario} style={alturaMax ? { maxHeight: alturaMax } : undefined} data-testid="rolagem-tl">
           <div className="mt-tl__grade" style={{ width: larguraEsq + larguraEixo, ["--esq" as string]: `${larguraEsq}px` }}>
             <div className="mt-tl__cabecalho">
-              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c, i) => <div key={c.id} className="mt-tl__celula mt-tl__cab" style={{ width: c.largura }}>{porId.get(c.id)?.titulo}{i === 0 && extrasDaPrimeira?.(resultado.linhas as T[])}{onPrefs && <span className="mt-alca" role="separator" aria-label={`Largura de ${porId.get(c.id)?.titulo}`} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} />}</div>)}</div>
+              <div className="mt-tl__esq mt-tl__cab-esq" style={{ width: larguraEsq }}>{colunasEsq.map((c, i) => <div key={c.id} className="mt-tl__celula mt-tl__cab" data-cab={c.id} style={{ width: c.largura }}>{porId.get(c.id)?.titulo}{i === 0 && extrasDaPrimeira?.(resultado.linhas as T[])}{onPrefs && <span className="mt-alca" role="separator" aria-label={`Largura de ${porId.get(c.id)?.titulo}`} onPointerDown={(e) => redimensionar(e, c.id, c.largura)} onDoubleClick={(e) => { e.stopPropagation(); ajustarAoTexto(c.id); }} title="Arraste para mudar a largura · duplo clique ajusta ao texto" />}</div>)}</div>
               <div className="mt-tl__eixo" style={{ width: larguraEixo }}>
                 <div className="mt-tl__meses">{meses.map((m) => <div key={m.chave} className="mt-tl__mes" style={{ width: m.dias * larguraDia }}><span>{nomeDoMes(m.chave)}</span></div>)}</div>
                 <div className="mt-tl__dias" style={{ width: larguraEixo }}>

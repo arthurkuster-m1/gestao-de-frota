@@ -8,6 +8,7 @@ import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
 import { CampoEditavel } from "../../components/motor/CampoEditavel";
 import { Painel } from "../../components/motor/Painel";
+import { larguraIdeal } from "../../components/motor/larguraIdeal";
 import { prepararEdicao } from "../../components/motor/edicao";
 import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, type Ponto } from "../../components/motor/selecao";
 import { ThOrdenavel } from "../../components/motor/ThOrdenavel";
@@ -113,8 +114,14 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
     const soltar = () => { alvo.removeEventListener("pointermove", mover); alvo.removeEventListener("pointerup", soltar); alvo.removeEventListener("pointercancel", soltar); setArrastoDeLargura(null); if (w !== w0) muda({ ...prefsAgora.current, larguras: { ...prefsAgora.current.larguras, [id]: w } }); };
     alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar); alvo.addEventListener("pointercancel", soltar);
   };
-  const alca = (id: string) => <span className="mt-alca" role="separator" aria-label={`Largura de ${tituloDe(id)}`} title="Arraste para mudar a largura (duplo clique: padrão)" onPointerDown={(e) => redimensionar(e, id)} onClick={(e) => e.stopPropagation()}
-    onDoubleClick={() => { const { [id]: _, ...resto } = prefsAgora.current.larguras; void _; muda({ ...prefsAgora.current, larguras: resto }); }} />;
+  const alca = (id: string) => <span className="mt-alca" role="separator" aria-label={`Largura de ${tituloDe(id)}`} title="Arraste para mudar a largura · duplo clique ajusta ao texto" onPointerDown={(e) => redimensionar(e, id)} onClick={(e) => e.stopPropagation()}
+    onDoubleClick={(e) => {
+      // ajusta ao maior texto da coluna (como no Excel): mede o título e todas as células da mesma posição
+      const th = (e.currentTarget as HTMLElement).closest("th"), tabela = th?.closest("table"), raiz = th?.closest<HTMLElement>(".mt-vde__rolar");
+      if (!th || !tabela || !raiz) return;
+      const celulas = [...tabela.querySelectorAll<HTMLTableRowElement>("tr")].filter((r) => !r.classList.contains("mt-vde__grupo")).map((r) => r.children[th.cellIndex] as HTMLElement | undefined).filter((x): x is HTMLElement => !!x);
+      muda({ ...prefsAgora.current, larguras: { ...prefsAgora.current.larguras, [id]: Math.min(LARGURA_MAX, Math.max(LARGURA_MIN, larguraIdeal(celulas, raiz, LARGURA_MIN, LARGURA_MAX))) } });
+    }} />;
   const [marcados, setMarcados] = useState<Set<string>>(new Set());          // carros marcados (caixinha) para ações em massa
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);      // bloco de células selecionado
   const arrastandoSel = useRef(false);

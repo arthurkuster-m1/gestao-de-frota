@@ -6,9 +6,10 @@ import { ArrowSquareOut, CaretDown, CaretRight, CaretUp, X } from "@phosphor-ico
 import { cx, useToast } from "../../ds";
 import { aplicarConsulta } from "../../lib/motor/consulta";
 import { hojeLocal } from "../../lib/motor/datas";
-import { limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
-import { CaixaDeSelecao, type Selecao } from "./CaixaDeSelecao";
+import { LARGURA_MAXIMA, LARGURA_MINIMA, limitarLargura, resolverColunas, type PreferenciasDaTabela } from "../../lib/motor/layout";
+import { CaixaDeSelecao, aposArrastoDeSelecao, type Selecao } from "./CaixaDeSelecao";
 import { IconeDoTipo } from "./IconeDoTipo";
+import { larguraIdeal } from "./larguraIdeal";
 import { ThOrdenavel } from "./ThOrdenavel";
 import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCores } from "./EditorDeCores";
@@ -147,6 +148,13 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar);
   };
 
+  /** Duplo clique na borda: a coluna fica do tamanho do maior texto dela (encolhe ou cresce). */
+  const ajustarAoTexto = (id: string) => {
+    const raiz = caixa.current; if (!raiz) return;
+    const celulas = [...raiz.querySelectorAll<HTMLElement>(`th[data-col="${id}"], td[data-campo="${id}"]`)];
+    if (celulas.length === 0) return;
+    onPrefs({ ...prefs, larguras: { ...prefs.larguras, [id]: limitarLargura(larguraIdeal(celulas, raiz, LARGURA_MINIMA, LARGURA_MAXIMA)) } });
+  };
   const editaveis = colunas.filter((c) => campoPorId.get(c.id)?.edicao).map((c) => c.id);
   const celulaStyle = (i: number) => (i < congeladas ? { position: "sticky" as const, left: esquerda[i] } : undefined);
   const classeCongelada = (i: number) => cx(i < congeladas && "mt-cong", i === congeladas - 1 && "mt-cong--ultima");
@@ -176,12 +184,35 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     const conteudoDaCelula = i === 0 && onAbrir ? <span className="mt-primeira">{iconeDaPrimeira && <span className="mt-primeira__icone" aria-hidden>{iconeDaPrimeira}</span>}<span className="mt-primeira__txt">{formatar(campo, l)}</span><button type="button" className="mt-abrir" aria-label="Abrir ficha" onClick={(e) => { e.stopPropagation(); onAbrir(l); }}><ArrowSquareOut size={13} /><span>Abrir</span></button></span> : formatar(campo, l);
     return (
       <td key={c.id} style={celulaStyle(i)} onMouseDown={aoPressionar} onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: r, c: i } } : v)); }} className={cx(classeCongelada(i), bordas, (prefs.quebrarLinhas ?? []).includes(c.id) && "mt-quebra", editavel && "mt-editavel", !editavel && onAbrir && "mt-abre", ed.estaSalvando(l, c.id) && "is-salvando")} onClick={clique} data-campo={c.id} data-editavel={editavel || undefined} title={campo.tipo === "texto" ? String(campo.valorDe(l) ?? "") || undefined : undefined}>
-        {i === 0 && selecao ? <span className="mt-comchk"><CaixaDeSelecao marcada={selecao.ids.has(idDe(l))} onChange={() => selecao.alternar(idDe(l))} rotulo="Selecionar linha" />{conteudoDaCelula}</span> : conteudoDaCelula}
+        {i === 0 && selecao ? <span className="mt-comchk"><CaixaDeSelecao marcada={selecao.ids.has(idDe(l))} onChange={() => { ancoraDaSelecao.current = idDe(l); selecao.alternar(idDe(l)); }} onPressionar={() => iniciarArrastoDeLinhas(idDe(l))} onShift={() => selecionarAte(idDe(l))} rotulo="Selecionar linha" />{conteudoDaCelula}</span> : conteudoDaCelula}
       </td>
     );
   };
+  // ---- selecionar várias linhas: arrastar o mouse sobre as caixinhas (como no Notion) ou clicar com Shift
+  const ancoraDaSelecao = useRef<string | null>(null);
+  const idsNaTela = () => [...(caixa.current?.querySelectorAll<HTMLElement>("tbody tr[data-id]") ?? [])].map((r) => r.dataset.id!);
+  function iniciarArrastoDeLinhas(inicio: string) {
+    if (!selecao) return;
+    const base = new Set(selecao.ids), marcar = !base.has(inicio); let moveu = false;
+    const mover = (ev: PointerEvent) => {
+      const alvo = document.elementFromPoint(ev.clientX, ev.clientY)?.closest<HTMLElement>("tr[data-id]"); if (!alvo) return;
+      const ids = idsNaTela(), a = ids.indexOf(inicio), b = ids.indexOf(alvo.dataset.id!); if (b < 0 || (!moveu && b === a)) return;
+      if (!moveu) { moveu = true; document.body.classList.add("mt-arrastando-linhas"); }
+      const n = new Set(base); for (const id of ids.slice(Math.min(a, b), Math.max(a, b) + 1)) { if (marcar) n.add(id); else n.delete(id); }
+      selecao.definir(n);
+    };
+    const fim = () => { window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", fim); window.removeEventListener("pointercancel", fim); document.body.classList.remove("mt-arrastando-linhas"); if (moveu) { aposArrastoDeSelecao(); ancoraDaSelecao.current = inicio; } };
+    window.addEventListener("pointermove", mover); window.addEventListener("pointerup", fim); window.addEventListener("pointercancel", fim);
+  }
+  function selecionarAte(id: string) {
+    if (!selecao) return;
+    const ids = idsNaTela(), a = ancoraDaSelecao.current ? ids.indexOf(ancoraDaSelecao.current) : -1, b = ids.indexOf(id);
+    if (b < 0) return;
+    const faixa = a < 0 ? [id] : ids.slice(Math.min(a, b), Math.max(a, b) + 1);
+    selecao.alternarVarios(faixa, true); ancoraDaSelecao.current = id;
+  }
   const linha = (l: T) => (
-    <tr key={idDe(l)} data-testid="linha-motor" className={selecao?.ids.has(idDe(l)) ? "is-sel" : undefined}>
+    <tr key={idDe(l)} data-id={idDe(l)} data-testid="linha-motor" className={selecao?.ids.has(idDe(l)) ? "is-sel" : undefined}>
       {colunas.map((c, i) => celula(l, c, i, indiceDe.get(idDe(l)) ?? 0))}
     </tr>
   );
@@ -205,7 +236,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
                       <ThOrdenavel key={c.id} id={c.id} travada={i < congeladas || !!c.fixa} estilo={celulaStyle(i)} className={classeCongelada(i)} aria-sort={ativa ? (ordemAtual.direcao === "asc" ? "ascending" : "descending") : undefined} data-col={c.id}
                         onClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })} onDoubleClick={(e) => setMenuCol({ id: c.id, el: e.currentTarget })}>
                         <span className="mt-th">{i === 0 && selecao && <CaixaDeSelecao marcada={resultado.linhas.length > 0 && resultado.linhas.every((x) => selecao.ids.has(idDe(x)))} parcial={resultado.linhas.some((x) => selecao.ids.has(idDe(x)))} onChange={(m) => selecao.alternarVarios(resultado.linhas.map(idDe), m)} rotulo="Selecionar todas as linhas" />}{campoPorId.get(c.id) && <IconeDoTipo tipo={campoPorId.get(c.id)!.tipo} />}{campoPorId.get(c.id)?.titulo}{ativa && (ordemAtual.direcao === "asc" ? <CaretUp size={12} weight="bold" /> : <CaretDown size={12} weight="bold" />)}{i === 0 && extrasDaPrimeira?.(resultado.linhas as T[])}</span>
-                        <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
+                        <span className="mt-alca" role="separator" aria-label={`Largura de ${campoPorId.get(c.id)?.titulo}`} title="Arraste para mudar a largura · duplo clique ajusta ao texto" onClick={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); ajustarAoTexto(c.id); }} onPointerDown={(e) => { e.stopPropagation(); redimensionar(e, c.id, c.largura); }} />
                       </ThOrdenavel>
                     );
                   })}</tr>

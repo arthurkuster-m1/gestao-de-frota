@@ -28,13 +28,15 @@ type Props<T> = {
   fixas?: readonly { id: string; rotulo: string }[];
   /** Nome da visualização-base aberta (Todas ou uma fixa), para os textos de salvar. */
   nomeDaBase?: string;
+  /** Aparece POR CIMA da barra de abas (sem empurrar a tela): é onde fica a barra de ações da seleção. */
+  sobreposto?: ReactNode;
 };
 
 /**
  * A linha de visualizações, como no Notion: as abas (cada uma com o ícone do seu layout), o "+" com os modelos de visualização e, no canto direito,
  * os ícones pequenos de filtrar/ordenar/agrupar/buscar, a configuração da visualização (nome, layout, propriedades, duplicar, apagar) e o botão de ação.
  */
-export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onRenomear, onDuplicar, onExcluir, ferramentas, acoes, fixas = [], nomeDaBase = "Todas" }: Props<T>) {
+export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onRenomear, onDuplicar, onExcluir, ferramentas, sobreposto, acoes, fixas = [], nomeDaBase = "Todas" }: Props<T>) {
   const [salvandoComo, setSalvandoComo] = useState(false);
   const [excluindo, setExcluindo] = useState<VisaoSalva | null>(null);
   const [nome, setNome] = useState("");
@@ -56,6 +58,7 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
 
   return (
     <div className="mt-abas-wrap">
+      {sobreposto && <div className="mt-selbar-sobre">{sobreposto}</div>}
       <div className="mt-vbar" data-testid="barra-visualizacoes">
         <div className="mt-abas" role="tablist" aria-label="Visualizações">
           {aba("todas", "Todas", abaId === "todas" ? layoutAtivo : "tabela")}

@@ -368,3 +368,14 @@ button.mt-tag:hover { filter: brightness(0.96); }
 [data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"], [data-densidade="compacta"] .mt-tabela .mt-tag { font-size: 11.5px; line-height: 18px; padding: 0 8px; min-height: 20px; font-weight: 500; }
 [data-densidade="compacta"] .mt-tabela .ds-badge[class*="ds-badge--cor-"]::before { width: 6px; height: 6px; }
 [data-densidade="compacta"] .mt-ed { font-size: 12.5px; }
+
+/* seleção em massa estilo Notion: a barra de ações flutua POR CIMA das abas (nada se mexe) e arrastar sobre as caixinhas seleciona várias linhas */
+.mt-abas-wrap { position: relative; }
+.mt-selbar-sobre { position: absolute; top: 0; left: 0; right: 0; z-index: 25; display: flex; }
+.mt-selbar-sobre .mt-selbar { position: static; flex-wrap: nowrap; overflow-x: auto; max-width: 100%; gap: 6px; padding: 4px 8px; border: 1px solid var(--color-border-strong); border-radius: 10px; background: var(--color-surface); box-shadow: var(--shadow-lg); scrollbar-width: thin; }
+.mt-selbar-sobre .mt-selbar > * { flex: none; white-space: nowrap; }
+.mt-selbar-sobre .mt-selbar b { font-size: 13px; padding: 0 6px; }
+.mt-selbar-sobre .ds-btn { min-height: 30px; padding: 0 12px; font-size: 13px; border-radius: 8px; }
+body.mt-arrastando-linhas { user-select: none; cursor: grabbing; }
+body.mt-arrastando-linhas * { cursor: grabbing !important; }
+.mt-tabela tr.is-sel td { background: var(--color-accent-soft); }
