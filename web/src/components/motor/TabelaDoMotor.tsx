@@ -253,6 +253,29 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
       <td className="mt-enchimento" aria-hidden />
     </tr>
   );
+  // ---- selecionar linhas arrastando a partir de fora da tabela (área em branco ao redor), como no Notion
+  const selecaoRef = useRef(selecao); selecaoRef.current = selecao;
+  useEffect(() => {
+    const aoPressionar = (e: PointerEvent) => {
+      const sel = selecaoRef.current; if (!sel || e.button !== 0 || e.pointerType === "touch") return;
+      const alvo = e.target as HTMLElement | null; if (!alvo || !caixa.current) return;
+      if (alvo.closest("table, button, a, input, textarea, select, label, dialog, aside, header, nav, [role=dialog], [role=menu], [role=listbox], [contenteditable=true], .mt-barra, .mt-selbar-sobre, .mt-abas-wrap")) return;
+      if (!alvo.closest(".ds-shell__main")) return;
+      const y0 = e.clientY, base = e.shiftKey || e.ctrlKey || e.metaKey ? new Set(sel.ids) : new Set<string>(); let moveu = false;
+      const mover = (ev: PointerEvent) => {
+        if (!moveu && Math.abs(ev.clientY - y0) < 4) return;
+        if (!moveu) { moveu = true; document.body.classList.add("mt-arrastando-linhas"); window.getSelection()?.removeAllRanges(); }
+        const topo = Math.min(y0, ev.clientY), base2 = Math.max(y0, ev.clientY), n = new Set(base);
+        for (const tr of caixa.current?.querySelectorAll<HTMLElement>("tbody tr[data-id]") ?? []) { const r = tr.getBoundingClientRect(); if (r.bottom >= topo && r.top <= base2) n.add(tr.dataset.id!); }
+        selecaoRef.current?.definir(n);
+      };
+      const fim = () => { window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", fim); window.removeEventListener("pointercancel", fim); document.body.classList.remove("mt-arrastando-linhas"); if (moveu) aposArrastoDeSelecao(); else if (!base.size) selecaoRef.current?.definir(new Set()); };
+      window.addEventListener("pointermove", mover); window.addEventListener("pointerup", fim); window.addEventListener("pointercancel", fim);
+      e.preventDefault();
+    };
+    window.addEventListener("pointerdown", aoPressionar);
+    return () => window.removeEventListener("pointerdown", aoPressionar);
+  }, []);
   const semLinhas = resultado.linhas.length === 0;
 
   return (
