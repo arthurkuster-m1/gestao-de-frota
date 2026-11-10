@@ -2,7 +2,7 @@ import { AlcaDoPainel } from "../../components/motor/AlcaDoPainel";
 import { useVersaoDosDados } from "../../lib/sincronia";
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowsIn, ArrowsOut, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
+import { ArrowsIn, ArrowsOut, Copy, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
@@ -24,6 +24,8 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { JanelaDeEndereco } from "../../components/motor/EditorDeEndereco";
 import { LinhaDeEndereco } from "./LinhaDeEndereco";
+import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
+import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import "../veiculos/veiculos.css";
@@ -76,6 +78,10 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const campoOrigem = campos.find((c) => c.id === "origem");
   const campoEnderecoLocal = camposDoLocal.find((c) => c.id === "endereco")!;
   const origensExtras = useMemo(() => (p.origens ?? []).filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.origens, evento.id]);
+  async function copiarDados() {
+    const t = textoDoEvento({ evento, reservas: [...p.reservas, ...(p.reservasSemData ?? [])], veiculos: p.veiculos, locais: p.locais, origensExtras: p.origens ?? [], transportes: tr.transportes });
+    toast((await copiarTabela({ html: t.html, texto: t.texto })) ? "Dados do evento copiados" : "Não consegui copiar. Libere a área de transferência no navegador.");
+  }
   const erro = (e: unknown) => setFalha((e as Error).message);
   /** Salvar um endereço de local ou origem extra: texto novo troca, vazio remove. */
   const salvarLocal = (l: EventoLocal, v: string | null) => (v ? p.onEditarLocal(l, campoEnderecoLocal, v) : p.onRemoverLocal(l)).catch(erro);
@@ -103,6 +109,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       <header className="mt-janela__topo">
         <div><h2 className="t-h2" data-testid="titulo-janela">{evento.nome}</h2>{campoStatus && <div className="mt-janela__sub">{formatar(campoStatus, evento)}</div>}</div>
         <div className="ds-row" style={{ gap: 8 }}>
+          <button type="button" className="mt-janela__fechar mt-janela__expandir" aria-label="Copiar dados do evento" title="Copiar dados do evento (para a transportadora)" onClick={() => void copiarDados()} data-testid="copiar-dados-evento"><Copy size={20} /></button>
           <button type="button" className="mt-janela__fechar mt-janela__expandir" aria-label={cheia ? "Voltar ao tamanho normal" : "Expandir para a tela cheia"} title={cheia ? "Reduzir" : "Expandir"} onClick={aoAlternarCheia} data-testid="expandir-evento">{cheia ? <ArrowsIn size={20} /> : <ArrowsOut size={20} />}</button>
           <button type="button" className="mt-janela__fechar" aria-label="Fechar" onClick={onFechar}><X size={22} /></button>
         </div>
