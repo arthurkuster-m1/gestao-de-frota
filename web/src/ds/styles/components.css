@@ -1244,11 +1244,11 @@ html:has(dialog[open]), body:has(dialog[open]) { overscroll-behavior-y: contain;
   .ds-borda-do-menu { display: none; }
   /* recolhido: o menu sai do fluxo, a tela usa a largura toda; passar o mouse na borda esquerda mostra o menu por cima */
   .ds-shell.is-recolhido { grid-template-columns: minmax(0, 1fr); }
-  .ds-shell.is-recolhido .ds-borda-do-menu { display: block; position: fixed; left: 0; top: 0; bottom: 0; width: 10px; z-index: 39; }
+  .ds-shell.is-recolhido .ds-borda-do-menu { display: block; position: fixed; left: 0; top: 0; width: 56px; height: 44px; z-index: 39; }
   .ds-shell.is-recolhido .ds-sidebar { position: fixed; left: 0; top: 0; width: 272px; z-index: 40; transform: translateX(-102%); transition: transform var(--dur-slow) var(--ease-out-slow), box-shadow var(--dur-slow); border-right: 1px solid var(--color-border); }
-  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { transform: none; }
-  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { box-shadow: var(--shadow-lg); }
-  .ds-shell.is-recolhido .ds-shell__abrir-menu { display: grid; place-items: center; position: fixed; left: 10px; top: 10px; z-index: 30; width: 36px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); cursor: pointer; }
+  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido:has(.ds-shell__abrir-menu:hover) .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { transform: none; }
+  .ds-shell.is-recolhido .ds-borda-do-menu:hover + .ds-sidebar, .ds-shell.is-recolhido:has(.ds-shell__abrir-menu:hover) .ds-sidebar, .ds-shell.is-recolhido .ds-sidebar:hover, .ds-shell.is-recolhido .ds-sidebar:focus-within { box-shadow: var(--shadow-lg); }
+  .ds-shell.is-recolhido .ds-shell__abrir-menu { display: grid; place-items: center; position: fixed; left: 10px; top: 4px; z-index: 41; width: 36px; height: 36px; border: 0; border-radius: var(--radius-md); background: transparent; color: var(--color-text-subtle); cursor: pointer; }
   .ds-shell.is-recolhido .ds-shell__abrir-menu:hover { background: var(--color-surface-elevated); color: var(--color-text); }
   .ds-shell.is-recolhido .ds-shell__main { padding-top: 40px; }
 }
@@ -1256,7 +1256,7 @@ html:has(dialog[open]), body:has(dialog[open]) { overscroll-behavior-y: contain;
 /* topo da página no estilo Notion: caminho de navegação fininho, título grande e mais respiro nas laterais */
 .ds-migalhas { display: none; }
 @media (min-width: 900px) {
-  .ds-migalhas { display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 var(--space-6); font-size: 14px; color: var(--color-text-subtle); }
+  .ds-migalhas { position: sticky; top: 0; z-index: 20; background: var(--color-bg); display: flex; align-items: center; gap: 8px; height: 44px; padding: 0 var(--space-6); font-size: 14px; color: var(--color-text-subtle); }
   .ds-migalhas b { color: var(--color-text); font-weight: 500; }
   .ds-shell.is-recolhido .ds-migalhas { padding-left: 56px; }
   .ds-shell.is-recolhido .ds-shell__main { padding-top: 0; }

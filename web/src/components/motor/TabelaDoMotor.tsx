@@ -169,7 +169,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     let quadro = 0;
     const atualizar = () => {
       quadro = 0;
-      const barra = document.querySelector<HTMLElement>(".ds-topbar"); const topo = barra && getComputedStyle(barra).display !== "none" ? barra.getBoundingClientRect().bottom : 0;
+      const barra = document.querySelector<HTMLElement>(".ds-topbar"); const mig = document.querySelector<HTMLElement>(".ds-migalhas"); const topo = barra && getComputedStyle(barra).display !== "none" ? barra.getBoundingClientRect().bottom : mig && getComputedStyle(mig).display !== "none" ? mig.getBoundingClientRect().bottom : 0;
       const r = raiz.getBoundingClientRect(), altCab = cab.getBoundingClientRect().height;
       const dy = Math.max(0, Math.min(topo - r.top - 1, r.height - altCab - 2));   // -1: a borda de cima da tabela
       cab.style.transform = dy > 0 ? `translateY(${Math.round(dy)}px)` : "";
