@@ -39,6 +39,11 @@ type Props<T> = {
     /** Duplo clique num dia vazio da linha do tempo (criar evento, manutenção, anotação…). */
     onCriarNaData?: (linha: T, data: string) => void;
   };
+  /**
+   * Visualizações FIXAS de fábrica depois da "Todas" (não se apagam nem se renomeiam): cada uma já vem com filtros, ordem e colunas
+   * (`prefs`), que a pessoa pode ajustar e salvar (o ajuste fica guardado e passa a valer no lugar do de fábrica).
+   */
+  visoesFixas?: readonly { id: string; rotulo: string; prefs: PreferenciasDaTabela }[];
   /** Liga uma visualização FIXA depois da "Todas", com chips pré-montadas (ex.: "Por modelo"). */
   chipsRapidos?: ConfigDeChips<T>;
   /** Usado pelo Planejamento: eixo do tempo COMPARTILHADO entre duas telas, visão fixa em linha do tempo, sem cabeçalho grande. */
@@ -54,7 +59,7 @@ function Casca({ compacta, tela, children }: { compacta?: boolean; tela: string;
  * A casca de toda tela de lista do Frota: cabeçalho, abas de visualização (salvas), Filtrar/Ordenar/Agrupar/Propriedades,
  * Tabela ⇄ Cards, busca e a edição no lugar. Veículos, Eventos e as próximas telas só trazem os campos e os dados.
  */
-export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, extrasDaPrimeira, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
+export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecalhoDireita, acoesDaSelecao, extrasDaPrimeira, visoesFixas, selecaoInicial, linhas, erro, campos, idDe, onEditar, onAbrir, vazio, rotuloDoTotal, placeholderDaBusca, filhos, chipsRapidos, linhaDoTempo, eixo: eixoExterno, modoFixo, compacta, selecionadoId, aoSelecionar, alturaDaLinhaDoTempo, larguraEsquerda }: Props<T>) {
   const eixoProprio = useEixoDoTempo("dia");
   const eixo = eixoExterno ?? eixoProprio;
   const v = useVisoes(tela);
@@ -78,12 +83,13 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
 
   /** A "Todas" também é salva no banco (uma linha reservada, escondida das abas), para valer em qualquer aparelho. */
   const naFixa = !!chipsRapidos && abaId === chipsRapidos.id;
-  const nomeDaBaseSalva = naFixa ? `__${chipsRapidos!.id}__` : NOME_DA_VISAO_PADRAO; // linha reservada (escondida das abas) de Todas ou da fixa aberta
+  const fixaDeFabrica = visoesFixas?.find((f) => f.id === abaId);
+  const nomeDaBaseSalva = naFixa ? `__${chipsRapidos!.id}__` : fixaDeFabrica ? `__${fixaDeFabrica.id}__` : NOME_DA_VISAO_PADRAO; // linha reservada (escondida das abas) de Todas ou da fixa aberta
   const linhaPadrao: VisaoSalva | undefined = v.visoes.find((x) => x.nome === nomeDaBaseSalva);
-  const todasSalva: PreferenciasDaTabela = useMemo(() => (linhaPadrao ? configSegura(linhaPadrao.config) : {}), [linhaPadrao]);
+  const todasSalva: PreferenciasDaTabela = useMemo(() => (linhaPadrao ? configSegura(linhaPadrao.config) : fixaDeFabrica?.prefs ?? {}), [linhaPadrao, fixaDeFabrica]);
   const abas = useMemo(() => v.visoes.filter((x) => !/^__.+__$/.test(x.nome)), [v.visoes]);
   const ativa: VisaoSalva | undefined = abas.find((x) => x.id === abaId);
-  const abaValida = abaId === "todas" || naFixa || !!ativa || v.carregando;
+  const abaValida = abaId === "todas" || naFixa || !!fixaDeFabrica || !!ativa || v.carregando;
   const [rapidos, setRapidos] = useState<SelecaoDeChips>([null, null]);
   useEffect(() => { if (!abaValida) setAbaId("todas"); }, [abaValida]);
   const base = ativa ? ativa.config : todasSalva;
@@ -126,7 +132,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
           onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
-          acoes={acoes} fixas={chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []} nomeDaBase={naFixa ? chipsRapidos!.rotulo : "Todas"}
+          acoes={acoes} fixas={[...(chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []), ...(visoesFixas ?? []).map((f) => ({ id: f.id, rotulo: f.rotulo }))]} nomeDaBase={naFixa ? chipsRapidos!.rotulo : fixaDeFabrica ? fixaDeFabrica.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
             <div className="mt-busca">
