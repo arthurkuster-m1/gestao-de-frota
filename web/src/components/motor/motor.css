@@ -379,3 +379,8 @@ button.mt-tag:hover { filter: brightness(0.96); }
 body.mt-arrastando-linhas { user-select: none; cursor: grabbing; }
 body.mt-arrastando-linhas * { cursor: grabbing !important; }
 .mt-tabela tr.is-sel td { background: var(--color-accent-soft); }
+
+/* a tabela faz parte da página: sem rolagem vertical própria (só a horizontal); o cabeçalho acompanha o topo da tela (ver TabelaDoMotor) */
+.mt-tabela { max-height: none; overflow-x: auto; overflow-y: hidden; }
+@media (max-width: 720px) { .mt-tabela { max-height: none; } }
+.mt-tabela.mt-cab-grudado thead th { box-shadow: 0 1px 0 var(--color-border-strong), 0 6px 8px -6px rgba(16, 30, 60, 0.25); }

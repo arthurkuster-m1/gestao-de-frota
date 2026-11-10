@@ -148,6 +148,27 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
     alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar);
   };
 
+  // A tabela é "a própria página": quem rola é a página (título, abas e tabela sobem juntos); só a horizontal rola dentro da tabela.
+  // O cabeçalho continua acompanhando o topo da tela ao rolar a página (o "sticky" do CSS não alcança a página por causa da rolagem horizontal).
+  const semLinhasAgora = resultado.linhas.length === 0;
+  useEffect(() => {
+    const raiz = caixa.current; const cab = raiz?.querySelector<HTMLElement>("thead");
+    if (!raiz || !cab) return;
+    let quadro = 0;
+    const atualizar = () => {
+      quadro = 0;
+      const barra = document.querySelector<HTMLElement>(".ds-topbar"); const topo = barra && getComputedStyle(barra).display !== "none" ? barra.getBoundingClientRect().bottom : 0;
+      const r = raiz.getBoundingClientRect(), altCab = cab.getBoundingClientRect().height;
+      const dy = Math.max(0, Math.min(topo - r.top - 1, r.height - altCab - 2));   // -1: a borda de cima da tabela
+      cab.style.transform = dy > 0 ? `translateY(${Math.round(dy)}px)` : "";
+      raiz.classList.toggle("mt-cab-grudado", dy > 0);
+    };
+    const agendar = () => { if (!quadro) quadro = requestAnimationFrame(atualizar); };
+    window.addEventListener("scroll", agendar, { passive: true }); window.addEventListener("resize", agendar);
+    const obs = new ResizeObserver(agendar); obs.observe(raiz);
+    atualizar();
+    return () => { window.removeEventListener("scroll", agendar); window.removeEventListener("resize", agendar); obs.disconnect(); if (quadro) cancelAnimationFrame(quadro); cab.style.transform = ""; raiz.classList.remove("mt-cab-grudado"); };
+  }, [semLinhasAgora]);
   /** Duplo clique na borda: a coluna fica do tamanho do maior texto dela (encolhe ou cresce). */
   const ajustarAoTexto = (id: string) => {
     const raiz = caixa.current; if (!raiz) return;
