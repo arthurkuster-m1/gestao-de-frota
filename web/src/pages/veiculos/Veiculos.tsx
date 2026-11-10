@@ -71,7 +71,7 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "diasParaEmplacar", titulo: "Dias para emplacar", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).paraEmplacar, largura: 170, padrao: false },
   { id: "diasTotalPlaca", titulo: "Dias da chegada ao emplacamento", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).total, largura: 240, padrao: false },
   { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 170, padrao: false, edicao: { coluna: "data_devolucao" } },
-  { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
+  { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, multilinha: true, padrao: false, edicao: { coluna: "comentarios" } },
   { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 170, padrao: false },
 ];
 

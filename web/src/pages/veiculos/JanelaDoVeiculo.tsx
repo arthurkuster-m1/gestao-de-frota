@@ -3,7 +3,7 @@ import { LinkNoLugar } from "../../app/noLugar";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { CalendarBlank, CalendarCheck, Plus, Trash, Warning, Wrench, X } from "@phosphor-icons/react";
 import { Link } from "react-router-dom";
-import { Skeleton, Textarea, cx, useToast } from "../../ds";
+import { Skeleton, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import type { CampoDaTela } from "../../components/motor/tipos";
 import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
@@ -34,7 +34,7 @@ const ABAS: { id: Aba; rotulo: string }[] = [
 ];
 /** A ficha em blocos, com divisor: Uso, Dados e Datas (o resto das propriedades fica fora da ficha). */
 const BLOCOS: { titulo: string; ids: string[] }[] = [
-  { titulo: "Uso", ids: ["codigo", "statusUso", "agenda"] },
+  { titulo: "Uso", ids: ["codigo", "statusUso", "agenda", "comentarios"] },
   { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "pedido", "ciclo", "seguro"] },
   { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "chegouPlantaEm", "faturadoEm", "placasSolicitadasEm", "emplacadoEm", "devolvidoEm"] },
   { titulo: "Prazos da placa", ids: ["diasParaSolicitar", "diasParaEmplacar", "diasTotalPlaca"] },
@@ -71,18 +71,14 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
   const id = veiculo?.id;
   const [novaManutencao, setNovaManutencao] = useState(false);
   const [excluindo, setExcluindo] = useState(false);
-  const [comentario, setComentario] = useState("");
-  const [erroComentario, setErroComentario] = useState<string | null>(null);
 
   useEffect(() => { const d = ref.current; if (!d) return; if (id && !d.open) d.showModal(); if (!id && d.open) d.close(); }, [id]);
   useEffect(() => { setAba("dados"); setHist(null); }, [id]);
-  useEffect(() => { setComentario(veiculo?.comentarios ?? ""); setErroComentario(null); }, [id, veiculo?.comentarios]);
   useEffect(() => { if (aba === "historico" && id) { setHist(null); listarAtividades(id).then(setHist, () => setHist([])); } }, [aba, id, veiculo?.status_ciclo]);
 
   const nomeDoEvento = (id: string) => eventos.find((e) => e.id === id)?.nome ?? "?";
   const titulo = veiculo ? (veiculo.codigo ?? veiculo.modelo.toUpperCase()) : "";
   const editaveis = campos.filter((c) => c.edicao).map((c) => c.id);
-  const campoComentarios = campos.find((c) => c.id === "comentarios");
   const hoje = hojeLocal();
   const statusAtual = statusDeUso(reservas, manutencoes, hoje, veiculo?.status_ciclo);
   const itensTexto = agendaItens(reservas, nomeDoEvento, hoje, manutencoes);
@@ -94,11 +90,6 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
     ...barrasDeManutencao(manutencoes, hoje).map((b) => ({ ...b, href: `/manutencoes/${b.id}` })),
   ];
 
-  async function salvarComentario() {
-    if (!veiculo || !campoComentarios || comentario === (veiculo.comentarios ?? "")) return;
-    setErroComentario(null);
-    try { await onEditar(veiculo, campoComentarios, comentario.trim() === "" ? null : comentario); toast("Salvo"); } catch (e) { setErroComentario((e as Error).message); }
-  }
 
   return (
     <dialog ref={ref} className="mt-janela" aria-label={`Veículo ${titulo}`} onClose={(e) => { if (e.target === e.currentTarget) onFechar(); }} onClick={(e) => { if (e.target === ref.current) onFechar(); }}>
@@ -128,11 +119,6 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                     </div>
                   ))}
                 </dl>
-                <section className="ds-stack">
-                  <h3 className="mt-ficha__divisor">Comentários</h3>
-                  <Textarea rows={5} value={comentario} aria-label="Comentários do veículo" data-testid="campo-comentarios" placeholder="Anotações livres sobre este carro. Salva ao sair do campo." onChange={(e) => setComentario(e.target.value)} onBlur={() => void salvarComentario()} />
-                  {erroComentario && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erroComentario}</p>}
-                </section>
                 <div><Button variant="danger" icon={<Trash size={18} />} onClick={() => setExcluindo(true)} data-testid="excluir-veiculo">Excluir veículo</Button></div>
                 <ExcluirVeiculos aberto={excluindo} onFechar={() => setExcluindo(false)} veiculos={[veiculo]} consequencias={{ reservas: reservas.length + reservasSemData.length, manutencoes: manutencoes.length }} onExcluido={onFechar} />
               </div>
