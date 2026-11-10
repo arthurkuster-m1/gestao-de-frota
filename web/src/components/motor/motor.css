@@ -421,3 +421,8 @@ html[data-theme="light"] body:has(.mt-abas-wrap) { --color-bg: var(--nt-fundo); 
 :root { --nt-azul: #2383e2; }
 .mt-tabela tbody tr td.mt-sel, .mt-vde__tabela tbody tr td.mt-sel { background: color-mix(in srgb, var(--nt-azul) 12%, var(--color-bg)); box-shadow: none; }
 .mt-tabela tbody tr td.mt-sel-ancora, .mt-vde__tabela tbody tr td.mt-sel-ancora { box-shadow: inset 0 0 0 2px var(--nt-azul); border-radius: 3px; }
+
+/* campo em edição, igual ao Notion: caixa branca flutuando sobre a célula, cantos arredondados e sombra suave */
+.mt-tabela td.mt-editando { position: relative; box-shadow: none; overflow: visible; }
+.mt-tabela td.mt-editando > .mt-ed:not(.mt-ed--opcao) { position: absolute; left: -3px; right: -3px; top: -4px; bottom: -4px; width: auto; height: auto; z-index: 30; padding: 0 17px; border-radius: 6px; background: var(--color-bg); box-shadow: 0 0 0 1px rgba(15, 15, 15, .1), 0 3px 10px rgba(15, 15, 15, .14); }
+.mt-tabela td.mt-editando > .mt-ed.is-erro { box-shadow: 0 0 0 2px var(--color-error), 0 3px 10px rgba(15, 15, 15, .14); }

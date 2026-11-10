@@ -32,7 +32,7 @@ function EditorDeTexto({ tipo, valor, edicao, rotulo, invalido, validar, onConfi
   const [erro, setErro] = useState<string | null>(null);
   const campo = useRef<HTMLInputElement>(null);
   const feito = useRef(false);
-  useLayoutEffect(() => { campo.current?.focus(); campo.current?.select(); }, []);
+  useLayoutEffect(() => { const c = campo.current; if (!c) return; c.focus(); const n = c.value.length; c.setSelectionRange(n, n); }, []);
   /** `daTecla`: Enter/Tab com erro mantêm o editor aberto (a pessoa corrige); sair clicando fora descarta e avisa. */
   const fim = (mover?: Movimento, daTecla = false) => {
     if (feito.current) return;

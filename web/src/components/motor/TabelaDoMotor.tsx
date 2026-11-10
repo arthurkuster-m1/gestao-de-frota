@@ -16,7 +16,7 @@ import { MenuDaColuna } from "./MenuDaColuna";
 import { EditorDeCores } from "./EditorDeCores";
 import { opcoesDoCampo } from "./BarraDeConsulta";
 import { EditorDeCelula } from "./EditorDeCelula";
-import { prepararEdicao, valorParaEditor } from "./edicao";
+import { prepararEdicao, valorParaEditor, type ValorEditavel } from "./edicao";
 import { converterColado, deTsv, intervaloDe, multiplas, paraTsv, textoDaCelula, type Ponto } from "./selecao";
 import { formatar } from "./formatar";
 import { useEdicao, type OnEditar } from "./useEdicao";
@@ -41,7 +41,19 @@ type Props<T> = {
 /** O contêiner da tabela só existe quando há linhas: o efeito precisa rodar de novo quando ele aparece. */
 const semLinhasInicial = (n: number) => n === 0;
 
-export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar, aoNovoFiltro, selecao, extrasDaPrimeira, iconeDaPrimeira }: Props<T>) {
+export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir, vazio, rotuloDoTotal, onEditar: onEditarProp, aoNovoFiltro, selecao, extrasDaPrimeira, iconeDaPrimeira }: Props<T>) {
+  // Ctrl+Z: cada edição (ou colagem inteira) guarda o valor antigo; desfazer grava de volta, na ordem inversa.
+  type Desfazer = { l: T; cp: CampoDaTela<T>; antigo: ValorEditavel };
+  const pilhaDesfazer = useRef<Desfazer[][]>([]);
+  const grupoAtual = useRef<Desfazer[] | null>(null);
+  const desfazendo = useRef(false);
+  const onEditar = useMemo<OnEditar<T> | undefined>(() => onEditarProp && (async (l, cp, v) => {
+    const antigo = valorParaEditor(cp.tipo, cp.valorDe(l));
+    await onEditarProp(l, cp, v);
+    if (desfazendo.current) return;
+    if (grupoAtual.current) grupoAtual.current.push({ l, cp, antigo }); else pilhaDesfazer.current.push([{ l, cp, antigo }]);
+    if (pilhaDesfazer.current.length > 30) pilhaDesfazer.current.shift();
+  }), [onEditarProp]);
   const ed = useEdicao<T>(idDe, onEditar);
   const colunas = useMemo(() => resolverColunas(campos, prefs).filter((c) => c.visivel), [campos, prefs]);
   const resultado = useMemo(() => aplicarConsulta(linhas, campos, prefs, { hoje: hojeLocal() }), [linhas, campos, prefs]);
@@ -70,7 +82,22 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
   useEffect(() => {
     const solta = () => { arrastandoSel.current = false; };
     const fora = (e: MouseEvent) => { if (!(e.target as HTMLElement).closest?.(".mt-tabela")) setSel(null); };
-    const tecla = (e: KeyboardEvent) => { if (e.key === "Escape") setSel(null); };
+    const tecla = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setSel(null);
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === "z") {
+        if ((e.target as HTMLElement | null)?.closest("input, textarea, select, [contenteditable]")) return;
+        const grupo = pilhaDesfazer.current.pop(); const grava = refs.current.onEditar; if (!grupo || !grava) return;
+        e.preventDefault(); desfazendo.current = true;
+        void (async () => {
+          let erro: string | null = null;
+          if (grupo.length > 1) setOrdemCongelada(refs.current.visiveis.map(idDe));
+          try {
+            await executarEmLote([...grupo].reverse().map((o) => ({ chave: idDe(o.l), executar: async () => { try { const p = prepararEdicao(o.cp.tipo, o.cp.edicao!, o.antigo); await grava(o.l, o.cp, p.ok ? p.valor : o.antigo); } catch (x) { erro ??= `${o.cp.titulo}: ${(x as Error).message}`; } } })));
+          } finally { desfazendo.current = false; setOrdemCongelada(null); }
+          if (erro) ed.setErro(erro); else toast(grupo.length > 1 ? `${grupo.length} alterações desfeitas` : "Alteração desfeita");
+        })();
+      }
+    };
     const copiar = (e: ClipboardEvent) => {
       const { faixa: f, visiveis: vs, colunas: cs } = refs.current;
       if (!f || (!multiplas(f) && window.getSelection()?.toString())) return;
@@ -108,7 +135,9 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
         }
         // tudo de uma vez: grava as linhas em paralelo, com a ordem das linhas congelada até o fim
         if (tarefas.length > 1) setOrdemCongelada(vs.map(idDe));
-        try { await executarEmLote(tarefas); } finally { setOrdemCongelada(null); }
+        const grupo: Desfazer[] = []; grupoAtual.current = grupo;
+        try { await executarEmLote(tarefas); } finally { grupoAtual.current = null; setOrdemCongelada(null); }
+        if (grupo.length) { pilhaDesfazer.current.push(grupo); if (pilhaDesfazer.current.length > 30) pilhaDesfazer.current.shift(); }
         if (erro) ed.setErro(erro);
         toast(pulados ? `${ok} colada(s), ${pulados} ignorada(s)` : `${ok} célula(s) coladas`);
       })();
