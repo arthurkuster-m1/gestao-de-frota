@@ -327,3 +327,8 @@ button.mt-tag:hover { filter: brightness(0.96); }
   .mt-tabela tbody tr:hover .mt-chk-sel, .mt-tl__linha:hover .mt-chk-sel, .mt-chk-sel:checked, .mt-chk-sel:indeterminate, .mt-chk-sel:focus-visible { opacity: 1; }
   .mt-tabela th:hover .mt-chk-sel, .tem-sel .mt-th .mt-chk-sel { opacity: 1; }
 }
+
+/* lista de opções com filtro por digitação */
+.mt-lista__filtro { width: calc(100% - 8px); margin: 4px; min-height: 34px; padding: 0 10px; border: 1px solid var(--color-border-strong); border-radius: var(--radius-md); background: var(--color-bg); color: var(--color-text); font: inherit; font-size: 14px; box-sizing: border-box; }
+.mt-lista__filtro:focus { outline: none; border-color: var(--color-accent-ring); box-shadow: 0 0 0 3px var(--color-accent-soft); }
+.mt-lista__item.is-marcada { background: var(--color-accent-soft); border-radius: var(--radius-md); }
