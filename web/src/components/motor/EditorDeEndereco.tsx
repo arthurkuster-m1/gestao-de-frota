@@ -51,7 +51,7 @@ export function JanelaDeEndereco({ aberto, titulo, valor, onSalvar, onFechar }: 
 
   return (
     <Sheet open={aberto} onClose={onFechar} title={titulo}>
-      <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (linha) onSalvar(linha); }} data-testid="form-endereco">
+      <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); if (linha) onSalvar(linha); }} data-testid="form-endereco">
         <Field label="Colar o endereço inteiro (opcional)"><Input value={colado} onChange={(e) => setColado(e.target.value)} onPaste={(e) => { const t = e.clipboardData.getData("text"); if (t.trim()) { e.preventDefault(); void aplicarColado(t); } }} onKeyDown={(e) => { if (e.key === "Enter" && colado.trim()) { e.preventDefault(); void aplicarColado(colado); } }} placeholder="Av. Goiás, 1805 - Santa Paula, São Caetano do Sul - SP, 09521-300" aria-label="Colar o endereço inteiro" data-testid="colar-endereco" /></Field>
         {colado.trim() && <div><Button type="button" variant="secondary" size="sm" onClick={() => void aplicarColado(colado)}>Separar nos campos</Button></div>}
         <Field label="CEP"><Input value={p.cep} onChange={(e) => void aoDigitarCep(e.target.value)} inputMode="numeric" placeholder="00000-000" maxLength={9} aria-label="CEP" /></Field>
