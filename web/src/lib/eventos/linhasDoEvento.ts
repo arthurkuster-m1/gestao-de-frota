@@ -41,6 +41,8 @@ export function valoresEfetivos(l: LinhaDoEvento, evento: Pick<Evento, "status" 
     retirada: pega(r?.retirada, evento.retirada_prevista),
     enderecoChegada: pega(r?.endereco_chegada, enderecoDoEvento),
     origem: pega(r?.origem, evento.origem ?? null),
+    /** Para onde o carro volta: o endereço de retorno dele; sem isso, volta para a origem (do carro ou do evento). */
+    enderecoRetorno: pega(r?.endereco_retorno, r?.origem ?? evento.origem ?? null),
   };
 }
 

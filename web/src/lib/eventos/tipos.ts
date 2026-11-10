@@ -26,7 +26,7 @@ export type EstadoReserva = (typeof ESTADOS_RESERVA)[number]["value"];
 
 export type Evento = { id: string; nome: string; tipo: string | null; status: StatusEvento; solicitante: string | null; comentarios: string | null; created_at: string; chegada_prevista: string | null; retirada_prevista: string | null; contato: string | null; cliente_id?: string | null; origem?: string | null };
 export type EventoNovo = { nome: string; tipo?: string | null; status?: StatusEvento; solicitante?: string | null; comentarios?: string | null; chegada_prevista?: string | null; retirada_prevista?: string | null; contato?: string | null; cliente_id?: string | null; origem?: string | null };
-export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; chegada: string | null; retirada: string | null; estado: EstadoReserva; comentarios: string | null; origem?: string | null; endereco_chegada?: string | null; status_individual?: StatusEvento | null };
+export type Reserva = { id: string; evento_id: string; veiculo_id: string; reserva_inicio: string; reserva_fim: string; chegada: string | null; retirada: string | null; estado: EstadoReserva; comentarios: string | null; origem?: string | null; endereco_chegada?: string | null; endereco_retorno?: string | null; status_individual?: StatusEvento | null };
 
 /** Um carro no evento que ainda NÃO tem data (as duas datas vazias): aparece nas listas do evento e do carro, mas não na agenda nem na linha do tempo. */
 export type ReservaDoEvento = Omit<Reserva, "reserva_inicio" | "reserva_fim"> & { reserva_inicio: string | null; reserva_fim: string | null };

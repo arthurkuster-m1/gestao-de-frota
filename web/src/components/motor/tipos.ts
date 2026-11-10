@@ -9,6 +9,8 @@ export type OpcaoDoCampo = { value: string; label: string; tom?: "success" | "wa
 export type EdicaoDoCampo = {
   /** Campo de endereço: edita na janela do endereço (CEP → cidade/UF) e grava numa linha só, na máscara. */
   endereco?: boolean;
+  /** Campo de endereço: endereço oferecido (Tab preenche, com o campo de colar vazio). */
+  sugestaoDeEndereco?: string;
   /** Coluna do banco que recebe o valor. */
   coluna: string;
   obrigatorio?: boolean;

@@ -24,6 +24,7 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { JanelaDeEndereco } from "../../components/motor/EditorDeEndereco";
 import { LinhaDeEndereco } from "./LinhaDeEndereco";
+import { ORIGEM_PADRAO } from "../../lib/enderecos";
 import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
 import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
@@ -39,7 +40,7 @@ type Props = {
   tr: ReturnType<typeof useTransportes>; checklists?: Checklist[];
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
-  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
+  onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
   onChecklistEmMassa?: (reservaIds: string[], dados: import("../checklists/ChecklistEmMassaSheet").DadosEmMassa) => Promise<void>;
   reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
@@ -125,15 +126,15 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
             <dl className="mt-ficha" data-testid="ficha-dados">
               {camposDeDados.map((c) => c.id === "origem" ? (
                 <Fragment key={c.id}>
-                  <LinhaDeEndereco titulo="Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
-                  {origensExtras.map((l, i) => <LinhaDeEndereco key={l.id} titulo={`Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
+                  <LinhaDeEndereco sugestao={ORIGEM_PADRAO} titulo="Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
+                  {origensExtras.map((l, i) => <LinhaDeEndereco sugestao={ORIGEM_PADRAO} key={l.id} titulo={`Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
                   {locaisDoEvento.length === 0
                     ? <LinhaDeEndereco titulo="Local do evento" valor={null} onSalvar={(v) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v }]).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
                     : locaisDoEvento.map((l, i) => <LinhaDeEndereco key={l.id} titulo={i === 0 ? "Local do evento" : `Local ${i + 1}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onAdicionar={i === 0 ? () => setAdicionando("local") : undefined} rotuloAdicionar="Adicionar outro local" onRemover={i === 0 ? undefined : () => void p.onRemoverLocal(l).catch(erro)} testid="linha-local" />)}
                 </Fragment>
               ) : <div key={c.id} className="mt-ficha__linha" onClick={clicarNaLinha}><dt>{c.titulo}</dt><dd><CampoEditavel linha={evento} campo={c} ed={edEvento} navegaveis={editaveis} /></dd></div>)}
             </dl>
-            <JanelaDeEndereco aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
+            <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} onFechar={() => setAdicionando(null)}
               onSalvar={(t) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo }]).catch(erro); }} />
 
             <section className="ds-stack">

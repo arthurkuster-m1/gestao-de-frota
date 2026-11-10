@@ -1,4 +1,4 @@
-import { validarEndereco } from "../../lib/enderecos";
+import { ORIGEM_PADRAO, validarEndereco } from "../../lib/enderecos";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { ESTADOS_RESERVA, STATUS_EVENTO, TIPOS_EVENTO, UFS, type Evento, type EventoLocal, type Reserva, type ReservaDoEvento } from "../../lib/eventos/tipos";
 import { estaAberta } from "../../lib/eventos/uso";
@@ -31,7 +31,7 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
     { id: "inicio", titulo: "Data de chegada", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_inicio).sort()[0]! : e.chegada_prevista; }, largura: 150, edicao: { coluna: "chegada_prevista" } },
     { id: "fim", titulo: "Data de retirada", tipo: "data", valorDe: (e) => { const l = abertas(e); return l.length ? l.map((r) => r.reserva_fim).sort().at(-1)! : e.retirada_prevista; }, largura: 150, edicao: { coluna: "retirada_prevista" } },
     { id: "solicitante", titulo: "Solicitante", tipo: "texto", valorDe: (e) => e.solicitante, largura: 200, edicao: { coluna: "solicitante" } },
-    { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (e) => e.origem ?? null, largura: 320, padrao: false, edicao: { coluna: "origem", maxLength: 300, endereco: true, validar: validarEndereco } },
+    { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (e) => e.origem ?? null, largura: 320, padrao: false, edicao: { coluna: "origem", maxLength: 300, endereco: true, validar: validarEndereco, sugestaoDeEndereco: ORIGEM_PADRAO } },
     { id: "contato", titulo: "Contato", tipo: "texto", valorDe: (e) => e.contato, largura: 220, edicao: { coluna: "contato" } },
     { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (e) => e.comentarios, largura: 280, padrao: false, edicao: { coluna: "comentarios" } },
     { id: "cadastradoEm", titulo: "Criado em", tipo: "data", valorDe: (e) => e.created_at.slice(0, 10), largura: 150, padrao: false },

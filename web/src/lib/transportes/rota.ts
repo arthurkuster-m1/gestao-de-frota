@@ -7,12 +7,12 @@ export type Rota = { origem: string | null; destino: string | null };
 
 /**
  * A rota de um transporte vem do EVENTO (ou do carro, se ele tem origem/endereço próprios):
- * ida = da origem do carro até o endereço do evento; volta = do endereço do evento de volta à origem.
+ * ida = da origem do carro até o endereço do evento; volta = do endereço do evento até o endereço de retorno (sem ele, a origem).
  */
 export function rotaDoTransporte(sentido: Sentido, reserva: Reserva | undefined, evento: Evento, locais: readonly EventoLocal[]): Rota {
   const ef = valoresEfetivos({ reserva } as never, evento, locais);
   const origem = ef.origem.valor, local = ef.enderecoChegada.valor;
-  return sentido === "ida" ? { origem, destino: local } : { origem: local, destino: origem };
+  return sentido === "ida" ? { origem, destino: local } : { origem: local, destino: ef.enderecoRetorno.valor };
 }
 
 /** O texto que se manda ao mapa: "Cidade, UF, Brasil" quando o endereço segue a máscara (basta para a distância), senão o texto todo. */

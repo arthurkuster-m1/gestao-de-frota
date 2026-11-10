@@ -2,6 +2,9 @@
 export type EnderecoPartes = { rua: string; numero: string; complemento: string; cidade: string; uf: string; cep: string };
 export const ENDERECO_VAZIO: EnderecoPartes = { rua: "", numero: "", complemento: "", cidade: "", uf: "", cep: "" };
 
+/** O endereço de 90% das origens: o campo de origem oferece preenchê-lo com Tab. */
+export const ORIGEM_PADRAO = "Av. Goiás, 1805 - Santa Paula, São Caetano do Sul - SP, 09521-300";
+
 export const soDigitos = (t: string) => t.replace(/\D/g, "");
 export const mascaraCep = (t: string) => { const d = soDigitos(t).slice(0, 8); return d.length > 5 ? `${d.slice(0, 5)}-${d.slice(5)}` : d; };
 const um = (t: string) => t.trim().replace(/\s+/g, " ");

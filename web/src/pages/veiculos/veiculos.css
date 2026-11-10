@@ -289,3 +289,11 @@
 /* janelas (Sheet) abertas de dentro do painel mantêm a largura delas: estreitas, como em qualquer outra tela */
 .mt-janela dialog.ds-sheet:not(.ds-sheet--wide) { max-width: 440px; }
 @media (max-width: 639px) { .mt-janela dialog.ds-sheet:not(.ds-sheet--wide) { max-width: 100%; } }
+
+/* carros do evento: linha de grupo, selo "Não disponível" e código sem estourar a célula */
+.mt-vde__grupo td { position: static !important; width: auto !important; text-align: left !important; padding: 0 14px !important; height: 34px !important; background: var(--color-surface-elevated) !important; font-size: 13px; box-shadow: none !important; }
+.mt-vde__codigo { flex-wrap: nowrap; min-width: 0; }
+.mt-vde__pedido { max-width: 240px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.mt-vde__indisp { flex: none; font-size: 12px; font-weight: 700; padding: 2px 10px; border-radius: 999px; background: var(--color-error-bg); color: var(--color-error-fg); border: 1px solid var(--color-error-fg); }
+.mt-vde__tabela tr.is-falta td { background: var(--color-surface); }
+.mt-vde__tabela tr.is-falta .mt-vde__pedido { color: var(--color-text-muted); }

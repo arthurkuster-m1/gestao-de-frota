@@ -8,16 +8,18 @@ import { UFS } from "../../lib/eventos/tipos";
  * Janela do endereço: o CEP preenche rua, cidade e UF sozinhos; o resultado é UMA linha na máscara
  * "Rua, número, complemento (opcional) - Cidade/UF - CEP 00000-000".
  */
-export function JanelaDeEndereco({ aberto, titulo, valor, onSalvar, onFechar }: { aberto: boolean; titulo: string; valor: string | null; onSalvar: (texto: string | null) => void; onFechar: () => void }) {
+export function JanelaDeEndereco({ aberto, titulo, valor, onSalvar, onFechar, sugestao }: { aberto: boolean; titulo: string; valor: string | null; onSalvar: (texto: string | null) => void; onFechar: () => void; /** Endereço oferecido: com o campo vazio, Tab preenche tudo com ele. */ sugestao?: string }) {
   const [p, setP] = useState<EnderecoPartes>(ENDERECO_VAZIO);
   const [achando, setAchando] = useState(false);
   const [aviso, setAviso] = useState<string | null>(null);
   const numero = useRef<HTMLInputElement>(null);
   const rua = useRef<HTMLInputElement>(null);
+  const colar = useRef<HTMLInputElement>(null);
   const [colado, setColado] = useState("");
   useEffect(() => {
     if (!aberto) return;
     setAviso(null); setColado("");
+    if (sugestao && !valor) window.setTimeout(() => colar.current?.focus(), 60);   // com sugestão e endereço vazio, o cursor já fica no campo de colar (Tab aceita a sugestão)
     const lido = lerEndereco(valor);
     setP(lido ?? { ...ENDERECO_VAZIO, rua: (valor ?? "").trim() });   // texto antigo fora da máscara entra na rua para ser arrumado
   }, [aberto, valor]);
@@ -52,7 +54,7 @@ export function JanelaDeEndereco({ aberto, titulo, valor, onSalvar, onFechar }: 
   return (
     <Sheet open={aberto} onClose={onFechar} title={titulo}>
       <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); if (linha) onSalvar(linha); }} data-testid="form-endereco">
-        <Field label="Colar o endereço inteiro (opcional)"><Input value={colado} onChange={(e) => setColado(e.target.value)} onPaste={(e) => { const t = e.clipboardData.getData("text"); if (t.trim()) { e.preventDefault(); void aplicarColado(t); } }} onKeyDown={(e) => { if (e.key === "Enter" && colado.trim()) { e.preventDefault(); void aplicarColado(colado); } }} placeholder="Av. Goiás, 1805 - Santa Paula, São Caetano do Sul - SP, 09521-300" aria-label="Colar o endereço inteiro" data-testid="colar-endereco" /></Field>
+        <Field label="Colar o endereço inteiro (opcional)"><Input ref={colar} value={colado} onChange={(e) => setColado(e.target.value)} onPaste={(e) => { const t = e.clipboardData.getData("text"); if (t.trim()) { e.preventDefault(); void aplicarColado(t); } }} onKeyDown={(e) => { if (e.key === "Enter" && colado.trim()) { e.preventDefault(); void aplicarColado(colado); } if (e.key === "Tab" && !e.shiftKey && !colado.trim() && sugestao) { e.preventDefault(); void aplicarColado(sugestao); } }} placeholder={sugestao ? `${sugestao}  (Tab preenche)` : "Av. Goiás, 1805 - Santa Paula, São Caetano do Sul - SP, 09521-300"} aria-label="Colar o endereço inteiro" data-testid="colar-endereco" /></Field>
         {colado.trim() && <div><Button type="button" variant="secondary" size="sm" onClick={() => void aplicarColado(colado)}>Separar nos campos</Button></div>}
         <Field label="CEP"><Input value={p.cep} onChange={(e) => void aoDigitarCep(e.target.value)} inputMode="numeric" placeholder="00000-000" maxLength={9} aria-label="CEP" /></Field>
         {achando && <p className="t-body-sm t-muted">Procurando o CEP…</p>}
@@ -75,23 +77,23 @@ export function JanelaDeEndereco({ aberto, titulo, valor, onSalvar, onFechar }: 
 }
 
 /** Editor de célula para campos de endereço: abre a janela do endereço direto. */
-export function EditorDeEndereco({ valor, rotulo, onConfirmar, onCancelar }: { valor: string | null; rotulo: string; onConfirmar: (v: string | null) => void; onCancelar: () => void }) {
+export function EditorDeEndereco({ valor, rotulo, onConfirmar, onCancelar, sugestao }: { valor: string | null; rotulo: string; onConfirmar: (v: string | null) => void; onCancelar: () => void; sugestao?: string }) {
   const feito = useRef(false);
   return (
     <>
       <span className="mt-valor">{valor || "—"}</span>
-      <JanelaDeEndereco aberto titulo={rotulo} valor={valor} onFechar={() => { if (!feito.current) { feito.current = true; onCancelar(); } }} onSalvar={(t) => { feito.current = true; onConfirmar(t); }} />
+      <JanelaDeEndereco aberto titulo={rotulo} valor={valor} sugestao={sugestao} onFechar={() => { if (!feito.current) { feito.current = true; onCancelar(); } }} onSalvar={(t) => { feito.current = true; onConfirmar(t); }} />
     </>
   );
 }
 
 /** Campo de endereço para formulários: mostra a linha e abre a janela do endereço ao clicar. */
-export function CampoDeEndereco({ valor, onChange, titulo = "Endereço", placeholder = "Clique para informar (CEP preenche cidade e UF)" }: { valor: string; onChange: (v: string) => void; titulo?: string; placeholder?: string }) {
+export function CampoDeEndereco({ valor, onChange, titulo = "Endereço", placeholder = "Clique para informar (CEP preenche cidade e UF)", sugestao }: { valor: string; onChange: (v: string) => void; titulo?: string; placeholder?: string; sugestao?: string }) {
   const [aberto, setAberto] = useState(false);
   return (
     <>
       <button type="button" className={cx("mt-campo-endereco", !valor && "is-vazio")} onClick={() => setAberto(true)} aria-label={titulo} data-testid="campo-endereco"><MapPin size={16} aria-hidden /><span>{valor || placeholder}</span></button>
-      <JanelaDeEndereco aberto={aberto} titulo={titulo} valor={valor || null} onFechar={() => setAberto(false)} onSalvar={(t) => { onChange(t ?? ""); setAberto(false); }} />
+      <JanelaDeEndereco aberto={aberto} titulo={titulo} valor={valor || null} sugestao={sugestao} onFechar={() => setAberto(false)} onSalvar={(t) => { onChange(t ?? ""); setAberto(false); }} />
     </>
   );
 }
