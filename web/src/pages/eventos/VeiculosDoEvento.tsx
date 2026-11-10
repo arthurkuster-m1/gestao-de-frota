@@ -528,8 +528,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
       {ed.erro && <p className="mt-erro" role="alert"><span>{ed.erro}</span></p>}
 
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
-        pedidos={pedidoAlvo ? [pedidoAlvo] : desejados} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela) => onReservar(evento.id, ids, ini, fim, janela, pedidoAlvo?.id)}
-        onReservarSemData={onReservarSemData ? (ids) => onReservarSemData(evento.id, ids, pedidoAlvo?.id) : undefined} />
+        pedidos={desejados} pedidoInicial={pedidoAlvo?.id ?? null} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela, pid) => onReservar(evento.id, ids, ini, fim, janela, pid ?? pedidoAlvo?.id)}
+        onReservarSemData={onReservarSemData ? (ids, pid) => onReservarSemData(evento.id, ids, pid ?? pedidoAlvo?.id) : undefined} />
       {onChecklistEmMassa && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento="saida" carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={onChecklistEmMassa} />}
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}

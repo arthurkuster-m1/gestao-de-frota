@@ -1,9 +1,9 @@
 import { Plus, Trash } from "@phosphor-icons/react";
-import { Button, Field, Input } from "../../ds";
+import { Button, Field, Input, Select } from "../../ds";
 import type { ModeloDesejadoNovo } from "../../lib/eventos/tipos";
 
 export type PedidoDeCarro = ModeloDesejadoNovo & { quantidade: number };
-export const pedidoVazio = (): PedidoDeCarro => ({ modelo: "", cor: "", my: "", quantidade: 1 });
+export const pedidoVazio = (): PedidoDeCarro => ({ modelo: "", cor: "", my: "", blindado: null, quantidade: 1 });
 
 /** "Modelos desejados": o que o solicitante pediu (modelo obrigatório; versão, cor e MY opcionais) e quantos carros de cada. */
 export function ModelosDesejadosForm({ pedidos, onChange }: { pedidos: PedidoDeCarro[]; onChange: (p: PedidoDeCarro[]) => void }) {
@@ -20,6 +20,7 @@ export function ModelosDesejadosForm({ pedidos, onChange }: { pedidos: PedidoDeC
           <Field label="Modelo"><Input value={p.modelo} onChange={(e) => set(i, { modelo: e.target.value })} placeholder="S10 TRAILBOSS PITCH" maxLength={60} aria-label="Modelo desejado" /></Field>
           <Field label="Cor"><Input value={p.cor ?? ""} onChange={(e) => set(i, { cor: e.target.value })} maxLength={40} aria-label="Cor desejada" /></Field>
           <Field label="MY"><Input value={p.my ?? ""} onChange={(e) => set(i, { my: e.target.value })} placeholder="2027" maxLength={10} aria-label="MY desejado" /></Field>
+          <Field label="Blindagem"><Select value={p.blindado == null ? "" : p.blindado ? "sim" : "nao"} onChange={(e) => set(i, { blindado: e.target.value === "" ? null : e.target.value === "sim" })} placeholder="Tanto faz" aria-label="Blindagem desejada"><option value="">Tanto faz</option><option value="sim">Blindado</option><option value="nao">Sem blindagem</option></Select></Field>
           <Field label="Qtd."><Input type="number" inputMode="numeric" min={1} max={50} value={String(p.quantidade)} onChange={(e) => set(i, { quantidade: Math.max(1, Number(e.target.value) || 1) })} aria-label="Quantidade" /></Field>
           <Button type="button" variant="ghost" size="icon" aria-label="Remover este modelo" onClick={() => onChange(pedidos.filter((_, k) => k !== i))}><Trash size={20} /></Button>
         </div>

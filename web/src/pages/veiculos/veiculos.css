@@ -66,7 +66,7 @@
 
 /* Modelos desejados do evento */
 .mt-pedido { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; align-items: end; padding: 10px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); }
-@media (min-width: 640px) { .mt-pedido { grid-template-columns: 2fr 1fr 80px 70px auto; } }
+@media (min-width: 640px) { .mt-pedido { grid-template-columns: 2fr 1fr 80px 140px 70px auto; } }
 .mt-pedidos-lista { display: grid; gap: 6px; }
 .mt-pedido-chip { display: flex; align-items: center; flex-wrap: wrap; gap: 8px; padding: 8px 10px; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); }
 .mt-pedido-chip.is-ok { background: var(--color-success-bg); }
@@ -358,3 +358,26 @@
 /* tabela de veículos do evento: blocos de transporte (Transporte IDA / RETORNO) com os campos ao lado quando abertos */
 .mt-vde__tabela th.mt-vde__bloco { border-left: 2px solid var(--color-accent); }
 .mt-vde__tabela th.mt-vde__sub { font-weight: 500; color: var(--color-text-subtle); }
+
+/* tabela dos pedidos de modelo do evento (Status | Modelo solicitado | Cor | MY | Blindagem) */
+.mt-ped { width: 100%; border-collapse: collapse; font-size: 14px; }
+.mt-ped th { text-align: left; font-weight: 500; font-size: 12px; color: var(--color-text-subtle); padding: 6px 10px; border-bottom: 1px solid var(--nt-linha, var(--color-border)); }
+.mt-ped td { padding: 0 10px; height: 34px; border-bottom: 1px solid var(--nt-linha, var(--color-border)); }
+.mt-ped tr.is-clicavel { cursor: pointer; }
+.mt-ped tr.is-clicavel:hover td { background: var(--nt-hover, var(--color-surface-elevated)); }
+.mt-ped tr.is-sel td { background: color-mix(in srgb, var(--nt-azul, #2383e2) 12%, var(--color-bg)); }
+.mt-ped__status { display: inline-flex; align-items: center; gap: 6px; padding: 0 8px; height: 20px; border-radius: 4px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.mt-ped__status.is-reservar { background: var(--color-error-bg); color: var(--color-error-fg); }
+.mt-ped__status.is-reservado { background: var(--color-success-bg); color: var(--color-success-fg); }
+.mt-ped__status.is-indisp { background: var(--color-surface-elevated); color: var(--color-text-subtle); }
+.mt-ped__acao { text-align: right; white-space: nowrap; }
+.mt-ped-wrap { overflow-x: auto; }
+
+/* popup "Reservar carros": grande, com datas, pedidos e a tabela de carros */
+.ds-sheet:has([data-testid="adicionar-veiculos"]) { max-width: min(1280px, 96vw); width: min(1280px, 96vw); max-height: 94dvh; }
+.mt-reservar__datas { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+@media (min-width: 720px) { .mt-reservar__datas { grid-template-columns: repeat(4, minmax(0, 1fr)); } }
+.mt-reservar__tabela { min-width: 0; border-top: 1px solid var(--nt-linha, var(--color-border)); }
+.mt-reservar__tabela .mt-tabela { max-height: 46dvh; overflow-y: auto; }
+.mt-reservar__rodape { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; position: sticky; bottom: 0; padding: 10px 0; background: var(--color-surface); border-top: 1px solid var(--color-border); }
+.mt-reservar__tabela .mt-tabela thead th { position: sticky; top: 0; z-index: 7; background: var(--color-bg); }

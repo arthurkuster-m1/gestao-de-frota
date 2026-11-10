@@ -32,6 +32,8 @@ import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
 import { calcularDatasDoEvento } from "../../lib/eventos/rotasDoEvento";
 import { distanciaEntre } from "../../lib/transportes/rota";
 import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./ModelosDesejadosForm";
+import { TabelaDePedidos } from "./TabelaDePedidos";
+import { atendimentoDosPedidos } from "../../lib/eventos/desejados";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
 import "../veiculos/veiculos.css";
 
@@ -75,6 +77,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   useEffect(() => { setComentario(evento.comentarios ?? ""); }, [evento.id, evento.comentarios]);
 
   const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);
+  const pedidosDoEvento = useMemo(() => p.desejados.filter((x) => x.evento_id === evento.id), [p.desejados, evento.id]);
+  const atendidos = useMemo(() => atendimentoDosPedidos(pedidosDoEvento, [...p.reservas, ...(p.reservasSemData ?? [])].filter((r) => r.evento_id === evento.id), new Map(p.veiculos.map((v) => [v.id, v]))), [pedidosDoEvento, p.reservas, p.reservasSemData, p.veiculos, evento.id]);
   const locaisDoEvento = useMemo(() => p.locais.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.locais, evento.id]);
   const editaveis = campos.filter((c) => c.edicao && c.id !== "comentarios").map((c) => c.id);
   const campoComentarios = campos.find((c) => c.id === "comentarios");
@@ -227,7 +231,10 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
 
         {aba === "veiculos" && (
           <div className="mt-reservas-ed" data-testid="aba-veiculos">
-            <div><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
+            <div className="ds-stack">
+              <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}><h3 className="t-h3">Modelos solicitados</h3><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
+              <TabelaDePedidos pedidos={pedidosDoEvento} atendidos={atendidos} codigoDoCarro={(id) => { const v = p.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; }} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />
+            </div>
             <VeiculosDoEvento onChecklistEmMassa={p.onChecklistEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
               checklists={p.checklists} onSalvarChecklist={p.onSalvarChecklist} onSalvarReserva={p.onSalvarReserva} onReservar={p.onReservar} onRemoverReserva={p.onRemoverReserva} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />
           </div>

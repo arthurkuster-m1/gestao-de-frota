@@ -166,20 +166,24 @@ export async function removerLocal(id: string): Promise<void> {
 }
 
 // ---------- modelos desejados do evento ----------
-const COLUNAS_DESEJADO = "id, evento_id, modelo, versao, cor, my, reserva_id, nao_atendido, nota, posicao";
+const COLUNAS_DESEJADO = "id, evento_id, modelo, versao, cor, my, blindado, reserva_id, nao_atendido, nota, posicao";
+const COLUNAS_DESEJADO_ANTIGA = "id, evento_id, modelo, versao, cor, my, reserva_id, nao_atendido, nota, posicao";   // enquanto a migration da blindagem não rodou
+const semBlindagem = (e: { message: string }) => /blindado/.test(e.message);
 const limpo = (t: string | null | undefined) => { const x = (t ?? "").trim(); return x === "" ? null : x; };
 
 export async function listarDesejados(): Promise<ModeloDesejado[]> {
-  const { data, error } = await supabase.from("evento_modelos_desejados").select(COLUNAS_DESEJADO).order("posicao", { ascending: true }).limit(10000);
+  let { data, error } = (await supabase.from("evento_modelos_desejados").select(COLUNAS_DESEJADO).order("posicao", { ascending: true }).limit(10000)) as { data: unknown[] | null; error: { message: string } | null };
+  if (error && semBlindagem(error)) ({ data, error } = (await supabase.from("evento_modelos_desejados").select(COLUNAS_DESEJADO_ANTIGA).order("posicao", { ascending: true }).limit(10000)) as { data: unknown[] | null; error: { message: string } | null });
   if (error) throw traduzir(error);
   return (data ?? []) as ModeloDesejado[];
 }
 /** Cria uma linha por carro pedido (`quantidade` carros iguais viram linhas iguais). */
 export async function criarDesejados(eventoId: string, itens: (ModeloDesejadoNovo & { quantidade?: number })[], primeiraPosicao = 0): Promise<ModeloDesejado[]> {
-  const linhas = itens.filter((i) => limpo(i.modelo)).flatMap((i) => Array.from({ length: Math.max(1, Math.min(50, i.quantidade ?? 1)) }, () => ({ modelo: i.modelo.trim(), cor: limpo(i.cor), my: limpo(i.my) })))
+  const linhas = itens.filter((i) => limpo(i.modelo)).flatMap((i) => Array.from({ length: Math.max(1, Math.min(50, i.quantidade ?? 1)) }, () => ({ modelo: i.modelo.trim(), cor: limpo(i.cor), my: limpo(i.my), blindado: i.blindado ?? null })))
     .map((l, k) => ({ ...l, evento_id: eventoId, posicao: primeiraPosicao + k }));
   if (linhas.length === 0) return [];
-  const { data, error } = await supabase.from("evento_modelos_desejados").insert(linhas).select(COLUNAS_DESEJADO);
+  let { data, error } = (await supabase.from("evento_modelos_desejados").insert(linhas).select(COLUNAS_DESEJADO)) as { data: unknown[] | null; error: { message: string } | null };
+  if (error && semBlindagem(error)) ({ data, error } = (await supabase.from("evento_modelos_desejados").insert(linhas.map(({ blindado, ...resto }) => (void blindado, resto))).select(COLUNAS_DESEJADO_ANTIGA)) as { data: unknown[] | null; error: { message: string } | null });
   if (error) throw traduzir(error);
   return (data ?? []) as ModeloDesejado[];
 }

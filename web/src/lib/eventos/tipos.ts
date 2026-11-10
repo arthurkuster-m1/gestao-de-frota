@@ -43,8 +43,8 @@ export const rotuloStatusEvento = (v: string) => STATUS_EVENTO.find((s) => s.val
 export const rotuloEstadoReserva = (v: string) => ESTADOS_RESERVA.find((s) => s.value === v)?.label ?? v;
 
 /** Um carro PEDIDO para o evento (modelo mãe + versão, cor e MY opcionais). `reserva_id` = atendido; `nao_atendido` = não estava disponível. */
-export type ModeloDesejado = { id: string; evento_id: string; modelo: string; versao: string | null; cor: string | null; my: string | null; reserva_id: string | null; nao_atendido: boolean; nota: string | null; posicao: number };
-export type ModeloDesejadoNovo = { modelo: string; cor?: string | null; my?: string | null };
+export type ModeloDesejado = { id: string; evento_id: string; modelo: string; versao: string | null; cor: string | null; my: string | null; /** pede carro blindado (sim/não); vazio = tanto faz */ blindado?: boolean | null; reserva_id: string | null; nao_atendido: boolean; nota: string | null; posicao: number };
+export type ModeloDesejadoNovo = { modelo: string; cor?: string | null; my?: string | null; blindado?: boolean | null };
 
 /** Faixa livre na linha do tempo do carro (Produção, Em faturamento, Emplacamento…). */
 export type AnotacaoDoCarro = { id: string; veiculo_id: string; titulo: string; inicio: string; fim: string; comentarios: string | null };
