@@ -39,8 +39,8 @@ type Tr = ReturnType<typeof useTransportes>;
 type ColunaOpcional = "status" | "comentarios" | "origem" | "enderecoChegada" | "enderecoEventoVolta" | "enderecoRetorno";
 /** Os blocos de transporte são colunas FIXAS: "Transporte IDA" e "Transporte RETORNO" (o código do transporte) e, ao expandir, os demais campos. */
 const SUBCOLUNAS: Record<Sentido, string[]> = {
-  ida: ["origem", "enderecoChegada", "kmIda", "envio", "chegada", "modalidadeIda", "transportadoraIda", "valorIda"],
-  volta: ["enderecoEventoVolta", "enderecoRetorno", "kmVolta", "retirada", "retorno", "modalidadeVolta", "transportadoraVolta", "valorVolta"],
+  ida: ["modalidadeIda", "transportadoraIda", "valorIda", "envio", "chegada", "origem", "enderecoChegada", "kmIda"],
+  volta: ["modalidadeVolta", "transportadoraVolta", "valorVolta", "retirada", "retorno", "enderecoEventoVolta", "enderecoRetorno", "kmVolta"],
 };
 const ENDERECOS: string[] = ["origem", "enderecoChegada", "enderecoEventoVolta", "enderecoRetorno"];
 const TITULOS: Record<string, string> = {
@@ -62,10 +62,11 @@ const PAINEL_DE_COLUNAS: { titulo: string; ids: ColunaOpcional[] }[] = [
 const INFO = [{ id: "placa", titulo: "Placa" }, { id: "vin", titulo: "VIN" }, { id: "modelo", titulo: "Modelo" }, { id: "cor", titulo: "Cor" }, { id: "my", titulo: "MY" }] as const;
 const CAMPOS_EDITAVEIS: ColunaOpcional[] = ["status", "comentarios"];
 const COLUNAS_DO_PAINEL: string[] = ["status", "comentarios", ...ENDERECOS];
-const CHAVE = "frota:evento-veiculos:v3";
+const CHAVE = "frota:evento-veiculos:v4";
 /** `colunas` = as colunas ligadas, NA ORDEM em que aparecem (arrastar o título muda a ordem). `infoCols` = quais dados do veículo aparecem ao lado do código. `ordem`/`agrupar` = ordenar e agrupar as linhas. */
-type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null; /** largura de cada coluna (px), ajustada arrastando a borda do título */ larguras: Record<string, number>; /** blocos de transporte abertos (mostrando os campos) */ abertos: { ida: boolean; volta: boolean } };
+type Prefs = { infoCols: string[]; colunas: ColunaOpcional[]; ordem: { col: string; dir: "asc" | "desc" } | null; agrupar: string | null; /** largura de cada coluna (px), ajustada arrastando a borda do título */ larguras: Record<string, number>; /** blocos de transporte abertos (mostrando os campos) */ abertos: { ida: boolean; volta: boolean }; /** ordem dos campos dentro de cada bloco de transporte (arrastando o título) */ ordemBloco: Record<Sentido, string[]> };
 const TODAS_INFO = INFO.map((c) => c.id as string);
+const ordemValida = (salva: string[] | undefined, padrao: string[]) => { const ok = Array.isArray(salva) ? salva.filter((c) => padrao.includes(c)) : []; return [...ok, ...padrao.filter((c) => !ok.includes(c))]; };
 function lerPrefs(): Prefs {
   try {
     const p = JSON.parse(localStorage.getItem(CHAVE) ?? "null") as (Partial<Prefs> & { info?: boolean }) | null;
@@ -73,12 +74,13 @@ function lerPrefs(): Prefs {
       infoCols: Array.isArray(p.infoCols) ? p.infoCols.filter((c) => TODAS_INFO.includes(c)) : p.info ? TODAS_INFO : [],
       colunas: p.colunas.filter((c) => COLUNAS_DO_PAINEL.includes(c)),
       abertos: { ida: !!p.abertos?.ida, volta: !!p.abertos?.volta },
+      ordemBloco: { ida: ordemValida(p.ordemBloco?.ida, SUBCOLUNAS.ida), volta: ordemValida(p.ordemBloco?.volta, SUBCOLUNAS.volta) },
       ordem: p.ordem && typeof p.ordem.col === "string" ? { col: p.ordem.col, dir: p.ordem.dir === "desc" ? "desc" : "asc" } : null,
       agrupar: typeof p.agrupar === "string" ? p.agrupar : null,
       larguras: p.larguras && typeof p.larguras === "object" ? Object.fromEntries(Object.entries(p.larguras).filter(([, v]) => typeof v === "number" && v >= 60 && v <= 900)) : {},
     };
   } catch { /* sem armazenamento */ }
-  return { infoCols: [], colunas: ["origem", "enderecoChegada", "enderecoEventoVolta", "enderecoRetorno"], ordem: null, agrupar: null, larguras: {}, abertos: { ida: false, volta: false } };
+  return { infoCols: [], colunas: ["status", "comentarios", "origem", "enderecoChegada", "enderecoEventoVolta", "enderecoRetorno"], ordem: null, agrupar: null, larguras: {}, abertos: { ida: false, volta: false }, ordemBloco: { ida: SUBCOLUNAS.ida, volta: SUBCOLUNAS.volta } };
 }
 function gravarPrefs(p: Prefs) { try { localStorage.setItem(CHAVE, JSON.stringify(p)); } catch { /* sem armazenamento */ } }
 const COLUNAS_DE_ORDEM = [{ id: "codigo", titulo: "Código" }, ...INFO, ...COLUNAS_OPCIONAIS] as { id: string; titulo: string }[];
@@ -154,8 +156,8 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   /** Todas as colunas de dados na ordem da tabela: soltas, bloco IDA (código + campos quando aberto) e bloco RETORNO. */
   const ordenadas: string[] = [
     ...livres,
-    "transporteIda", ...(prefs.abertos.ida ? SUBCOLUNAS.ida.filter(visivelNoBloco) : []),
-    "transporteVolta", ...(prefs.abertos.volta ? SUBCOLUNAS.volta.filter(visivelNoBloco) : []),
+    "transporteIda", ...(prefs.abertos.ida ? prefs.ordemBloco.ida.filter(visivelNoBloco) : []),
+    "transporteVolta", ...(prefs.abertos.volta ? prefs.ordemBloco.volta.filter(visivelNoBloco) : []),
   ];
   const colunasInfo = INFO.map((c) => c.id as string).filter((c) => prefs.infoCols.includes(c));
   /** Colunas selecionáveis (por células), na ordem em que aparecem. */
@@ -394,7 +396,12 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const aoSoltarColuna = (e: DragEndEvent) => {
     if (!e.over || e.active.id === e.over.id) return;
     const de = livres.indexOf(e.active.id as ColunaOpcional), para = livres.indexOf(e.over.id as ColunaOpcional);
-    if (de >= 0 && para >= 0) muda({ ...prefs, colunas: [...arrayMove(livres, de, para), ...prefs.colunas.filter((c) => c !== "status" && c !== "comentarios")] });
+    if (de >= 0 && para >= 0) { muda({ ...prefs, colunas: [...arrayMove(livres, de, para), ...prefs.colunas.filter((c) => c !== "status" && c !== "comentarios")] }); return; }
+    // dentro de cada bloco de transporte, os campos só trocam de lugar entre si
+    for (const k of ["ida", "volta"] as Sentido[]) {
+      const lista = prefs.ordemBloco[k], a = lista.indexOf(String(e.active.id)), b = lista.indexOf(String(e.over.id));
+      if (a >= 0 && b >= 0) muda({ ...prefs, ordemBloco: { ...prefs.ordemBloco, [k]: arrayMove(lista, a, b) } });
+    }
   };
   const semData = linhas.filter((l) => l.reserva && !l.reserva.reserva_inicio);
   async function aplicarDatasDoEvento() {
@@ -469,7 +476,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
           <colgroup><col style={{ width: LARGURA_SEL }} /><col style={{ width: larguraDe("codigo") }} />{colunasInfo.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}{ordenadas.map((c) => <col key={c} style={{ width: larguraDe(c) }} />)}<col style={{ width: larguraDe("acoes") }} /></colgroup>
           <thead>
             <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltarColuna}>
-              <SortableContext items={livres} strategy={horizontalListSortingStrategy}>
+              <SortableContext items={ordenadas.filter((c) => c !== "transporteIda" && c !== "transporteVolta")} strategy={horizontalListSortingStrategy}>
                 <tr>
                   <th className="mt-vde__sel"><input type="checkbox" checked={todosMarcados} onChange={() => setMarcados(todosMarcados ? new Set() : new Set(definidas.map((l) => l.key)))} aria-label="Marcar todos os carros" disabled={definidas.length === 0} data-testid="marcar-todos" /></th>
                   <th><span className="mt-vde__cod">Código
@@ -480,7 +487,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
                     <th key={c} className="mt-vde__bloco"><span className="mt-vde__cod">{tituloDe(c)}
                       <button type="button" className="mt-btn mt-btn--icone" aria-expanded={prefs.abertos[c === "transporteIda" ? "ida" : "volta"]} aria-label={`${prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? "Recolher" : "Expandir"} ${tituloDe(c)}`} title="Mostrar ou esconder os campos do transporte" data-testid={`expandir-${c}`}
                         onClick={() => { const k = c === "transporteIda" ? "ida" : "volta"; muda({ ...prefs, abertos: { ...prefs.abertos, [k]: !prefs.abertos[k] } }); }}>{prefs.abertos[c === "transporteIda" ? "ida" : "volta"] ? <CaretDown size={16} weight="bold" /> : <CaretRight size={16} weight="bold" />}</button></span>{alca(c)}</th>
-                  ) : livres.includes(c as ColunaOpcional) ? <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel> : <th key={c} className="mt-vde__sub">{tituloDe(c)}{alca(c)}</th>)}
+                  ) : <ThOrdenavel key={c} id={c} travada={false}>{tituloDe(c)}{alca(c)}</ThOrdenavel>)}
                   <th className="mt-vde__acoes" aria-label="Ações" />
                 </tr>
               </SortableContext>

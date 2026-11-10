@@ -381,3 +381,9 @@
 .mt-reservar__tabela .mt-tabela { max-height: 46dvh; overflow-y: auto; }
 .mt-reservar__rodape { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 8px; position: sticky; bottom: 0; padding: 10px 0; background: var(--color-surface); border-top: 1px solid var(--color-border); }
 .mt-reservar__tabela .mt-tabela thead th { position: sticky; top: 0; z-index: 7; background: var(--color-bg); }
+/* popup Reservar carros: código sempre à esquerda e caixinhas de seleção alinhadas na mesma coluna */
+.mt-reservar__tabela .mt-tabela td, .mt-reservar__tabela .mt-tabela th { text-align: left; }
+.mt-reservar__tabela .mt-comchk { justify-content: flex-start; gap: 0; }
+.mt-reservar__tabela .mt-comchk .mt-chk-sel { margin: 0 10px 0 0; flex: none; }
+.mt-reservar__tabela .mt-primeira { justify-content: flex-start; text-align: left; }
+.mt-reservar__tabela .mt-primeira__txt { text-align: left; margin: 0; }
