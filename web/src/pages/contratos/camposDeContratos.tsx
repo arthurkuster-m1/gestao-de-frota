@@ -1,6 +1,6 @@
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { divergenciasDoEvento } from "../../lib/contratos/regras";
-import { STATUS_ADITIVO, STATUS_CONTRATO, TIPOS_ADITIVO, rotuloTipoAditivo, type Aditivo, type Contrato } from "../../lib/contratos/tipos";
+import { STATUS_ADITIVO, STATUS_CONTRATO, TIPOS_ADITIVO, rotuloTipoAditivo, type Aditivo, type AditivoVeiculo, type Contrato, type ContratoVeiculo } from "../../lib/contratos/tipos";
 import type { Evento, EventoLocal, Reserva } from "../../lib/eventos/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
@@ -13,7 +13,7 @@ export const codigoDoCarro = (v: Veiculo | undefined) => (v ? (v.codigo ?? v.mod
 export type EmVigor = { vigencia: { inicio: string | null; fim: string | null }; carros: Set<string>; aditivos: Aditivo[] };
 /** Contatos do cliente para o D4Sign: e-mail da parte e da testemunha (cadastrados no cliente). */
 export type ContatosDoCliente = { email: string; testemunha: string; testemunhaEmail: string };
-export type ContextoDeContratos = { eventos: Map<string, Evento>; clientes: Map<string, string>; veiculos: Map<string, Veiculo>; reservasDoEvento: Map<string, Reserva[]>; emVigor: Map<string, EmVigor>; locais: EventoLocal[]; contatos: Map<string, ContatosDoCliente> };
+export type ContextoDeContratos = { eventos: Map<string, Evento>; clientes: Map<string, string>; veiculos: Map<string, Veiculo>; reservasDoEvento: Map<string, Reserva[]>; emVigor: Map<string, EmVigor>; locais: EventoLocal[]; contatos: Map<string, ContatosDoCliente>; /** para os botões de baixar o DOCX na tabela */ docs?: { carros: ContratoVeiculo[]; itens: AditivoVeiculo[]; baixarContrato: (c: Contrato) => void; baixarAditivo: (c: Contrato, a: Aditivo, numero: number) => void } };
 
 export const divergenciasDoContrato = (c: Contrato, ctx: ContextoDeContratos) => {
   const ev = ctx.emVigor.get(c.id); if (!ev) return [];
@@ -33,6 +33,13 @@ export const camposDoContrato = (ctx: ContextoDeContratos): CampoDaTela<Contrato
   { id: "aditivos", titulo: "Aditivos", tipo: "texto", valorDe: (c) => { const a = ctx.emVigor.get(c.id)?.aditivos ?? []; if (!a.length) return null; const ass = a.filter((x) => x.status === "assinado").length; return `${a.length} · ${ass} assinado${ass === 1 ? "" : "s"}`; }, largura: 160 },
   { id: "divergencia", titulo: "Divergência", tipo: "texto", valorDe: (c) => { const d = divergenciasDoContrato(c, ctx); return d.length ? `${d.length} divergência${d.length === 1 ? "" : "s"}` : "Confere"; }, celula: (c) => { const d = divergenciasDoContrato(c, ctx); return d.length ? <span style={{ color: "var(--color-warning-fg)", fontWeight: 600 }}>{d.length} divergência{d.length === 1 ? "" : "s"}</span> : <span className="t-muted">Confere</span>; }, largura: 160 },
   { id: "assinadoEm", titulo: "Assinado em", tipo: "data", valorDe: (c) => c.assinado_em, largura: 150, padrao: false },
+  { id: "documentos", titulo: "Documentos (DOCX)", tipo: "texto", valorDe: () => null, largura: 300, celula: (c) => {
+    const d = ctx.docs; if (!d) return <span className="mt-vazio">—</span>;
+    const ads = ctx.emVigor.get(c.id)?.aditivos ?? [];
+    return <span style={{ display: "inline-flex", gap: 6, flexWrap: "wrap" }} onClick={(e) => e.stopPropagation()}>
+      <button type="button" className="mt-btn" onClick={() => d.baixarContrato(c)} title="Baixar o contrato em DOCX" data-testid="tabela-baixar-contrato">⬇ Contrato</button>
+      {ads.map((a, n) => <button key={a.id} type="button" className="mt-btn" onClick={() => d.baixarAditivo(c, a, n + 1)} title={a.titulo ?? `Aditivo ${n + 1}`} data-testid="tabela-baixar-aditivo">⬇ Aditivo {n + 1}</button>)}
+    </span>; } },
   { id: "emailParte", titulo: "E-mail da parte", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.email || null, largura: 240 },
   { id: "testemunha", titulo: "Testemunha", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.testemunha || null, largura: 200 },
   { id: "emailTestemunha", titulo: "E-mail da testemunha", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.testemunhaEmail || null, largura: 240 },

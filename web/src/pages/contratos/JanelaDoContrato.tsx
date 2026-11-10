@@ -11,6 +11,7 @@ import { useEdicao, type OnEditar } from "../../components/motor/useEdicao";
 import type { Aditivo, AditivoNovo, AditivoVeiculo, Contrato, ContratoVeiculo } from "../../lib/contratos/tipos";
 import { baixarArquivo, gerarAditivoDocx, gerarContratoDocx, nomeDoArquivoDoAditivo, nomeDoArquivoDoContrato, tituloDoAditivo, type SnapshotDoContrato } from "../../lib/contratos/documentos";
 import { montarSnapshotDoAditivo, montarSnapshotDoContrato } from "../../lib/contratos/montar";
+import { baixarAditivoDocx, baixarContratoDocx } from "./baixar";
 import { planoDeAditivos } from "../../lib/contratos/regras";
 import { hojeLocal } from "../../lib/motor/datas";
 import type { Reserva } from "../../lib/eventos/tipos";
@@ -50,23 +51,15 @@ export function JanelaDoContrato({ contrato, campos, ctx, veiculos, carrosDoCont
   const mapaDeVeiculos = useMemo(() => new Map(veiculos.map((v) => [v.id, v])), [veiculos]);
   /** O DOCX do contrato: depois de assinado sai SEMPRE igual (do snapshot); antes, com os dados de agora. */
   async function baixarContrato() {
-    if (!contrato || !evento) return;
+    if (!contrato) return;
     setFalha(null); setGerando(true);
-    try {
-      const salvo = contrato.snapshot as unknown as SnapshotDoContrato | null;
-      const snap = travado && salvo ? salvo : await montarSnapshotDoContrato({ evento, clienteId: contrato.cliente_id, veiculos: mapaDeVeiculos, carroIds: carrosDoContrato.map((c) => c.veiculo_id), reservas: reservasDoEvento, locais: ctx.locais, vigencia: { inicio: contrato.vigencia_inicio, fim: contrato.vigencia_fim } });
-      baixarArquivo(await gerarContratoDocx(snap), nomeDoArquivoDoContrato(evento.nome));
-    } catch (e) { setFalha((e as Error).message); } finally { setGerando(false); }
+    try { await baixarContratoDocx(contrato, ctx, carrosDoContrato); } catch (e) { setFalha((e as Error).message); } finally { setGerando(false); }
   }
   const numeroDoAditivo = (a: Aditivo) => aditivos.findIndex((x) => x.id === a.id) + 1;
   async function baixarAditivo(a: Aditivo) {
-    if (!contrato || !evento) return;
+    if (!contrato) return;
     setFalha(null);
-    try {
-      const doAditivo = itens.filter((i) => i.aditivo_id === a.id);
-      const snap = await montarSnapshotDoAditivo({ contrato, aditivo: a, numero: numeroDoAditivo(a), veiculos: mapaDeVeiculos, sai: doAditivo.filter((i) => i.acao === "sai").map((i) => i.veiculo_id), entra: doAditivo.filter((i) => i.acao === "entra").map((i) => i.veiculo_id) });
-      baixarArquivo(await gerarAditivoDocx(a.tipo, snap), nomeDoArquivoDoAditivo(evento.nome, a.titulo ?? tituloDoAditivo(numeroDoAditivo(a), a.tipo)));
-    } catch (e) { setFalha((e as Error).message); }
+    try { await baixarAditivoDocx(contrato, a, numeroDoAditivo(a), ctx, itens); } catch (e) { setFalha((e as Error).message); }
   }
   /** Os aditivos que as divergências pedem: extensão de prazo (evento passou do fim) e/ou troca de carros. Já baixa os DOCX. */
   const plano = contrato && emVigor ? planoDeAditivos({ vigenciaFim: emVigor.vigencia.fim, carros: emVigor.carros, reservas: reservasDoEvento, evento: evento ?? { retirada_prevista: null } }) : null;

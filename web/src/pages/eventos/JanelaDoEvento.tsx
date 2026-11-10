@@ -18,6 +18,8 @@ import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposDeContratos";
 import { GerarContrato } from "../contratos/GerarContrato";
+import { JanelaDoContrato } from "../contratos/JanelaDoContrato";
+import { baixarAditivoDocx, baixarContratoDocx } from "../contratos/baixar";
 import { useContatosDosClientes } from "../contratos/useContatosDosClientes";
 import { useContratos } from "../contratos/useContratos";
 import { camposDoTransporte, type ContextoDeTransportes } from "../transportes/camposDeTransportes";
@@ -144,7 +146,14 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
     const rs = new Map<string, Reserva[]>(); for (const r of p.reservas) { const l = rs.get(r.evento_id); if (l) l.push(r); else rs.set(r.evento_id, [r]); }
     return { eventos: new Map(p.eventos.map((e) => [e.id, e])), clientes: new Map(clientes.map((c) => [c.id, c.nome])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservasDoEvento: rs, emVigor: k.emVigor, locais: p.locais, contatos };
   }, [p.eventos, p.reservas, p.veiculos, p.locais, clientes, k.emVigor, contatos]);
-  const camposC = useMemo(() => camposDoContrato(ctxC), [ctxC]);
+  const [idContrato, setIdContrato] = useState<string | null>(null);
+  const contratoAberto = idContrato ? (contratosDoEvento.find((c) => c.id === idContrato) ?? null) : null;
+  const ctxCDocs = useMemo<ContextoDeContratos>(() => ({ ...ctxC, docs: {
+    carros: k.carros, itens: k.itens,
+    baixarContrato: (c) => void baixarContratoDocx(c, ctxC, k.carros).catch((e: Error) => toast(e.message)),
+    baixarAditivo: (c, a, n) => void baixarAditivoDocx(c, a, n, ctxC, k.itens).catch((e: Error) => toast(e.message)),
+  } }), [ctxC, k.carros, k.itens, toast]);
+  const camposC = useMemo(() => camposDoContrato(ctxCDocs), [ctxCDocs]);
   // Enquanto o contrato não é assinado, ele acompanha o evento (cliente, vigência e carros); depois de assinado, o que mudar vira "dados divergentes" e aditivo.
   const sincronizando = useRef(false);
   useEffect(() => {
@@ -250,13 +259,16 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {aba === "contratos" && (
           <TelaDoMotor<Contrato> tela="evento-contratos" titulo="Contratos" subtitulo="" compacta
             acoes={contratosDoEvento.length === 0 ? <Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)} data-testid="novo-contrato">Gerar contrato</Button> : undefined}
-            linhas={k.carregado ? contratosDoEvento : null} erro={k.erro} campos={camposC} idDe={(c) => c.id} onEditar={k.editar} onAbrir={(c) => navigate(`/contratos/${c.id}`)}
+            linhas={k.carregado ? contratosDoEvento : null} erro={k.erro} campos={camposC} idDe={(c) => c.id} onEditar={k.editar} onAbrir={(c) => setIdContrato(c.id)}
             rotuloDoTotal={(n) => `${n} contrato${n === 1 ? "" : "s"} deste evento`} placeholderDaBusca="Buscar contrato…"
             vazio={<EmptyState icon={<FileText size={30} />} title="Este evento ainda não tem contrato" action={<Button icon={<Plus size={20} />} onClick={() => setNovoContrato(true)}>Gerar contrato</Button>}>O contrato de comodato nasce deste evento: cliente, vigência e carros vêm do evento, e o DOCX sai pronto do modelo das Configurações.</EmptyState>} />
         )}
       </div>
       <GerarContrato aberto={novoContrato} onFechar={() => setNovoContrato(false)} evento={evento} clientes={clientes} reservas={p.reservas} veiculos={p.veiculos} locais={p.locais} k={k}
-        onEscolherCliente={async (id) => { const c = campos.find((x) => x.id === "cliente"); if (c) await p.onEditarEvento(evento, c, id); }} onGerado={(c) => navigate(`/contratos/${c.id}`)} />
+        onEscolherCliente={async (id) => { const c = campos.find((x) => x.id === "cliente"); if (c) await p.onEditarEvento(evento, c, id); }} onGerado={(c) => setIdContrato(c.id)} />
+      <JanelaDoContrato contrato={contratoAberto} campos={camposC} ctx={ctxCDocs} veiculos={p.veiculos} carrosDoContrato={contratoAberto ? k.carros.filter((c) => c.contrato_id === contratoAberto.id) : []} itens={k.itens} reservasDoEvento={contratoAberto ? (ctxC.reservasDoEvento.get(contratoAberto.evento_id) ?? []) : []}
+        onEditar={k.editar} onEditarAditivo={k.editarAditivo} onIncluirCarro={k.incluirCarro} onTirarCarro={k.tirarCarro} onNovoAditivo={k.novoAditivo} onTirarAditivo={k.tirarAditivo}
+        onExcluir={async (c) => { await k.excluir(c); setIdContrato(null); }} onFechar={() => setIdContrato(null)} />
       <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos" wide>
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido) return; void p.onAdicionarDesejados(evento.id, novoPedido.filter((x) => x.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
           <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />

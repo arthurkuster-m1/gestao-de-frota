@@ -9,6 +9,7 @@ import type { Contrato } from "../../lib/contratos/tipos";
 import { SubpaginasDeEventos } from "../eventos/SubpaginasDeEventos";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 import { camposDoContrato, type ContextoDeContratos } from "./camposDeContratos";
+import { baixarAditivoDocx, baixarContratoDocx } from "./baixar";
 import { JanelaDoContrato } from "./JanelaDoContrato";
 import { useContratos } from "./useContratos";
 import { useContatosDosClientes } from "./useContatosDosClientes";
@@ -31,7 +32,12 @@ export function Contratos() {
     for (const r of d.reservas) { const l = rs.get(r.evento_id); if (l) l.push(r); else rs.set(r.evento_id, [r]); }
     return { eventos: new Map((d.eventos ?? []).map((e) => [e.id, e])), clientes: new Map(clientes.map((c) => [c.id, c.nome])), veiculos: new Map(d.veiculos.map((v) => [v.id, v])), reservasDoEvento: rs, emVigor: k.emVigor, locais: d.locais, contatos };
   }, [d.eventos, d.reservas, d.veiculos, d.locais, clientes, k.emVigor, contatos]);
-  const campos = useMemo(() => camposDoContrato(ctx), [ctx]);
+  const ctxDocs = useMemo<ContextoDeContratos>(() => ({ ...ctx, docs: {
+    carros: k.carros, itens: k.itens,
+    baixarContrato: (c) => void baixarContratoDocx(c, ctx, k.carros).catch((e: Error) => setErroClientes(e.message)),
+    baixarAditivo: (c, a, n) => void baixarAditivoDocx(c, a, n, ctx, k.itens).catch((e: Error) => setErroClientes(e.message)),
+  } }), [ctx, k.carros, k.itens]);
+  const campos = useMemo(() => camposDoContrato(ctxDocs), [ctxDocs]);
   const pronto = d.eventos !== null && k.carregado;
   const lista = pronto ? k.contratos : null;
   const aberto = idAberto && lista ? (lista.find((x) => x.id === idAberto) ?? null) : null;
