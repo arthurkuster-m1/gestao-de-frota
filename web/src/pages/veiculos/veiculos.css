@@ -338,3 +338,9 @@
 .plan-fin__tabela th, .plan-fin__tabela td { position: static !important; box-shadow: none !important; width: auto !important; min-width: 0 !important; padding: 0 12px !important; text-align: left; }
 .plan-fin__tabela th:last-child, .plan-fin__tabela td:last-child { text-align: right; }
 @media (max-width: 640px) { .plan-fin__barras li { grid-template-columns: 1fr auto; } .plan-fin__trilho { grid-column: 1 / -1; } }
+
+/* título de coluna da importação: arrastável */
+.dsg-cell-header-container:has(.mt-titulo-arrasta) { width: 100%; height: 100%; }
+.mt-titulo-arrasta { display: flex; align-items: center; gap: 4px; width: 100%; height: 100%; cursor: grab; user-select: none; touch-action: none; }
+.mt-titulo-arrasta.is-arrastando { cursor: grabbing; opacity: 0.7; }
+.mt-titulo-arrasta.is-sobre { background: var(--color-accent-soft); box-shadow: inset 3px 0 0 var(--color-accent); }

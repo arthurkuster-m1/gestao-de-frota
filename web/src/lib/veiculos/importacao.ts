@@ -14,7 +14,7 @@ export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
 export const CAMPOS: { id: CampoLinha; titulo: string; largura: number }[] = [
   { id: "modelo", titulo: "Modelo", largura: 130 }, { id: "cor", titulo: "Cor", largura: 110 },
   { id: "my", titulo: "MY", largura: 80 }, { id: "pedido", titulo: "Pedido", largura: 120 }, { id: "vin", titulo: "VIN (chassi)", largura: 190 },
-  { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 100 }, { id: "seguro", titulo: "Seguro", largura: 120 },
+  { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 130 }, { id: "seguro", titulo: "Seguro", largura: 150 },
   { id: "ciclo", titulo: "Ciclo de vida", largura: 190 }, { id: "comentarios", titulo: "Comentários", largura: 200 },
   { id: "data_pedido", titulo: "Data do pedido", largura: 150 }, { id: "data_liberacao", titulo: "Data de liberação", largura: 160 }, { id: "data_faturamento", titulo: "Data de faturamento", largura: 170 },
   { id: "data_emplacamento", titulo: "Data de emplacamento", largura: 180 }, { id: "data_devolucao", titulo: "Data de devolução", largura: 160 },

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Papa from "papaparse";
 import { DataSheetGrid, keyColumn, textColumn } from "react-datasheet-grid";
@@ -6,6 +6,11 @@ import "react-datasheet-grid/dist/style.css";
 import { ArrowLeft, CheckCircle, Columns, FileCsv, Minus, ArrowsClockwise, Warning, XCircle, ClipboardText } from "@phosphor-icons/react";
 import { Painel } from "../../components/motor/Painel";
 import { SeletorDeColunas } from "./SeletorDeColunas";
+import { TituloArrastavel } from "./TituloArrastavel";
+import { colunaOpcao } from "../lancamentos/colunaOpcao";
+import { arrayMove } from "@dnd-kit/sortable";
+import { SEGURO, CICLO } from "../../lib/veiculos/tipos";
+import { SIM_NAO, type Opcao } from "../../lib/lancamentos/tipos";
 import { Button, Card, Page, Sheet, Textarea, useToast } from "../../ds";
 import { criarVeiculos, listarVeiculos } from "../../lib/veiculos/dados";
 import { CAMPOS, CAMPOS_PADRAO, analisarMatriz, linhaVazia, validarTudo, type CampoLinha, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
@@ -26,6 +31,8 @@ const COLUNA_SITUACAO = {
   isCellEmpty: ({ rowData }: { rowData: LinhaGrade }) => !rowData.__tom,
 };
 
+/** Colunas de valor fixo: a célula vira uma caixa de seleção com as opções (as mesmas que a validação aceita). */
+const OPCOES_DA_COLUNA: Partial<Record<CampoLinha, readonly Opcao[]>> = { blindado: SIM_NAO, seguro: SEGURO, ciclo: CICLO };
 const CHAVE_COLUNAS = "frota:massa-veiculos:colunas";
 type PrefsDeColunas = { ordem: CampoLinha[]; ligadas: CampoLinha[] };
 const TODOS_OS_IDS = CAMPOS.map((c) => c.id);
@@ -68,9 +75,16 @@ export function Massa() {
   const dados: LinhaGrade[] = useMemo(() => linhas.map((l, i) => ({ ...semMeta(l), __tom: resultados[i].tom, __texto: resultados[i].texto })), [linhas, resultados]);
   const cont = useMemo(() => { const c: Record<Tom, number> = { ok: 0, erro: 0, dup: 0, ign: 0 }; for (const r of resultados) c[r.tom]++; return c; }, [resultados]);
 
+  /** Soltou o título de uma coluna sobre outra: a primeira vai para o lugar da segunda. */
+  const prefsAgora = useRef(prefs); prefsAgora.current = prefs;
+  const moverColuna = (de: string, para: string) => {
+    const p = prefsAgora.current, a = p.ordem.indexOf(de as CampoLinha), b = p.ordem.indexOf(para as CampoLinha);
+    if (a >= 0 && b >= 0) mudaColunas({ ...p, ordem: arrayMove([...p.ordem], a, b) });
+  };
   const colunas = useMemo(() => [
-    ...visiveis.map((id) => CAMPOS.find((c) => c.id === id)!).map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, textColumn as never), title: c.titulo, minWidth: c.largura, basis: c.largura, grow: 0 })),
+    ...visiveis.map((id) => CAMPOS.find((c) => c.id === id)!).map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, (OPCOES_DA_COLUNA[c.id] ? colunaOpcao(OPCOES_DA_COLUNA[c.id]!) : textColumn) as never), title: <TituloArrastavel id={c.id} titulo={c.titulo} aoMover={moverColuna} />, minWidth: c.largura, basis: c.largura, grow: 0 })),
     { ...COLUNA_SITUACAO, minWidth: 360, basis: 360, grow: 1 },   // a situação da linha fica por último
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   ], [visiveis]);
 
   function adicionar(matriz: string[][]) {
@@ -113,7 +127,7 @@ export function Massa() {
 
         <Card flush>
           <div className="ds-massa vei-massa" data-testid="grade-massa">
-            <DataSheetGrid<LinhaGrade> value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
+            <DataSheetGrid<LinhaGrade> key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
           </div>
         </Card>
 
