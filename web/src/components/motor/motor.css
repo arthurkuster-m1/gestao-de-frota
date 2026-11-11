@@ -122,7 +122,7 @@ button.mt-tag:hover { filter: brightness(0.96); }
 /* linha do tempo */
 .mt-tl-wrap { display: grid; gap: var(--space-2); min-width: 0; }
 .mt-tl-controles { display: flex; gap: var(--space-2); align-items: center; }
-.mt-tl { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); max-height: calc(100dvh - 360px); min-height: 160px; position: relative; overscroll-behavior-x: contain; }
+.mt-tl { overflow: auto; border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-surface); min-height: 160px; position: relative; overscroll-behavior-x: contain; }
 .mt-tl__grade { position: relative; }
 .mt-tl__cabecalho { position: sticky; top: 0; z-index: 6; display: flex; background: var(--color-surface-elevated); border-bottom: 1px solid var(--color-border-strong); }
 .mt-tl__esq { position: sticky; left: 0; z-index: 4; flex: none; display: flex; background: var(--color-surface); border-right: 1px solid var(--color-border-strong); box-shadow: 6px 0 8px -6px rgba(16, 30, 60, 0.18); }
@@ -165,7 +165,7 @@ button.mt-tag:hover { filter: brightness(0.96); }
 .mt-tl__alca { position: absolute; top: 0; bottom: 0; width: 8px; z-index: 2; cursor: ew-resize; }
 .mt-tl__alca--ini { left: 0; } .mt-tl__alca--fim { right: 0; }
 .mt-tl__alca:hover { background: rgba(51, 102, 160, 0.25); }
-@media (max-width: 720px) { .mt-tl { max-height: calc(100dvh - 420px); } }
+@media (max-width: 720px) { .mt-tl { max-height: none; } }
 
 /* ── Linha de visualizações no estilo do Notion: abas + "+" à esquerda; ícones pequenos, configuração e ação à direita ── */
 .mt-vbar { min-width: 0; max-width: 100%; display: flex; align-items: flex-end; justify-content: space-between; gap: var(--space-2); flex-wrap: wrap; border-bottom: 1px solid var(--color-border); }
