@@ -137,11 +137,11 @@ export function Lancamentos() {
               <Button variant="ghost" onClick={() => setLinhas(vazias(8))}>Limpar</Button>
             </div>
 
-            <Card flush>
+            <div>
               <div className="ds-massa vei-massa" data-testid="grade-lancamentos">
-                <DataSheetGrid<LinhaGrade> key={lanc.id} value={gradeDados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} />
+                <DataSheetGrid<LinhaGrade> height={1000000} key={lanc.id} value={gradeDados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} />
               </div>
-            </Card>
+            </div>
 
             <div className="ds-row" style={{ flexWrap: "wrap", justifyContent: "space-between" }} aria-live="polite" data-testid="resumo-lancamentos">
               <span className="t-body">
