@@ -44,3 +44,12 @@ describe("ordem oficial dos status de pagamento", () => {
     expect(TODOS_STATUS_PAGAMENTO.map((s) => s.value)).toEqual(["solicitado", "orcamento_recebido", "aprovar_nf", "aprovado", "pago"]);
   });
 });
+
+describe("menos de 200 km: mesmo dia", () => {
+  it("sem dia de viagem abaixo de 200 km; de 200 km em diante, km ÷ 500 para cima", () => {
+    expect(diasDeViagem(150, "pta")).toBe(0);
+    expect(diasDeViagem(199, "pta")).toBe(0);
+    expect(diasDeViagem(200, "pta")).toBe(1);
+    expect(diasDeViagem(501, "pta")).toBe(2);
+  });
+});

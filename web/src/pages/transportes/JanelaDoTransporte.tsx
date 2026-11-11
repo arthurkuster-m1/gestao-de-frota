@@ -55,7 +55,7 @@ export function JanelaDoTransporte({ transporte, campos, reservas, veiculos, vin
             </dl>
             <div className="ds-stack">
               <div><Button variant="secondary" icon={<MapPin size={18} />} loading={calculando} onClick={() => void atualizarRota()} data-testid="atualizar-rota">Atualizar rota e distância do evento</Button></div>
-              <p className="t-body-sm t-muted">{aviso ?? "Puxa de novo a origem e o endereço do evento e recalcula os km. Os dias de viagem saem de km ÷ 500 (para cima)."}</p>
+              <p className="t-body-sm t-muted">{aviso ?? "Puxa de novo a origem e o endereço do evento e recalcula os km. Os dias de viagem saem de km ÷ 500 (para cima); menos de 200 km é no mesmo dia."}</p>
             </div>
             <h3 className="t-h3">Carros neste transporte ({transporte.sentido})</h3>
             {carros.length === 0 && <p className="t-body t-muted">O evento ainda não tem carros reservados.</p>}

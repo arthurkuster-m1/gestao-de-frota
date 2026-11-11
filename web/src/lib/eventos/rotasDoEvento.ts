@@ -10,7 +10,7 @@ const somaDias = (d: string, n: number) => { const x = new Date(`${d}T12:00:00Z`
 
 /**
  * Calcula, para o evento e para cada carro, os km da ida (origem → endereço de chegada) e da volta (endereço de chegada → endereço de retorno),
- * os dias de viagem (km ÷ 500 para cima) e as datas:
+ * os dias de viagem (km ÷ 500 para cima; menos de 200 km = mesmo dia, 0 dias) e as datas:
  *   ENVIO = data de chegada − dias da ida (quando o carro deve sair para chegar a tempo);
  *   RETORNO = data de retirada + dias da volta (quando o carro chega ao endereço de retorno).
  * O evento fica com o envio mais cedo, o retorno mais tarde e os maiores km (a rota mais longa manda).

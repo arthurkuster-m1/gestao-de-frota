@@ -31,7 +31,7 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { JanelaDeEndereco, type EnderecoConhecido } from "../../components/motor/EditorDeEndereco";
 import { LinhaDeEndereco } from "./LinhaDeEndereco";
-import { reais } from "../../lib/transportes/regras";
+import { diasDeViagem, reais } from "../../lib/transportes/regras";
 import { ORIGEM_PADRAO } from "../../lib/enderecos";
 import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
 import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
@@ -132,7 +132,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         if (!igual) await p.onSalvarReserva(c.reservaId, { envio, retorno, ...periodo });
       }
       const dm = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}` : "—");
-      const km = (n: number | null) => (n === null ? "—" : `≈ ${n.toLocaleString("pt-BR")} km (${Math.ceil(n / 500)} dia${Math.ceil(n / 500) === 1 ? "" : "s"})`);
+      const km = (n: number | null) => (n === null ? "—" : `≈ ${n.toLocaleString("pt-BR")} km (${diasDeViagem(n, "pta")} dia${diasDeViagem(n, "pta") === 1 ? "" : "s"})`);
       setResultadoRotas([`Ida ${km(r.kmIda)} → envio ${dm(r.envio)}`, `Volta ${km(r.kmVolta)} → retorno ${dm(r.retorno)}`, ...r.avisos].join(" · "));
     } catch (e) { setFalha((e as Error).message); } finally { setCalculando(false); }
   }

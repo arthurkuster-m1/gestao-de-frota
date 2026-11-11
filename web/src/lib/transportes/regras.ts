@@ -1,7 +1,9 @@
 import type { Sentido, Transporte, VinculoDaReserva } from "./tipos";
 
-/** Dias de viagem = km ÷ 500 para cima; retirada não tem viagem. (O banco calcula igual; aqui serve para mostrar antes de salvar.) */
-export const diasDeViagem = (km: number | null | undefined, modalidade: string) => (modalidade === "retirada" || !km || km <= 0 ? 0 : Math.ceil(km / 500));
+/** Distância curta (menos de 200 km): o carro sai e chega no mesmo dia, sem dia de viagem. */
+export const KM_DE_UM_DIA = 200;
+/** Dias de viagem = km ÷ 500 para cima; menos de 200 km ou retirada: 0 (mesmo dia). (O banco calcula igual; aqui serve para mostrar antes de salvar.) */
+export const diasDeViagem = (km: number | null | undefined, modalidade: string) => (modalidade === "retirada" || !km || km <= 0 || km < KM_DE_UM_DIA ? 0 : Math.ceil(km / 500));
 
 /** Aceita "1234,56", "1.234,56" e "1234.56"; devolve o número ou null se não for número. */
 export function paraNumero(texto: string): number | null {
