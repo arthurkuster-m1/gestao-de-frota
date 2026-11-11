@@ -65,10 +65,12 @@ export function Massa() {
       let x = e.clientX, y = e.clientY, quadro = 0;
       const mover = (ev: MouseEvent) => { x = ev.clientX; y = ev.clientY; };
       const passo = () => {
-        const r = rolavel.getBoundingClientRect(); let dy = 0, dx = 0;
-        if (y > r.bottom - 40) dy = Math.min(40, (y - (r.bottom - 40)) / 2 + 4); else if (y < r.top + 40) dy = -Math.min(40, (r.top + 40 - y) / 2 + 4);
+        const r = rolavel.getBoundingClientRect(); let dy = 0, dx = 0; const alt = window.innerHeight;
+        if (y > alt - 60) dy = Math.min(36, (y - (alt - 60)) / 2 + 4); else if (y < 130) dy = -Math.min(36, (130 - y) / 2 + 4);
         if (x > r.right - 40) dx = Math.min(40, (x - (r.right - 40)) / 2 + 4); else if (x < r.left + 40) dx = -Math.min(40, (r.left + 40 - x) / 2 + 4);
-        if (dx || dy) { rolavel.scrollBy(dx, dy); document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, bubbles: true })); }
+        if (dy) window.scrollBy(0, dy);
+        if (dx) rolavel.scrollBy(dx, 0);
+        if (dx || dy) { document.dispatchEvent(new MouseEvent("mousemove", { clientX: x, clientY: y, bubbles: true })); }
         quadro = requestAnimationFrame(passo);
       };
       const fim = () => { cancelAnimationFrame(quadro); window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", fim); };
@@ -153,7 +155,7 @@ export function Massa() {
 
         <div>
           <div className="ds-massa vei-massa" data-testid="grade-massa" ref={grade}>
-            <DataSheetGrid<LinhaGrade> onSelectionChange={({ selection }) => setSelecionadas(selection ? { de: Math.min(selection.min.row, selection.max.row), ate: Math.max(selection.min.row, selection.max.row) } : null)} onActiveCellChange={({ cell }) => { if (!cell) setSelecionadas(null); else setSelecionadas((a) => a ?? { de: cell.row, ate: cell.row }); }} key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
+            <DataSheetGrid<LinhaGrade> height={44 + dados.length * 40 + 4} onSelectionChange={({ selection }) => setSelecionadas(selection ? { de: Math.min(selection.min.row, selection.max.row), ate: Math.max(selection.min.row, selection.max.row) } : null)} onActiveCellChange={({ cell }) => { if (!cell) setSelecionadas(null); else setSelecionadas((a) => a ?? { de: cell.row, ate: cell.row }); }} key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
           </div>
         </div>
 
