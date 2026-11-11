@@ -1,12 +1,12 @@
 import { useMemo, useState } from "react";
 import { MagnifyingGlass } from "@phosphor-icons/react";
-import { Input } from "../../ds";
+import { Input, Segmented } from "../../ds";
 import { semAcento } from "../../ds/busca";
 import { quandoFoi } from "../../lib/checklists/regras";
-import { rotuloMomento, type Checklist } from "../../lib/checklists/tipos";
+import { rotuloMomento, type Checklist, type Momento } from "../../lib/checklists/tipos";
 import "../veiculos/veiculos.css";
 
-type Linha = { id: string; dataHora: string; codigo: string; placa: string; sentido: string; evento: string; recebeu: string; avarias: boolean; busca: string };
+type Linha = { id: string; momento: Momento; dataHora: string; codigo: string; placa: string; sentido: string; evento: string; recebeu: string; avarias: boolean; busca: string };
 
 /** Histórico de todos os checklists feitos: data, código do carro, sentido (envio/retorno), evento e quem recebeu o carro. Pesquisável por qualquer coluna (e pela placa). */
 export function HistoricoDeChecklists({ checklists, carro, evento }: {
@@ -15,12 +15,13 @@ export function HistoricoDeChecklists({ checklists, carro, evento }: {
   /** reserva → nome do evento */ evento: (reservaId: string) => string;
 }) {
   const [texto, setTexto] = useState("");
+  const [sentido, setSentido] = useState<Momento | "todos">("todos");
   const linhas = useMemo<Linha[]>(() => [...checklists].sort((a, b) => b.data_hora.localeCompare(a.data_hora)).map((c) => {
     const v = carro(c.reserva_id), sentido = rotuloMomento(c.momento), ev = evento(c.reserva_id), recebeu = c.recebido_por ?? "";
-    return { id: c.id, dataHora: c.data_hora, codigo: v.codigo, placa: v.placa, sentido, evento: ev, recebeu, avarias: c.teve_avarias, busca: semAcento([quandoFoi(c.data_hora), v.codigo, v.placa, sentido, ev, recebeu].join(" ")) };
+    return { id: c.id, momento: c.momento, dataHora: c.data_hora, codigo: v.codigo, placa: v.placa, sentido, evento: ev, recebeu, avarias: c.teve_avarias, busca: semAcento([quandoFoi(c.data_hora), v.codigo, v.placa, sentido, ev, recebeu].join(" ")) };
   }), [checklists, carro, evento]);
   const termos = semAcento(texto).split(/\s+/).filter(Boolean);
-  const vistas = termos.length ? linhas.filter((l) => termos.every((t) => l.busca.includes(t))) : linhas;
+  const vistas = linhas.filter((l) => (sentido === "todos" || l.momento === sentido) && termos.every((t) => l.busca.includes(t)));
 
   return (
     <div className="ds-stack" data-testid="historico-checklists">
@@ -28,6 +29,7 @@ export function HistoricoDeChecklists({ checklists, carro, evento }: {
         <MagnifyingGlass size={18} aria-hidden style={{ position: "absolute", left: 12, top: "50%", transform: "translateY(-50%)", pointerEvents: "none" }} />
         <Input value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Pesquisar por data, código, placa, evento ou quem recebeu…" aria-label="Pesquisar no histórico de checklists" style={{ paddingLeft: 38 }} data-testid="busca-historico" />
       </div>
+      <Segmented options={[{ value: "todos", label: "Todos" }, { value: "saida", label: "Envio" }, { value: "retorno", label: "Retorno" }]} value={sentido} onChange={setSentido} />
       <p className="t-body-sm t-muted" role="status">{vistas.length === linhas.length ? `${linhas.length} checklist${linhas.length === 1 ? "" : "s"}` : `${vistas.length} de ${linhas.length} checklists`}</p>
       {vistas.length === 0 ? (
         <p className="t-body t-muted" data-testid="historico-vazio">{linhas.length === 0 ? "Nenhum checklist feito ainda." : "Nenhum checklist encontrado para essa busca."}</p>
