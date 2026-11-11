@@ -12,6 +12,7 @@ import type { Veiculo } from "../../lib/veiculos/tipos";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 import { BuscaDeVeiculo } from "./BuscaDeVeiculo";
 import { ChecklistRapido } from "./ChecklistRapido";
+import { HistoricoDeChecklists } from "./HistoricoDeChecklists";
 import "../veiculos/veiculos.css";
 
 const ROTULO: Record<Momento, string> = { saida: "Envio para o evento", retorno: "Retorno do evento" };
@@ -23,7 +24,9 @@ const ROTULO: Record<Momento, string> = { saida: "Envio para o evento", retorno:
 export function ChecklistsPagina() {
   const d = useDadosDeEventos();
   const hoje = hojeLocal();
-  const [momento, setMomento] = useState<Momento>("saida");
+  const [aba, setAba] = useState<Momento | "historico">("saida");
+  const momento: Momento = aba === "historico" ? "saida" : aba;
+  const noHistorico = aba === "historico";
   const [carro, setCarro] = useState<Veiculo | null>(null);
   const [escolhida, setEscolhida] = useState<string | null>(null);
   const [feito, setFeito] = useState<string | null>(null);
@@ -39,6 +42,7 @@ export function ChecklistsPagina() {
   const nomeDoCarro = (reservaId: string) => { const r = [...d.reservas, ...d.reservasSemData].find((x) => x.id === reservaId); const v = r && d.veiculos.find((x) => x.id === r.veiculo_id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; };
   const eventoDe = (reservaId: string) => { const r = [...d.reservas, ...d.reservasSemData].find((x) => x.id === reservaId); return r ? (d.eventos?.find((e) => e.id === r.evento_id)?.nome ?? "?") : "?"; };
 
+  const carroDaReserva = (reservaId: string) => { const r = [...d.reservas, ...d.reservasSemData].find((x) => x.id === reservaId); const v = r && d.veiculos.find((x) => x.id === r.veiculo_id); return v ? { codigo: v.codigo ?? v.modelo.toUpperCase(), placa: v.placa ?? "" } : { codigo: "?", placa: "" }; };
   const trocar = () => { setCarro(null); setEscolhida(null); };
   const st = evento ? STATUS_EVENTO.find((s) => s.value === evento.status) : null;
   const est = reserva ? ESTADOS_RESERVA.find((s) => s.value === reserva.estado) : null;
@@ -48,7 +52,8 @@ export function ChecklistsPagina() {
       <div className="ds-stack" data-testid="pagina-checklists">
         <div><h1 className="t-h1">Checklists</h1><p className="t-body t-muted">Registre o envio e o retorno dos carros nos eventos: digite a placa, confira o carro e o evento, e salve.</p></div>
 
-        <Segmented options={[{ value: "saida", label: "Envio" }, { value: "retorno", label: "Retorno" }]} value={momento} onChange={(m) => { setMomento(m as Momento); setEscolhida(null); setFeito(null); }} />
+        <Segmented options={[{ value: "saida", label: "Envio" }, { value: "retorno", label: "Retorno" }, { value: "historico", label: "Histórico" }]} value={aba} onChange={(m) => { setAba(m); setEscolhida(null); setFeito(null); }} />
+        {noHistorico ? <HistoricoDeChecklists checklists={d.ck.checklists} carro={carroDaReserva} evento={eventoDe} /> : <>
         {feito && <p className="t-body" role="status" data-testid="checklist-feito" style={{ color: "var(--color-success-fg)" }}><CheckCircle size={18} weight="fill" style={{ verticalAlign: "-3px" }} /> {feito}</p>}
 
         {!carro ? (
@@ -96,6 +101,7 @@ export function ChecklistsPagina() {
             ))}</ul>
           </section>
         )}
+        </>}
       </div>
     </Page>
   );
