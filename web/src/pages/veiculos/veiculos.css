@@ -21,7 +21,7 @@
 .vei-massa { height: auto; border-top: 1px solid var(--color-border); border-bottom: 1px solid var(--color-border); background: var(--color-bg); margin-inline: calc(-1 * var(--space-4)); }
 @media (min-width: 640px) { .vei-massa { margin-inline: calc(-1 * var(--space-6)); } }
 @media (min-width: 900px) { .vei-massa { margin-inline: -48px; } }
-.vei-massa .dsg-container { max-height: none !important; overflow-y: visible; }
+.vei-massa .dsg-container { max-height: none !important; overflow-y: hidden; }
 @media (max-width: 720px) { .vei-tabela { max-height: calc(100dvh - 360px); } }
 .vei-motorista { display: grid; gap: var(--space-4); padding: var(--space-4); border: 1px solid var(--color-border); border-radius: var(--radius-lg); background: var(--color-bg); }
 

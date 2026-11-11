@@ -155,7 +155,7 @@ export function Massa() {
 
         <div>
           <div className="ds-massa vei-massa" data-testid="grade-massa" ref={grade}>
-            <DataSheetGrid<LinhaGrade> height={44 + dados.length * 40 + 4} onSelectionChange={({ selection }) => setSelecionadas(selection ? { de: Math.min(selection.min.row, selection.max.row), ate: Math.max(selection.min.row, selection.max.row) } : null)} onActiveCellChange={({ cell }) => { if (!cell) setSelecionadas(null); else setSelecionadas((a) => a ?? { de: cell.row, ate: cell.row }); }} key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
+            <DataSheetGrid<LinhaGrade> height={1000000} onSelectionChange={({ selection }) => setSelecionadas(selection ? { de: Math.min(selection.min.row, selection.max.row), ate: Math.max(selection.min.row, selection.max.row) } : null)} onActiveCellChange={({ cell }) => { if (!cell) setSelecionadas(null); else setSelecionadas((a) => a ?? { de: cell.row, ate: cell.row }); }} key={visiveis.join(",")} value={dados} onChange={(v) => setLinhas(v.map(semMeta))} columns={colunas} rowClassName={classeLinha} lockRows={false} gutterColumn={{ minWidth: 40 }} addRowsComponent={false} stickyRightColumn={undefined} createRow={() => ({})} duplicateRow={({ rowData }) => semMeta(rowData)} />
           </div>
         </div>
 
