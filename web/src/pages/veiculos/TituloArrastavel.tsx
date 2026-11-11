@@ -30,11 +30,11 @@ export function TituloArrastavel({ id, titulo, aoMover, largura, aoRedimensionar
         <span className="mt-titulo-alca" role="separator" aria-label={`Largura de ${titulo}`} title="Arraste para mudar a largura · duplo clique volta ao padrão" data-testid="alca-coluna"
           onPointerDown={(e) => {
             e.stopPropagation(); e.preventDefault();
-            const alvo = e.currentTarget; alvo.setPointerCapture(e.pointerId);
-            const x0 = e.clientX; let w = largura;
-            const mover = (ev: PointerEvent) => { w = Math.max(80, Math.min(1600, Math.round(largura + ev.clientX - x0))); aoRedimensionar(id, w); };
-            const soltar = () => { alvo.removeEventListener("pointermove", mover); alvo.removeEventListener("pointerup", soltar); alvo.removeEventListener("pointercancel", soltar); };
-            alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar); alvo.addEventListener("pointercancel", soltar);
+            // ouvintes na janela (não no elemento): a grade refaz o cabeçalho a cada largura nova e o elemento some no meio do arrasto
+            const x0 = e.clientX; document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none";
+            const mover = (ev: PointerEvent) => aoRedimensionar(id, Math.max(80, Math.min(1600, Math.round(largura + ev.clientX - x0))));
+            const soltar = () => { window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar); window.removeEventListener("pointercancel", soltar); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
+            window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar); window.addEventListener("pointercancel", soltar);
           }}
           onPointerMove={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); aoRedimensionar(id, null); }} />
       )}
