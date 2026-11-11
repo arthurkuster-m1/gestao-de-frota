@@ -35,12 +35,13 @@ export function divergencias(emVigor: ReadonlySet<string>, vigencia: { inicio: s
   for (const id of emVigor) if (!reservados.has(id)) out.push({ tipo: "carro_sem_reserva", veiculoId: id, texto: `${nomeDoCarro(id)} consta no contrato mas não está reservado no evento.` });
   for (const r of ativas) {
     const ini = r.chegada ?? r.reserva_inicio, fim = r.retirada ?? r.reserva_fim;
-    if (vigencia.fim && fim > vigencia.fim) out.push({ tipo: "fora_da_vigencia", veiculoId: r.veiculo_id, texto: `${nomeDoCarro(r.veiculo_id)} fica até ${br(fim)}, depois do fim da vigência (${br(vigencia.fim)}).` });
+    if (vigencia.fim && fim.startsWith("9999")) out.push({ tipo: "fora_da_vigencia", veiculoId: r.veiculo_id, texto: `${nomeDoCarro(r.veiculo_id)} está sem data de retirada (reserva em aberto), mas o contrato termina em ${br(vigencia.fim)}.` });
+    else if (vigencia.fim && fim > vigencia.fim) out.push({ tipo: "fora_da_vigencia", veiculoId: r.veiculo_id, texto: `${nomeDoCarro(r.veiculo_id)} fica até ${br(fim)}, depois do fim da vigência (${br(vigencia.fim)}).` });
     else if (vigencia.inicio && ini < vigencia.inicio) out.push({ tipo: "fora_da_vigencia", veiculoId: r.veiculo_id, texto: `${nomeDoCarro(r.veiculo_id)} chega em ${br(ini)}, antes do início da vigência (${br(vigencia.inicio)}).` });
   }
   return out;
 }
-const br = (iso: string) => iso.slice(0, 10).split("-").reverse().join("/");
+const br = (iso: string) => (iso.startsWith("9999") ? "sem data final" : iso.slice(0, 10).split("-").reverse().join("/"));
 
 /** A vigência sugerida para um contrato novo: da primeira chegada à última retirada das reservas do evento. */
 export function vigenciaSugerida(reservas: readonly Reserva[]): { inicio: string | null; fim: string | null } {
@@ -64,7 +65,7 @@ export function divergenciasDoEvento(p: { contratoClienteId: string; eventoClien
 /** O que cada divergência pede: extensão de prazo (novo fim) e/ou troca de carros (quais saem, quais entram). */
 export function planoDeAditivos(p: { vigenciaFim: string | null; carros: ReadonlySet<string>; reservas: readonly Reserva[]; evento: { retirada_prevista: string | null } }): { novoFim: string | null; sai: string[]; entra: string[] } {
   const rs = p.reservas.filter((r) => r.estado !== "cancelado");
-  const fins = [p.evento.retirada_prevista, ...rs.map((r) => r.retirada ?? r.reserva_fim)].filter((x): x is string => !!x).sort();
+  const fins = [p.evento.retirada_prevista, ...rs.map((r) => r.retirada ?? r.reserva_fim)].filter((x): x is string => !!x && !x.startsWith("9999")).sort();
   const maior = fins.at(-1) ?? null;
   const reservados = new Set(rs.map((r) => r.veiculo_id));
   return { novoFim: maior && p.vigenciaFim && maior > p.vigenciaFim ? maior : null, sai: [...p.carros].filter((id) => !reservados.has(id)), entra: [...reservados].filter((id) => !p.carros.has(id)) };

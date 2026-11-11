@@ -30,4 +30,4 @@ export function chaveDoPeriodo(c: string, granularidade: "dia" | "semana" | "mes
   return c;
 }
 /** "2026-10-09" → "09/10/2026". */
-export function formatarDiaBr(c: string): string { const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(c); return m ? `${m[3]}/${m[2]}/${m[1]}` : ""; }
+export function formatarDiaBr(c: string): string { if (c.startsWith("9999-12-31")) return "em aberto"; const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(c); return m ? `${m[3]}/${m[2]}/${m[1]}` : ""; }

@@ -6,7 +6,7 @@ import type { CampoDaTela } from "../../components/motor/tipos";
 import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { atendimentoDosPedidos, combina, pedidoQueAtende, rotuloDoDesejado } from "../../lib/eventos/desejados";
-import type { Evento, ModeloDesejado, Reserva } from "../../lib/eventos/tipos";
+import { SEM_FIM, type Evento, type ModeloDesejado, type Reserva } from "../../lib/eventos/tipos";
 import { agendaTexto, conflitos, reservasPorVeiculo, reservavelPeloCiclo } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
@@ -58,8 +58,9 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const nomes = useMemo(() => new Map(eventos.map((e) => [e.id, e.nome])), [eventos]);
   const doEvento = useMemo(() => reservas.filter((r) => r.evento_id === evento.id && r.estado !== "cancelado"), [reservas, evento.id]);
   const jaNoEvento = useMemo(() => new Set(doEvento.map((r) => r.veiculo_id)), [doEvento]);
-  const periodoOk = !!chegada && !!retirada && retirada >= chegada && (!envio || envio <= chegada) && (!retorno || retorno >= retirada);
-  const inicio = envio || chegada, fim = retorno || retirada;
+  // sem data de retirada o carro fica reservado em aberto (evento contínuo, sem volta)
+  const periodoOk = !!chegada && (!retirada || retirada >= chegada) && (!envio || envio <= chegada) && (!retorno || !retirada || retorno >= retirada);
+  const inicio = envio || chegada, fim = retorno || retirada || SEM_FIM;
 
   const pedidosDoEvento = useMemo(() => pedidos.filter((p) => p.evento_id === evento.id), [pedidos, evento.id]);
   const mapaDeVeiculos = useMemo(() => new Map(todos.map((v) => [v.id, v])), [todos]);
@@ -137,7 +138,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
           <Field label="Data de retirada" error={chegada && retirada && retirada < chegada ? "Antes da chegada." : null}><DateField value={retirada} onChange={(e) => setRetirada(e.target.value)} disabled={dataDoEvento(evento.retirada_prevista)} /></Field>
           <Field label="Data do retorno"><DateField value={retorno} onChange={(e) => setRetorno(e.target.value)} disabled={dataDoEvento(evento.retorno_previsto)} /></Field>
         </div>
-        {periodoOk && <p className="t-body-sm" data-testid="periodo-reserva">Reserva do carro: <b>{formatarDiaBr(inicio)} a {formatarDiaBr(fim)}</b>.</p>}
+        {periodoOk && <p className="t-body-sm" data-testid="periodo-reserva">Reserva do carro: <b>{formatarDiaBr(inicio)} {fim === SEM_FIM ? "em diante (sem data de retirada: reserva em aberto)" : `a ${formatarDiaBr(fim)}`}</b>.</p>}
         {pedidosDoEvento.length > 0 && <TabelaDePedidos pedidos={pedidosDoEvento} atendidos={atendidos} previsao={previsao} codigoDoCarro={codigoDe} selecionadoId={selecionado?.id ?? null} onSelecionar={setPedidoSel} onNaoAtendido={onNaoAtendido} onErro={setErro} />}
         <div className="ds-row" style={{ flexWrap: "wrap", gap: 16 }}>
           <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor, comentário)…" aria-label="Buscar carro para reservar" style={{ maxWidth: 420 }} />
@@ -155,7 +156,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         <div className="mt-reservar__rodape">
           {onReservarSemData && <Button size="lg" variant="secondary" disabled={marcados.size === 0} loading={enviando} onClick={() => void reservarSemData()} data-testid="reservar-sem-data">Adicionar {marcados.size || ""} carro{marcados.size === 1 ? "" : "s"} sem data</Button>}
           <Button size="lg" disabled={marcados.size === 0 || !periodoOk} loading={enviando} onClick={() => void reservar()} data-testid="confirmar-reserva">
-            Reservar {marcados.size} carro{marcados.size === 1 ? "" : "s"}{periodoOk ? ` · ${formatarDiaBr(inicio).slice(0, 5)} a ${formatarDiaBr(fim).slice(0, 5)}` : ""}
+            Reservar {marcados.size} carro{marcados.size === 1 ? "" : "s"}{periodoOk ? (fim === SEM_FIM ? ` · desde ${formatarDiaBr(inicio).slice(0, 5)}` : ` · ${formatarDiaBr(inicio).slice(0, 5)} a ${formatarDiaBr(fim).slice(0, 5)}`) : ""}
           </Button>
         </div>
       </div>

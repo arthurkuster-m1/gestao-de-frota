@@ -18,7 +18,7 @@ import { useEdicao } from "../../components/motor/useEdicao";
 import { ORIGEM_PADRAO, validarEndereco } from "../../lib/enderecos";
 import { formatarDiaBr, hojeLocal } from "../../lib/motor/datas";
 import { codigoDaLinha, copiarTabela, custoDoEvento, montarLinhas, tabelaParaOutlook, valoresEfetivos, type LinhaDoEvento } from "../../lib/eventos/linhasDoEvento";
-import type { Evento, EventoLocal, ModeloDesejado, Reserva, ReservaDoEvento } from "../../lib/eventos/tipos";
+import { SEM_FIM, type Evento, type EventoLocal, type ModeloDesejado, type Reserva, type ReservaDoEvento } from "../../lib/eventos/tipos";
 import { conflitos, reservasPorVeiculo, agendaTexto } from "../../lib/eventos/uso";
 import { reais } from "../../lib/transportes/regras";
 import { rotaDoTransporte } from "../../lib/transportes/rota";
@@ -406,8 +406,8 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   };
   const semData = linhas.filter((l) => l.reserva && !l.reserva.reserva_inicio);
   async function aplicarDatasDoEvento() {
-    const c = evento.chegada_prevista, t = evento.retirada_prevista; if (!c || !t) return;
-    try { for (const l of semData) await onSalvarReserva(l.reserva!.id, { reserva_inicio: c, reserva_fim: t, chegada: l.reserva!.chegada ?? c, retirada: l.reserva!.retirada ?? t }); toast(`${semData.length} carro${semData.length === 1 ? "" : "s"} com as datas do evento`); }
+    const c = evento.chegada_prevista, t = evento.retirada_prevista; if (!c) return;   // sem retirada: reserva em aberto
+    try { for (const l of semData) await onSalvarReserva(l.reserva!.id, { reserva_inicio: c, reserva_fim: t ?? SEM_FIM, chegada: l.reserva!.chegada ?? c, ...(t ? { retirada: l.reserva!.retirada ?? t } : {}) }); toast(`${semData.length} carro${semData.length === 1 ? "" : "s"} com as datas do evento`); }
     catch (e) { onErro((e as Error).message); }
   }
   const definidas = linhas.filter((l) => l.reserva);
@@ -456,9 +456,9 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
       {semData.length > 0 && (
         <div className="mt-vde__massa" role="status" data-testid="aviso-sem-data">
           <b>{semData.length} carro{semData.length === 1 ? "" : "s"} sem data</b>
-          {evento.chegada_prevista && evento.retirada_prevista
-            ? <Button size="sm" onClick={() => void aplicarDatasDoEvento()} data-testid="aplicar-datas-do-evento">Aplicar as datas do evento ({formatarDiaBr(evento.chegada_prevista)} a {formatarDiaBr(evento.retirada_prevista)})</Button>
-            : <span className="t-body-sm t-muted">Defina a data de chegada e de retirada do evento (aba Dados) ou ligue a Edição individual e preencha as datas de cada carro.</span>}
+          {evento.chegada_prevista
+            ? <Button size="sm" onClick={() => void aplicarDatasDoEvento()} data-testid="aplicar-datas-do-evento">Aplicar as datas do evento ({formatarDiaBr(evento.chegada_prevista)}{evento.retirada_prevista ? ` a ${formatarDiaBr(evento.retirada_prevista)}` : " em diante, sem retirada"})</Button>
+            : <span className="t-body-sm t-muted">Defina a data de chegada do evento (aba Dados) ou ligue a Edição individual e preencha as datas de cada carro.</span>}
         </div>
       )}
       {(marcadas.length > 0 || (faixa && multiplas(faixa))) && (

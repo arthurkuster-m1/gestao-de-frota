@@ -1,3 +1,4 @@
+import { SEM_FIM } from "./tipos";
 import { supabase } from "../supabase";
 import { cidadeEUf } from "../enderecos";
 import { paraNumero } from "../transportes/regras";
@@ -48,7 +49,7 @@ export async function listarEventos(): Promise<Evento[]> {
 }
 export async function listarReservas(): Promise<Reserva[]> {
   const { data, error } = await supabase.from("evento_veiculos").select(colunasReserva()).not("reserva_inicio", "is", null).order("reserva_inicio", { ascending: true }).order("id", { ascending: true }).limit(10000);
-  if (!error) return (data ?? []) as Reserva[];
+  if (!error) return ((data ?? []) as Reserva[]).map(lerReserva);
   if (comEnderecoRetorno() && /endereco_retorno|envio|retorno/.test(error.message)) { semEnderecoRetornoAte = Date.now() + 20000; return listarReservas(); }
   // migration 0007 (chegada/retirada) ainda não aplicada: lê sem essas colunas, para Status de uso e Agenda seguirem funcionando
   if (/chegada|retirada/.test(error.message)) {
@@ -97,15 +98,18 @@ export async function excluirEvento(id: string): Promise<void> {
   if (error) throw traduzir(error);
 }
 const SEM_COLUNAS_NOVAS = /chegada|retirada/;
+/** Reserva em aberto: início sem fim no banco vira SEM_FIM no app (e o contrário ao gravar). */
+const lerReserva = <R extends { reserva_inicio: string | null; reserva_fim: string | null }>(r: R): R => (r.reserva_inicio && r.reserva_fim === null ? { ...r, reserva_fim: SEM_FIM } : r);
+const fimParaBanco = <P extends { reserva_fim?: string | null }>(p: P): P => (p.reserva_fim === SEM_FIM ? { ...p, reserva_fim: null } : p);
 const comNulos = (r: Omit<Reserva, "chegada" | "retirada">): Reserva => ({ ...r, chegada: null, retirada: null });
 
 /** Reserva vários carros de uma vez no mesmo período. Tudo ou nada. */
 export async function reservarVeiculos(eventoId: string, veiculoIds: string[], inicio: string, fim: string, estado: EstadoReserva = "reservado", janela: { chegada?: string | null; retirada?: string | null } = {}): Promise<Reserva[]> {
   if (veiculoIds.length === 0) return [];
-  const base = veiculoIds.map((veiculo_id) => ({ evento_id: eventoId, veiculo_id, reserva_inicio: inicio, reserva_fim: fim, estado }));
+  const base = veiculoIds.map((veiculo_id) => ({ evento_id: eventoId, veiculo_id, reserva_inicio: inicio, reserva_fim: fim === SEM_FIM ? null : fim, estado }));
   const completo = base.map((l) => ({ ...l, ...(janela.chegada ? { chegada: janela.chegada } : {}), ...(janela.retirada ? { retirada: janela.retirada } : {}) }));
   const { data, error } = await supabase.from("evento_veiculos").insert(completo).select(colunasReserva());
-  if (!error) return (data ?? []) as Reserva[];
+  if (!error) return ((data ?? []) as Reserva[]).map(lerReserva);
   if (SEM_COLUNAS_NOVAS.test(error.message) && !janela.chegada && !janela.retirada) {   // migration 0007 ainda não aplicada
     const antigo = await supabase.from("evento_veiculos").insert(base).select(COLUNAS_RESERVA_ANTIGAS);
     if (antigo.error) throw traduzir(antigo.error);
@@ -114,10 +118,10 @@ export async function reservarVeiculos(eventoId: string, veiculoIds: string[], i
   throw SEM_COLUNAS_NOVAS.test(error.message) ? new ErroEvento("Chegada e retirada ainda não foram ativadas no banco (falta aplicar a migration 0007).") : traduzir(error);
 }
 export async function atualizarReserva(id: string, patch: Partial<Pick<Reserva, "reserva_inicio" | "reserva_fim" | "chegada" | "retirada" | "estado" | "comentarios" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "status_individual">>): Promise<Reserva> {
-  const { data, error } = await supabase.from("evento_veiculos").update(patch).eq("id", id).select(colunasReserva()).single();
-  if (!error) return data as Reserva;
+  const { data, error } = await supabase.from("evento_veiculos").update(fimParaBanco(patch)).eq("id", id).select(colunasReserva()).single();
+  if (!error) return lerReserva(data as Reserva);
   if (SEM_COLUNAS_NOVAS.test(error.message) && !("chegada" in patch) && !("retirada" in patch)) {   // migration 0007 ainda não aplicada
-    const antigo = await supabase.from("evento_veiculos").update(patch).eq("id", id).select(COLUNAS_RESERVA_ANTIGAS).single();
+    const antigo = await supabase.from("evento_veiculos").update(fimParaBanco(patch)).eq("id", id).select(COLUNAS_RESERVA_ANTIGAS).single();
     if (antigo.error) throw traduzir(antigo.error);
     return comNulos(antigo.data as Omit<Reserva, "chegada" | "retirada">);
   }

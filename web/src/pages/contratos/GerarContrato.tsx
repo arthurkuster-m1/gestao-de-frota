@@ -51,11 +51,11 @@ export function GerarContrato({ aberto, onFechar, evento, clientes, reservas, ve
           </Field>
           <div><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoCliente(true)}>Novo cliente</Button></div>
           <ul className="t-body-sm" style={{ paddingLeft: 18, display: "grid", gap: 4 }}>
-            <li>Vigência: {vig.inicio && vig.fim ? <b>{formatarDiaBr(vig.inicio)} a {formatarDiaBr(vig.fim)}</b> : <span className="t-muted">defina as datas do evento (chegada e retirada)</span>}</li>
+            <li>Vigência: {vig.inicio ? <b>{formatarDiaBr(vig.inicio)} {vig.fim ? `a ${formatarDiaBr(vig.fim)}` : "em diante (sem data final)"}</b> : <span className="t-muted">defina a data de chegada do evento</span>}</li>
             <li>Carros: <b>{carros.length}</b>{carros.length ? ` · ${carros.map((v) => v.codigo ?? v.modelo).join(", ")}` : <span className="t-muted"> (reserve os carros na aba Veículos)</span>}</li>
           </ul>
           {cliente && cliente !== evento.cliente_id && <p className="t-body-sm t-muted">O cliente do evento vai passar a ser <b>{nomeDe(cliente)}</b>.</p>}
-          <Button size="lg" block disabled={!cliente || !vig.inicio || !vig.fim} loading={enviando} onClick={() => void gerar()} data-testid="criar-contrato">Gerar contrato e baixar DOCX</Button>
+          <Button size="lg" block disabled={!cliente || !vig.inicio} loading={enviando} onClick={() => void gerar()} data-testid="criar-contrato">Gerar contrato e baixar DOCX</Button>
         </div>
       </Sheet>
       <NovoClienteRapido aberto={novoCliente} onFechar={() => setNovoCliente(false)} onCriado={(c) => { setCriados((l) => [...l, c]); setCliente(c.id); setNovoCliente(false); }} />

@@ -58,7 +58,7 @@ export function statusDeUso(reservas: readonly Pick<Reserva, "estado">[], manute
 }
 
 const ROTULO_DA_AGENDA: Record<string, string> = { reservado: "RESERVADO", em_uso: "EM USO", em_retorno: "EM RETORNO" };
-const dm = (iso: string, anoAtual: string) => (iso.slice(0, 4) === anoAtual ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`);
+const dm = (iso: string, anoAtual: string) => (iso.startsWith("9999") ? "tempo indeterminado" : iso.slice(0, 4) === anoAtual ? `${iso.slice(8, 10)}/${iso.slice(5, 7)}` : `${iso.slice(8, 10)}/${iso.slice(5, 7)}/${iso.slice(2, 4)}`);
 
 /**
  * A agenda do carro em uma linha, acumulando tudo:

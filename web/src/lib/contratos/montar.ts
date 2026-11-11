@@ -11,7 +11,7 @@ const ativas = (rs: readonly Reserva[]) => rs.filter((r) => r.estado !== "cancel
 export function vigenciaDoEvento(evento: Pick<Evento, "chegada_prevista" | "retirada_prevista">, reservas: readonly Reserva[]): { inicio: string | null; fim: string | null } {
   const rs = ativas(reservas);
   const inicios = [evento.chegada_prevista, ...rs.map((r) => r.chegada ?? r.reserva_inicio)].filter((x): x is string => !!x).sort();
-  const fins = [evento.retirada_prevista, ...rs.map((r) => r.retirada ?? r.reserva_fim)].filter((x): x is string => !!x).sort();
+  const fins = [evento.retirada_prevista, ...rs.map((r) => r.retirada ?? r.reserva_fim)].filter((x): x is string => !!x && !x.startsWith("9999")).sort();   // reserva em aberto não tem fim
   return { inicio: inicios[0] ?? null, fim: fins.at(-1) ?? null };
 }
 

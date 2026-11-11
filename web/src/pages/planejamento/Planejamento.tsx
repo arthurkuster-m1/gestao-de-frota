@@ -23,7 +23,7 @@ import type { AnotacaoDoCarro } from "../../lib/eventos/tipos";
 import { barraDoEvento, barrasDoVeiculo } from "../../lib/eventos/barras";
 import { diferencas, reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import type { Barra, ModoDeArrasto } from "../../lib/linhaDoTempo/tipos";
-import { hojeLocal } from "../../lib/motor/datas";
+import { hojeLocal, somarDias } from "../../lib/motor/datas";
 import { reservasPorVeiculo } from "../../lib/eventos/uso";
 import type { Evento } from "../../lib/eventos/tipos";
 import { atualizarCampos } from "../../lib/veiculos/dados";
@@ -79,7 +79,10 @@ export function Planejamento() {
     if (!selecionado) return null;
     if (selecionado.chegada_prevista && selecionado.retirada_prevista) return { inicio: selecionado.chegada_prevista, fim: selecionado.retirada_prevista };
     const rs = d.reservas.filter((r) => r.evento_id === selecionado.id && r.estado !== "cancelado");
-    return rs.length ? { inicio: rs.map((r) => r.reserva_inicio).sort()[0]!, fim: rs.map((r) => r.reserva_fim).sort().at(-1)! } : null;
+    if (!rs.length) return null;
+    const inicio = rs.map((r) => r.reserva_inicio).sort()[0]!;
+    const fins = rs.map((r) => r.reserva_fim).filter((f) => !f.startsWith("9999")).sort();   // reserva em aberto (sem retirada) não entra na conta do período
+    return { inicio, fim: fins.at(-1) ?? somarDias(inicio, 30) };
   }, [selecionado, d.reservas]);
 
   /** No modo "Planejar evento": os carros do evento + só os livres no período e que cabem no pedido. */

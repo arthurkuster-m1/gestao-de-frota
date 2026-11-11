@@ -37,3 +37,14 @@ describe("logística", () => {
   it("período da reserva = chegada − dias de ida … retirada + dias de volta", () => { expect(periodoDaReserva("2026-11-12", "2026-11-18", 2, 1)).toEqual({ inicio: "2026-11-10", fim: "2026-11-19" }); expect(periodoDaReserva("2026-11-12", "2026-11-18", 0, 0)).toEqual({ inicio: "2026-11-12", fim: "2026-11-18" }); });
   it("quantos dias de ida e de volta uma reserva tem", () => { expect(diasDeLogistica("2026-11-10", "2026-11-12", "2026-11-18", "2026-11-19")).toEqual({ ida: 2, volta: 1 }); expect(diasDeLogistica("2026-11-10", null, null, "2026-11-19")).toEqual({ ida: 0, volta: 0 }); });
 });
+
+import { SEM_FIM } from "./tipos";
+describe("reserva em aberto (sem data de retirada)", () => {
+  it("a barra é desenhada por 30 dias, não se arrasta e diz 'em aberto'", () => {
+    const r = { id: "r", evento_id: "e", veiculo_id: "v", reserva_inicio: "2099-01-10", reserva_fim: SEM_FIM, chegada: "2099-01-10", retirada: null, estado: "reservado", comentarios: null } as never;
+    const [b] = barrasDoVeiculo([r], () => "Entrega Blazer");
+    expect(b!.fim).toBe("2099-02-09");
+    expect(b!.rotulo).toContain("em aberto");
+    expect(b!.movel).toBe(false);
+  });
+});

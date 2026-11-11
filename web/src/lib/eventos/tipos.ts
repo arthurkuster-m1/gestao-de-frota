@@ -49,3 +49,10 @@ export type ModeloDesejadoNovo = { modelo: string; cor?: string | null; my?: str
 /** Faixa livre na linha do tempo do carro (Produção, Em faturamento, Emplacamento…). */
 export type AnotacaoDoCarro = { id: string; veiculo_id: string; titulo: string; inicio: string; fim: string; comentarios: string | null };
 export type AnotacaoNova = { veiculo_id: string; titulo: string; inicio: string; fim: string; comentarios?: string | null };
+
+/**
+ * Reserva EM ABERTO (evento contínuo, sem data de retirada): no banco `reserva_fim` fica vazio; no app a data final vale este dia distante,
+ * para as contas de conflito e agenda seguirem funcionando (o carro fica ocupado desde o início, sem fim). Nas telas aparece como "em aberto".
+ */
+export const SEM_FIM = "9999-12-31";
+export const semFim = (d: string | null | undefined) => d === SEM_FIM;
