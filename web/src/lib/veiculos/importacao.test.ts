@@ -65,3 +65,14 @@ describe("colunas extras (datas) e ordem das colunas", () => {
     expect(ruim.texto).toMatch(/Data de emplacamento inválida/);
   });
 });
+
+describe("importação: número do pedido", () => {
+  const ex = { vins: new Set<string>(), placas: new Set<string>(), pedidos: new Set(["ped-1"]) };
+  it("sem VIN nem placa, pedido já cadastrado (ou repetido na tabela) vira 'já cadastrado'", () => {
+    const r = validarTudo([{ modelo: "Onix", pedido: " PED-1 " }, { modelo: "Onix", pedido: "PED-2" }, { modelo: "Onix", pedido: "ped-2" }], ex);
+    expect(r.map((x) => x.tom)).toEqual(["dup", "ok", "dup"]);
+  });
+  it("com VIN ou placa, o pedido não decide", () => {
+    expect(validarTudo([{ modelo: "Onix", pedido: "PED-1", vin: "9BGEY69H0VG100355" }], ex)[0]!.tom).toBe("ok");
+  });
+});

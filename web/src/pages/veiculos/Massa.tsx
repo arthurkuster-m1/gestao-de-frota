@@ -13,7 +13,7 @@ import { SEGURO, CICLO } from "../../lib/veiculos/tipos";
 import { SIM_NAO, type Opcao } from "../../lib/lancamentos/tipos";
 import { Button, Page, Sheet, Textarea, useToast } from "../../ds";
 import { criarVeiculos, listarVeiculos } from "../../lib/veiculos/dados";
-import { CAMPOS, CAMPOS_PADRAO, analisarMatriz, linhaVazia, validarTudo, type CampoLinha, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
+import { CAMPOS, CAMPOS_PADRAO, analisarMatriz, chaveDoPedido, linhaVazia, validarTudo, type CampoLinha, type LinhaCrua, type Tom } from "../../lib/veiculos/importacao";
 import "./veiculos.css";
 
 type LinhaGrade = LinhaCrua & { __tom?: Tom; __texto?: string };
@@ -79,7 +79,7 @@ export function Massa() {
     el.addEventListener("mousedown", aoPressionar);
     return () => el.removeEventListener("mousedown", aoPressionar);
   }, []);
-  const [existentes, setExistentes] = useState<{ vins: Set<string>; placas: Set<string> }>({ vins: new Set(), placas: new Set() });
+  const [existentes, setExistentes] = useState<{ vins: Set<string>; placas: Set<string>; pedidos: Set<string> }>({ vins: new Set(), placas: new Set(), pedidos: new Set() });
   const [carregouBase, setCarregouBase] = useState(false);
   const [colando, setColando] = useState(false);
   const [texto, setTexto] = useState("");
@@ -91,7 +91,7 @@ export function Massa() {
 
   useEffect(() => {
     listarVeiculos().then((l) => {
-      setExistentes({ vins: new Set(l.map((v) => v.vin).filter((x): x is string => !!x)), placas: new Set(l.map((v) => v.placa).filter((x): x is string => !!x)) });
+      setExistentes({ vins: new Set(l.map((v) => v.vin).filter((x): x is string => !!x)), placas: new Set(l.map((v) => v.placa).filter((x): x is string => !!x)), pedidos: new Set(l.map((v) => chaveDoPedido(v.pedido)).filter(Boolean)) });
       setCarregouBase(true);
     }, (e: Error) => setErro(`Não consegui conferir os veículos já cadastrados: ${e.message}`));
   }, []);

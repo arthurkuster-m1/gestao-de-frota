@@ -76,7 +76,9 @@ const achar = <T extends { value: string; label: string }>(lista: readonly T[], 
   return lista.find((o) => semAcento(o.value) === t || semAcento(o.label) === t || semAcento(o.value.replace(/_/g, " ")) === t)?.value ?? "x";
 };
 
-export type Existentes = { vins: Set<string>; placas: Set<string> };
+/** `pedidos`: números de pedido já usados (minúsculos); só identificam o carro quando a linha não tem nem VIN nem placa. */
+export type Existentes = { vins: Set<string>; placas: Set<string>; pedidos?: Set<string> };
+export const chaveDoPedido = (p: string | null | undefined) => (p ?? "").trim().toLowerCase();
 
 /** Valida uma linha. `vistas` acumula VINs/placas já usados nesta mesma importação (duplicado dentro da tabela é erro). */
 export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): ResultadoLinha {
@@ -101,7 +103,12 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   }
 
   if ((vin && ex.vins.has(vin)) || (placa && ex.placas.has(placa))) return { tom: "dup", texto: "Já cadastrado (VIN ou placa): será ignorada" };
+  // sem VIN nem placa, o carro é reconhecido pelo número do pedido
+  const pedido = !vin && !placa ? chaveDoPedido(l.pedido) : "";
+  if (pedido && ex.pedidos?.has(pedido)) return { tom: "dup", texto: "Já cadastrado (número do pedido): será ignorada" };
+  if (pedido && vistas.pedidos?.has(pedido)) return { tom: "dup", texto: "Pedido repetido nesta tabela: será ignorada" };
   if ((vin && vistas.vins.has(vin)) || (placa && vistas.placas.has(placa))) return { tom: "erro", texto: "VIN ou placa repetidos nesta tabela" };
+  if (pedido) vistas.pedidos?.add(pedido);
   if (vin) vistas.vins.add(vin);
   if (placa) vistas.placas.add(placa);
 
@@ -114,6 +121,6 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
 }
 
 export function validarTudo(linhas: LinhaCrua[], ex: Existentes): ResultadoLinha[] {
-  const vistas: Existentes = { vins: new Set(), placas: new Set() };
+  const vistas: Existentes = { vins: new Set(), placas: new Set(), pedidos: new Set() };
   return linhas.map((l) => validarLinha(l, ex, vistas));
 }

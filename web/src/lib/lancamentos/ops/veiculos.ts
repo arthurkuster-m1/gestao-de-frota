@@ -91,7 +91,7 @@ const novoVeiculo: Lancamento = {
   id: "novo-veiculo", grupo: GRUPO, rotulo: "Novos veículos (pedidos)", descricao: "Cadastra vários veículos de uma vez. Só o modelo é obrigatório: um pedido novo pode ter só modelo, cor, MY e pedido.",
   botao: (n) => `Cadastrar ${n} veículo${n === 1 ? "" : "s"}`,
   colunas: () => CAMPOS_VEICULO.map((c): Coluna => ({ id: c.id, titulo: c.titulo, largura: c.largura, ...(c.id === "blindado" ? { opcoes: SIM_NAO } : c.id === "seguro" ? { opcoes: SEGURO } : c.id === "ciclo" ? { opcoes: CICLO } : {}) })),
-  validar: (linhas, d) => validarVeiculos(linhas as never, { vins: new Set(d.veiculos.map((v) => v.vin).filter((x): x is string => !!x)), placas: new Set(d.veiculos.map((v) => v.placa).filter((x): x is string => !!x)) }).map((r) => ({ tom: r.tom, texto: r.texto, pronto: r.veiculo })),
+  validar: (linhas, d) => validarVeiculos(linhas as never, { vins: new Set(d.veiculos.map((v) => v.vin).filter((x): x is string => !!x)), placas: new Set(d.veiculos.map((v) => v.placa).filter((x): x is string => !!x)), pedidos: new Set(d.veiculos.map((v) => (v.pedido ?? "").trim().toLowerCase()).filter(Boolean)) }).map((r) => ({ tom: r.tom, texto: r.texto, pronto: r.veiculo })),
   aplicar: async (prontos) => {
     try { await criarVeiculos(prontos.map((x) => x.pronto as never)); return { feitos: prontos.map((x) => x.indice), falha: null }; }
     catch (e) { return { feitos: [], falha: `${(e as Error).message} Nada foi gravado.` }; }
