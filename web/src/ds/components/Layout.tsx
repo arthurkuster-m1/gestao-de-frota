@@ -1,3 +1,4 @@
+import { createPortal } from "react-dom";
 import { useEffect, useRef, useState, type ReactNode } from "react";
 import { cx } from "../cx";
 
@@ -59,7 +60,9 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
     }
     if (!open && d.open) d.close();
   }, [open]);
-  return (
+  // a janela vai para o <body>: uma janela dentro de um <form> (ex.: o endereço dentro do "Novo evento") ficaria com um formulário DENTRO de outro,
+  // e salvar o endereço enviava o formulário de fora (a página recarregava e os dados se perdiam). Os eventos do React continuam subindo pela árvore.
+  return createPortal(
     <dialog
       ref={ref}
       className={cx("ds-sheet", wide && "ds-sheet--wide")}
@@ -75,6 +78,7 @@ export function Sheet({ open, onClose, title, children, wide }: { open: boolean;
         <h2 className="t-h2">{title}</h2>
         {children}
       </div>
-    </dialog>
+    </dialog>,
+    document.body,
   );
 }
