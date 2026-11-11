@@ -143,6 +143,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
           onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
+          onReordenar={async (ids) => { await comAviso(() => v.reordenar(ids)); }}
           acoes={acoes} fixas={[...(chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []), ...(visoesFixas ?? []).map((f) => ({ id: f.id, rotulo: f.rotulo }))]} nomeDaBase={naFixa ? chipsRapidos!.rotulo : fixaDeFabrica ? fixaDeFabrica.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />

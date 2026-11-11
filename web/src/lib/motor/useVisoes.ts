@@ -48,5 +48,14 @@ export function useVisoes(tela: string) {
     if (error) throw traduzir(error);
     setVisoes((l) => l.filter((x) => x.id !== id));
   };
-  return { visoes, carregando, erro, criar, atualizar, salvarPadrao, excluir, recarregar: carregar };
+  /** Muda a ordem das abas: `ids` são as abas visíveis na nova ordem (as linhas reservadas ficam onde estão). */
+  const reordenar = async (ids: string[]) => {
+    const antes = visoes;
+    const ordem = new Map(ids.map((id, i) => [id, i + 1]));
+    setVisoes((l) => [...l.filter((x) => !ordem.has(x.id)), ...ids.map((id) => l.find((x) => x.id === id)!).filter(Boolean).map((x, i) => ({ ...x, posicao: i + 1 }))]);
+    const resultados = await Promise.all(ids.map((id, i) => supabase.from("visoes_salvas").update({ posicao: i + 1 }).eq("id", id)));
+    const falhou = resultados.find((r) => r.error);
+    if (falhou?.error) { setVisoes(antes); throw traduzir(falhou.error); }
+  };
+  return { visoes, carregando, erro, criar, atualizar, salvarPadrao, excluir, reordenar, recarregar: carregar };
 }
