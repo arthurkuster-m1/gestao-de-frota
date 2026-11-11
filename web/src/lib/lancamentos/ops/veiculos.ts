@@ -1,7 +1,7 @@
 import { executarEmLote } from "../../motor/emLote";
 import { criarChecklistsEmMassa } from "../../checklists/dados";
 import { reservarEmMassa } from "../../veiculos/executarEmMassa";
-import { ACOES, validarLista, type AcaoEmMassa, type DefinicaoDaAcao, type Resultado as RV } from "../../veiculos/atualizacaoEmMassa";
+import { ACOES, acharVeiculo, validarLista, type AcaoEmMassa, type DefinicaoDaAcao, type Resultado as RV } from "../../veiculos/atualizacaoEmMassa";
 import { criarVeiculos, atualizarCampos } from "../../veiculos/dados";
 import { CAMPOS as CAMPOS_VEICULO, validarTudo as validarVeiculos } from "../../veiculos/importacao";
 import { CICLO, SEGURO } from "../../veiculos/tipos";
@@ -98,11 +98,48 @@ const novoVeiculo: Lancamento = {
   },
 };
 
+/** Atualizar comentário: a referência (VIN, código, placa ou pedido) e o comentário; todas as linhas são atualizadas de uma vez. */
+const atualizarComentario: Lancamento = {
+  id: "comentario", grupo: GRUPO, rotulo: "Atualizar comentário", descricao: "Informe a referência do carro e o comentário. Cada linha atualiza o comentário do veículo. Dá para escrever o comentário na linha ou uma vez só, em “Comentário para todas as linhas”.",
+  botao: (n) => `Atualizar o comentário de ${n} veículo${n === 1 ? "" : "s"}`,
+  colunas: () => [{ id: "ref", titulo: "Referência (VIN, Código, Placa ou Pedido)", largura: 300 }, { id: "comentario", titulo: "Comentário", largura: 460, dica: "Vazio: vale o comentário para todas as linhas" }],
+  parametros: () => [
+    { id: "comentario", rotulo: "Comentário para todas as linhas (as que não têm o próprio)", tipo: "texto" },
+    { id: "modo", rotulo: "Como atualizar", tipo: "opcao", opcoes: [{ value: "substituir", label: "Substituir o comentário" }, { value: "acrescentar", label: "Acrescentar ao final do comentário" }], padrao: "substituir" },
+  ],
+  validar: (linhas, d, p) => {
+    const vistos = new Set<string>();
+    return linhas.map((l) => {
+      if (!(l.ref ?? "").trim() && !(l.comentario ?? "").trim()) return { tom: "ign" as const, texto: "Linha vazia" };
+      const texto = ((l.comentario ?? "").trim() || (p.comentario ?? "").trim());
+      if (!texto) return { tom: "erro" as const, texto: "Falta o comentário (na linha ou em “Comentário para todas as linhas”)" };
+      if (texto.length > 2000) return { tom: "erro" as const, texto: "Comentário grande demais (máximo 2000 caracteres)" };
+      const r = acharVeiculo(d.veiculos, l.ref ?? "", ["vin", "codigo", "placa", "pedido"]);
+      if ("erro" in r) return { tom: "erro" as const, texto: r.erro };
+      const v = r.veiculo; const nome = v.codigo ?? v.modelo.toUpperCase();
+      if (vistos.has(v.id)) return { tom: "erro" as const, texto: `${nome} aparece mais de uma vez na lista` };
+      vistos.add(v.id);
+      const acrescentar = p.modo === "acrescentar" && !!(v.comentarios ?? "").trim();
+      const novo = acrescentar ? `${v.comentarios!.trim()}\n${texto}` : texto;
+      if (novo.length > 2000) return { tom: "erro" as const, texto: `${nome}: o comentário ficaria com mais de 2000 caracteres` };
+      if (novo === (v.comentarios ?? "")) return { tom: "dup" as const, texto: `${nome} já tem esse comentário: será ignorado` };
+      return { tom: "ok" as const, texto: `${nome}: ${acrescentar ? "acrescenta ao comentário" : "atualiza o comentário"}`, pronto: { id: v.id, nome, comentarios: novo } };
+    });
+  },
+  aplicar: async (prontos) => {
+    const feitos: number[] = []; let falha: string | null = null;
+    await executarEmLote(prontos.map(({ indice, pronto }) => { const x = pronto as { id: string; nome: string; comentarios: string }; return { chave: x.id, executar: async () => { try { await atualizarCampos(x.id, { comentarios: x.comentarios }); feitos.push(indice); } catch (e) { falha ??= `${x.nome}: ${(e as Error).message}`; } } }; }), 10);
+    feitos.sort((a, b) => a - b);
+    return { feitos, falha };
+  },
+};
+
 export const LANCAMENTOS_DE_VEICULOS: Lancamento[] = [
   novoVeiculo,
   ...(["liberacao", "chegada", "faturamento", "placas", "emplacamento", "devolucaoCvo", "devolucao"] as AcaoEmMassa[]).map((id) => atualizacaoDeVeiculo(ACOES.find((a) => a.id === id)!)),
   checklistEmMassa(ACOES.find((a) => a.id === "saida")!, "saida"),
   checklistEmMassa(ACOES.find((a) => a.id === "retorno")!, "retorno"),
+  atualizarComentario,
   reservaEmEvento,
 ];
 export type { Parametros };
