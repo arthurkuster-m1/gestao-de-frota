@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { CalendarBlank, CalendarCheck, Copy, Plus, Table } from "@phosphor-icons/react";
-import { Button, EmptyState, useToast } from "../../ds";
+import { Button, EmptyState, Sheet, useToast } from "../../ds";
+import { GerenciarTiposDeEvento } from "./GerenciarTiposDeEvento";
 import { copiarTabela, tabelaDeVeiculosParaOutlook } from "../../lib/eventos/linhasDoEvento";
 import { usePopover } from "../../ds/popover";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
@@ -21,6 +22,7 @@ export function Eventos() {
   const { id: idAberto } = useParams<{ id?: string }>();
   const d = useDadosDeEventos();
   const [criando, setCriando] = useState(false);
+  const [gerenciandoTipos, setGerenciandoTipos] = useState(false);
   const [busca, setBusca] = useSearchParams();
   const aba: AbaDoEvento = (["dados", "veiculos", "transportes", "contratos"] as const).find((x) => x === busca.get("aba")) ?? "dados";
 
@@ -39,7 +41,7 @@ export function Eventos() {
   return (
     <>
       <TelaDoMotor<Evento> tela="eventos" iconeDaPrimeira={<CalendarCheck size={16} />} visoesFixas={VISOES_FIXAS_DE_EVENTOS} acoesDaSelecao={({ ids }) => <><Button size="sm" variant="secondary" icon={<Copy size={16} />} onClick={() => void copiarCarros(ids)} data-testid="sel-copiar">Copiar tabela dos carros</Button><Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?eventos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button></>} titulo="Eventos" subtitulo="Solicitações de uso, com os carros reservados em cada uma." cabecalhoDireita={<SubpaginasDeEventos ativa="eventos" />}
-        acoes={<NovoMenuDeEventos aoNovo={() => setCriando(true)} />}
+        acoes={<><Button variant="secondary" onClick={() => setGerenciandoTipos(true)} data-testid="gerenciar-tipos">Tipos de evento</Button><NovoMenuDeEventos aoNovo={() => setCriando(true)} /></>}
         linhas={d.eventos} erro={d.erro} campos={d.campos} idDe={(x) => x.id} onEditar={d.editarEvento} onAbrir={(x) => navigate(`/eventos/${x.id}`)}
         linhaDoTempo={{ barrasDe: (e) => barraDoEvento(e, d.ctx.reservasDoEvento.get(e.id) ?? []), onAlterarBarra: d.moverEvento as never, onAbrirBarra: (e) => navigate(`/eventos/${e.id}`) }}
         rotuloDoTotal={(n) => `${n} evento${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar evento, tipo, solicitante…"
@@ -47,6 +49,7 @@ export function Eventos() {
         filhos={<JanelaDoEventoLigada d={d} id={aberto?.id ?? null} aba={aba} onAba={(a) => setBusca(a === "dados" ? {} : { aba: a }, { replace: true })} onFechar={() => navigate("/eventos")} onExcluido={() => navigate("/eventos")} />} />
       <AvisoDeChecklistEmMassa d={d} />
       <NovoEvento aberto={criando} onFechar={() => setCriando(false)} onCriar={d.criar} onCriado={(e) => navigate(`/eventos/${e.id}?aba=veiculos`)} />
+      <Sheet open={gerenciandoTipos} onClose={() => setGerenciandoTipos(false)} title="Tipos de evento" wide><GerenciarTiposDeEvento /></Sheet>
     </>
   );
 }

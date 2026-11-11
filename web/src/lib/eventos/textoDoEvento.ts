@@ -12,7 +12,7 @@ const esc = (t: string) => t.replace(/&/g, "&amp;").replace(/</g, "&lt;").replac
  * Coleta = a data de envio do evento; sem ela, o início da reserva dos carros (o prazo de ida); sem reserva com data, chegada menos os dias de viagem do transporte de ida.
  * Texto puro (tabela com barras, para chat e e-mail em texto) e HTML (tabela azul, para colar no Outlook).
  */
-export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoEvento[]; veiculos: readonly Veiculo[]; locais: readonly EventoLocal[]; origensExtras: readonly EventoLocal[]; transportes: readonly Transporte[] }): { texto: string; html: string } {
+export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoEvento[]; veiculos: readonly Veiculo[]; locais: readonly EventoLocal[]; origensExtras: readonly EventoLocal[]; transportes: readonly Transporte[]; /** evento em que os carros não voltam: o texto não traz a linha de retorno */ semRetorno?: boolean }): { texto: string; html: string } {
   const { evento } = p;
   const abertas = p.reservas.filter((r) => r.evento_id === evento.id && r.estado !== "cancelado");
   const ordenar = <T,>(l: T[]) => l.sort();
@@ -44,8 +44,7 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
     "",
     `ENTREGA NO EVENTO DIA ${diaMes(entrega)}`,
     "",
-    `RETORNO DIA ${diaMes(retorno)}`,
-    "",
+    ...(p.semRetorno ? [] : [`RETORNO DIA ${diaMes(retorno)}`, ""]),
     "",
     "Endereço de Coleta:",
     ...enderecos(origens, "Endereço de coleta a informar").flatMap((e) => [`- ${e}`, `- Contato: ${contatoColeta}`]),
@@ -66,7 +65,7 @@ export function textoDoEvento(p: { evento: Evento; reservas: readonly ReservaDoE
     par(`<b>EVENTO:</b> ${esc(evento.nome)}`),
     par(`<b>COLETA DIA ${diaMes(coleta)}</b> (DIA QUE A TRANSPORTADORA DEVE PEGAR O CARRO - DATA DO ENVIO)`),
     par(`<b>ENTREGA NO EVENTO DIA ${diaMes(entrega)}</b>`),
-    par(`<b>RETORNO DIA ${diaMes(retorno)}</b>`),
+    ...(p.semRetorno ? [] : [par(`<b>RETORNO DIA ${diaMes(retorno)}</b>`)]),
     lista("Endereço de Coleta", enderecos(origens, "Endereço de coleta a informar"), contatoColeta),
     lista("Endereço de Entrega", enderecos(locais, "Endereço de entrega a informar"), contatoEntrega),
     par("Segue os dados do(s) Veículo(s)"),

@@ -94,6 +94,7 @@ const LARGURA_PADRAO: Record<string, number> = {
 const LARGURA_MIN = 70, LARGURA_MAX = 700, LARGURA_SEL = 44;
 
 type Props = {
+  /** O tipo do evento diz que os carros não voltam: some o bloco Transporte RETORNO. */ semRetorno?: boolean;
   evento: Evento; veiculos: Veiculo[]; reservas: Reserva[]; /** carros no evento ainda sem data */ reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>; eventos: Evento[]; locais: EventoLocal[]; desejados: ModeloDesejado[]; manutencoes?: Manutencao[]; tr: Tr;
   checklists?: Checklist[]; onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
@@ -109,7 +110,7 @@ type Props = {
  * arrastar o título para mudar a ordem, selecionar células (arrastando), copiar, colar, duplicar para baixo e marcar vários carros
  * para aplicar o MESMO transporte de uma vez.
  */
-export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro, onChecklistEmMassa }: Props) {
+export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro, onChecklistEmMassa }: Props) {
   const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs>(lerPrefs);
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
@@ -157,7 +158,7 @@ export function VeiculosDoEvento({ evento, veiculos, reservas, reservasSemData =
   const ordenadas: string[] = [
     ...livres,
     "transporteIda", ...(prefs.abertos.ida ? prefs.ordemBloco.ida.filter(visivelNoBloco) : []),
-    "transporteVolta", ...(prefs.abertos.volta ? prefs.ordemBloco.volta.filter(visivelNoBloco) : []),
+    ...(semRetorno ? [] : ["transporteVolta", ...(prefs.abertos.volta ? prefs.ordemBloco.volta.filter(visivelNoBloco) : [])]),
   ];
   const colunasInfo = INFO.map((c) => c.id as string).filter((c) => prefs.infoCols.includes(c));
   /** Colunas selecionáveis (por células), na ordem em que aparecem. */

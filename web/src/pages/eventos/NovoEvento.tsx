@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import { Button, DateField, Field, Input, Select, Sheet } from "../../ds";
-import { TIPOS_EVENTO, type Evento, type EventoLocalNovo } from "../../lib/eventos/tipos";
+import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
+import { type Evento, type EventoLocalNovo } from "../../lib/eventos/tipos";
 import { CampoDeEndereco } from "../../components/motor/EditorDeEndereco";
 import { listarClientes, type ClienteResumo } from "../../lib/clientes/dados";
 import { NovoClienteRapido } from "./NovoClienteRapido";
@@ -18,6 +19,7 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
   aberto: boolean; onFechar: () => void;
   onCriar: (e: Dados, locais: EventoLocalNovo[], pedidos: PedidoDeCarro[]) => Promise<Evento>; onCriado: (e: Evento) => void;
 }) {
+  const { tipos: tiposDeEvento } = useTiposDeEvento();
   const [f, setF] = useState(VAZIO);
   const [pedidos, setPedidos] = useState<PedidoDeCarro[]>([]);
   const [falha, setFalha] = useState<string | null>(null);
@@ -50,7 +52,7 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
           <Field label="Data de retirada" error={periodoRuim ? "A retirada não pode ser antes da chegada." : null}><DateField value={f.retirada} onChange={(e) => set({ retirada: e.target.value })} /></Field>
         </div>
         <div className="mt-evf mt-evf--iguais3">
-          <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set({ tipo: e.target.value })} placeholder="Escolher…"><option value="">Sem tipo</option>{TIPOS_EVENTO.map((t) => <option key={t} value={t}>{t}</option>)}</Select></Field>
+          <Field label="Tipo"><Select value={f.tipo} onChange={(e) => set({ tipo: e.target.value })} placeholder="Escolher…"><option value="">Sem tipo</option>{tiposDeEvento.map((t) => <option key={t.nome} value={t.nome}>{t.nome}</option>)}</Select></Field>
           <Field label="Solicitante"><Input value={f.solicitante} onChange={(e) => set({ solicitante: e.target.value })} /></Field>
           <Field label="Contato"><Input value={f.contato} onChange={(e) => set({ contato: e.target.value })} placeholder="Responsável no local (nome, telefone)" /></Field>
         </div>

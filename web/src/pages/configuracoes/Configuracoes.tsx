@@ -3,6 +3,7 @@ import { Bell, BellRinging, Plus, Trash } from "@phosphor-icons/react";
 import { Button, Card, Field, Input, Page, Switch, useToast } from "../../ds";
 import { NOTIFICACOES_PADRAO, gravarNotificacoes, horarioValido, lerNotificacoes, mostrarNotificacao, notificacaoSuportada, permissaoDeNotificar, type Notificacao } from "../../lib/notificacoes/notificacoes";
 import { ModelosDeDocumento } from "./ModelosDeDocumento";
+import { GerenciarTiposDeEvento } from "../eventos/GerenciarTiposDeEvento";
 import "../veiculos/veiculos.css";
 
 /** Digitou 1920 → 19:20. */
@@ -30,6 +31,8 @@ export function Configuracoes() {
     <Page wide>
       <div className="ds-stack">
         <div><h1 className="t-h1">Configurações</h1><p className="t-body t-muted">Notificações e modelos de contrato.</p></div>
+
+        <Card><div className="ds-stack"><h2 className="t-h3">Tipos de evento</h2><GerenciarTiposDeEvento /></div></Card>
 
         <ModelosDeDocumento />
 

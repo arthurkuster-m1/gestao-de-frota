@@ -26,7 +26,7 @@ export function ProximosDoInicio() {
         const dias = diasAte(e.envio_previsto, hoje)!;
         if (dias <= 14 || e.status === "solicitar_transporte") envios.push({ e, data: e.envio_previsto, dias, feitos: f?.comTransporteIda ?? 0, carros, alerta: e.status === "solicitar_transporte" || dias <= DIAS_DE_ANTECEDENCIA });
       }
-      if (et >= etapa("em_uso") && e.retirada_prevista) {
+      if (et >= etapa("em_uso") && e.retirada_prevista && !d.semRetornoDoTipo(e.tipo)) {
         const dias = diasAte(e.retirada_prevista, hoje)!;
         if (dias <= 14 || e.status === "solicitar_retorno" || e.status === "retorno_solicitado") retornos.push({ e, data: e.retirada_prevista, dias, feitos: f?.comTransporteVolta ?? 0, carros, alerta: e.status === "solicitar_retorno" || dias <= DIAS_DE_ANTECEDENCIA });
       }

@@ -23,7 +23,7 @@ export function diasAte(data: string | null | undefined, hoje: string): number |
  *  - Retorno solicitado: o mesmo, e todos os carros já têm transporte de volta
  *  - Concluído: todos os carros têm checklist de retorno
  */
-export function statusAutomatico(evento: Pick<Evento, "status" | "envio_previsto" | "retirada_prevista">, f: FatosDoEvento, hoje: string): StatusEvento {
+export function statusAutomatico(evento: Pick<Evento, "status" | "envio_previsto" | "retirada_prevista">, f: FatosDoEvento, hoje: string, opcoes: { semRetorno?: boolean } = {}): StatusEvento {
   let atual = evento.status;
   if (etapa(atual) < 0) return atual;
   const todos = f.carros > 0;
@@ -34,9 +34,12 @@ export function statusAutomatico(evento: Pick<Evento, "status" | "envio_previsto
     if (paraEnvio !== null && paraEnvio <= DIAS_DE_ANTECEDENCIA) candidatos.push("solicitar_transporte");
     if (todos && f.comTransporteIda === f.carros) candidatos.push("envio_agendado");
     if (todos && f.comChecklistSaida === f.carros) candidatos.push("em_uso");
-    if (em && paraRetirada !== null && paraRetirada <= DIAS_DE_ANTECEDENCIA) candidatos.push("solicitar_retorno");
-    if (em && paraRetirada !== null && paraRetirada <= DIAS_DE_ANTECEDENCIA && todos && f.comTransporteVolta === f.carros) candidatos.push("retorno_solicitado");
-    if (todos && f.comChecklistRetorno === f.carros) candidatos.push("concluido");
+    // evento em que os carros não voltam: não há retorno a solicitar nem checklist de retorno (o evento se conclui à mão)
+    if (!opcoes.semRetorno) {
+      if (em && paraRetirada !== null && paraRetirada <= DIAS_DE_ANTECEDENCIA) candidatos.push("solicitar_retorno");
+      if (em && paraRetirada !== null && paraRetirada <= DIAS_DE_ANTECEDENCIA && todos && f.comTransporteVolta === f.carros) candidatos.push("retorno_solicitado");
+      if (todos && f.comChecklistRetorno === f.carros) candidatos.push("concluido");
+    }
     const melhor = candidatos.reduce<StatusEvento>((m, c) => (etapa(c) > etapa(m) ? c : m), atual);
     if (melhor === atual) break;
     atual = melhor;

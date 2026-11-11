@@ -17,6 +17,7 @@ import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tip
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposDeContratos";
+import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
 import { GerarContrato } from "../contratos/GerarContrato";
 import { AlertaDeDivergencia } from "../contratos/AlertaDeDivergencia";
 import { useDivergenciasDeContratos } from "../contratos/useDivergencias";
@@ -91,7 +92,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const campoEnderecoLocal = camposDoLocal.find((c) => c.id === "endereco")!;
   const origensExtras = useMemo(() => (p.origens ?? []).filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.origens, evento.id]);
   async function copiarDados() {
-    const t = textoDoEvento({ evento, reservas: [...p.reservas, ...(p.reservasSemData ?? [])], veiculos: p.veiculos, locais: p.locais, origensExtras: p.origens ?? [], transportes: tr.transportes });
+    const t = textoDoEvento({ semRetorno: tiposDeEvento.semRetorno(evento.tipo), evento, reservas: [...p.reservas, ...(p.reservasSemData ?? [])], veiculos: p.veiculos, locais: p.locais, origensExtras: p.origens ?? [], transportes: tr.transportes });
     toast((await copiarTabela({ html: t.html, texto: t.texto })) ? "Dados do evento copiados" : "Não consegui copiar. Libere a área de transferência no navegador.");
   }
   const [calculando, setCalculando] = useState(false);
@@ -152,6 +153,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const ctxT = useMemo<ContextoDeTransportes>(() => ({ eventos: new Map(p.eventos.map((e) => [e.id, e])), veiculos: new Map(p.veiculos.map((v) => [v.id, v])), reservas: p.reservas, vinculos: tr.vinculos, transportes: tr.transportes, checklists: p.checklists ?? [] }), [p.eventos, p.veiculos, p.reservas, tr.vinculos, tr.transportes, p.checklists]);
   const camposT = useMemo(() => camposDoTransporte(ctxT), [ctxT]);
   const contratosDoEvento = useMemo(() => k.contratos.filter((c) => c.evento_id === evento.id), [k.contratos, evento.id]);
+  const tiposDeEvento = useTiposDeEvento();
   const divergenciasDoEvento = useDivergenciasDeContratos().filter((a) => a.eventoId === evento.id);
   const contatos = useContatosDosClientes(k.contratos.map((c) => c.cliente_id));
   const ctxC = useMemo<ContextoDeContratos>(() => {
@@ -257,7 +259,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
               <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}><h3 className="t-h3">Modelos solicitados</h3><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
               <TabelaDePedidos pedidos={pedidosDoEvento} atendidos={atendidos} codigoDoCarro={(id) => { const v = p.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; }} onNaoAtendido={p.onNaoAtendido} onRemover={p.onRemoverDesejado} onErro={setFalha} />
             </div>
-            <VeiculosDoEvento onChecklistEmMassa={p.onChecklistEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
+            <VeiculosDoEvento semRetorno={tiposDeEvento.semRetorno(evento.tipo)} onChecklistEmMassa={p.onChecklistEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
               checklists={p.checklists} onSalvarChecklist={p.onSalvarChecklist} onSalvarReserva={p.onSalvarReserva} onReservar={p.onReservar} onRemoverReserva={p.onRemoverReserva} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />
           </div>
         )}

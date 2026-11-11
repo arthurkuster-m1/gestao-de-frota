@@ -1,9 +1,10 @@
 import { useVersaoDosDados } from "../../lib/sincronia";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { removerDesejado, listarReservasSemData, reservarSemData, atualizarEvento, atualizarLocal, atualizarReserva, atualizarReservas, criarEvento, criarLocais, excluirEvento, listarEventos, listarLocais, listarReservas, removerLocal, removerReserva, reservarVeiculos, atualizarAnotacao, atualizarDesejado, criarAnotacao, criarDesejados, listarAnotacoes, listarDesejados, removerAnotacao } from "../../lib/eventos/dados";
 import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
+import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
 import { fatosDosEventos, statusAutomatico } from "../../lib/eventos/automacaoDeStatus";
 import { hojeLocal } from "../../lib/motor/datas";
 import { reservasSemChecklist } from "../../lib/checklists/regras";
@@ -49,19 +50,21 @@ export function useDadosDeEventos() {
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
   }, [versao]);
 
+  const tiposDeEvento = useTiposDeEvento();
+  const semRetornoRef = useRef(tiposDeEvento.semRetorno); semRetornoRef.current = tiposDeEvento.semRetorno;
   // Automação do status do evento (regras em lib/eventos/automacaoDeStatus.ts). Roda quando os dados mudam e a cada virada de dia; só anda para a frente.
   const hoje = hojeLocal();
   useEffect(() => {
     if (eventos === null || !tr.carregado || !ck.carregado || !semDataOk) return;
     const fatos = fatosDosEventos({ reservas: [...reservas, ...reservasSemData], vinculos: tr.vinculos, checklists: ck.checklists });
     for (const e of eventos) {
-      const novo = statusAutomatico(e, fatos.get(e.id) ?? { carros: 0, comTransporteIda: 0, comTransporteVolta: 0, comChecklistSaida: 0, comChecklistRetorno: 0 }, hoje);
+      const novo = statusAutomatico(e, fatos.get(e.id) ?? { carros: 0, comTransporteIda: 0, comTransporteVolta: 0, comChecklistSaida: 0, comChecklistRetorno: 0 }, hoje, { semRetorno: semRetornoRef.current(e.tipo) });
       const chave = `${e.id}:${novo}`;
       if (novo === e.status || jaAutomatizados.has(chave)) continue;
       jaAutomatizados.add(chave);   // uma tentativa por mudança (se o banco recusar, não fica tentando em loop)
       void atualizarEvento(e.id, { status: novo }).then((a) => { setEventos((l) => (l ?? []).map((x) => (x.id === a.id ? a : x))); toast(`${a.nome}: agora em “${rotuloStatusEvento(novo)}”`); }, () => undefined);
     }
-  }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, ck.carregado, ck.checklists, semDataOk, hoje]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, ck.carregado, ck.checklists, semDataOk, hoje, tiposDeEvento.tipos]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const ctx = useMemo<ContextoDeEventos>(() => {
     const m = new Map<string, Reserva[]>();
@@ -70,8 +73,8 @@ export function useDadosDeEventos() {
     for (const l of locais.filter((x) => x.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
     const sd = new Map<string, ReservaDoEvento[]>();
     for (const r of reservasSemData) { const l = sd.get(r.evento_id); if (l) l.push(r); else sd.set(r.evento_id, [r]); }
-    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento };
-  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento]);
+    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento, tiposDeEvento: tiposDeEvento.tipos };
+  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento, tiposDeEvento.tipos]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   /** Evento colocado em uso à mão: se há carros sem checklist de envio, o app oferece fazer o de todos. */
@@ -173,5 +176,5 @@ export function useDadosDeEventos() {
 
   const locaisSemOrigens = useMemo(() => locais.filter((l) => l.tipo !== "origem"), [locais]);
   const origensExtras = useMemo(() => locais.filter((l) => l.tipo === "origem"), [locais]);
-  return { removerPedido, pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { tiposDeEvento: tiposDeEvento.tipos, semRetornoDoTipo: tiposDeEvento.semRetorno, removerPedido, pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }
