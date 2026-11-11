@@ -106,11 +106,14 @@ export function Massa() {
     const p = prefsAgora.current, a = p.ordem.indexOf(de as CampoLinha), b = p.ordem.indexOf(para as CampoLinha);
     if (a >= 0 && b >= 0) mudaColunas({ ...p, ordem: arrayMove([...p.ordem], a, b) });
   };
+  // largura de cada coluna: arraste a borda do título (duplo clique volta ao padrão); fica guardada neste aparelho
+  const [larguras, setLarguras] = useState<Record<string, number>>(() => { try { return JSON.parse(localStorage.getItem("frota:importacao-larguras") ?? "{}") as Record<string, number>; } catch { return {}; } });
+  const redimensionar = (id: string, w: number | null) => setLarguras((l) => { const n = { ...l }; if (w === null) delete n[id]; else n[id] = w; try { localStorage.setItem("frota:importacao-larguras", JSON.stringify(n)); } catch { /* sem armazenamento */ } return n; });
   const colunas = useMemo(() => [
-    ...visiveis.map((id) => CAMPOS.find((c) => c.id === id)!).map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, (OPCOES_DA_COLUNA[c.id] ? colunaOpcao(OPCOES_DA_COLUNA[c.id]!) : textColumn) as never), title: <TituloArrastavel id={c.id} titulo={c.titulo} aoMover={moverColuna} />, minWidth: c.largura, basis: c.largura, grow: 0 })),
+    ...visiveis.map((id) => CAMPOS.find((c) => c.id === id)!).map((c) => ({ ...keyColumn<LinhaGrade, CampoId>(c.id, (OPCOES_DA_COLUNA[c.id] ? colunaOpcao(OPCOES_DA_COLUNA[c.id]!) : textColumn) as never), title: <TituloArrastavel id={c.id} titulo={c.titulo} aoMover={moverColuna} largura={larguras[c.id] ?? c.largura} aoRedimensionar={redimensionar} />, minWidth: larguras[c.id] ?? c.largura, basis: larguras[c.id] ?? c.largura, grow: 0, shrink: 0 })),
     { ...COLUNA_SITUACAO, minWidth: 360, basis: 360, grow: 1 },   // a situação da linha fica por último
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  ], [visiveis]);
+  ], [visiveis, larguras]);
 
   function adicionar(matriz: string[][]) {
     const { linhas: novas, campos: doCabecalho } = analisarMatriz(matriz, visiveis);

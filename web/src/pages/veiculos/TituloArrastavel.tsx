@@ -8,7 +8,7 @@ const limpar = () => document.querySelectorAll(".mt-titulo-arrasta.is-sobre").fo
  * Título de coluna da grade que se arrasta: pegue o título e solte sobre outra coluna para trocar a ordem.
  * Usa eventos de ponteiro (mouse e toque) em vez do "arrastar" do navegador, que a grade bloqueia nos títulos.
  */
-export function TituloArrastavel({ id, titulo, aoMover }: { id: string; titulo: string; aoMover: (de: string, para: string) => void }) {
+export function TituloArrastavel({ id, titulo, aoMover, largura, aoRedimensionar }: { id: string; titulo: string; aoMover: (de: string, para: string) => void; largura?: number; aoRedimensionar?: (id: string, largura: number | null) => void }) {
   const inicio = useRef<{ x: number; y: number; ativo: boolean } | null>(null);
   const [arrastando, setArrastando] = useState(false);
   const terminar = (e: React.PointerEvent<HTMLElement>, soltou: boolean) => {
@@ -26,6 +26,18 @@ export function TituloArrastavel({ id, titulo, aoMover }: { id: string; titulo: 
       }}
       onPointerUp={(e) => terminar(e, true)} onPointerCancel={(e) => terminar(e, false)}>
       <DotsSixVertical size={14} weight="bold" aria-hidden />{titulo}
+      {aoRedimensionar && largura !== undefined && (
+        <span className="mt-titulo-alca" role="separator" aria-label={`Largura de ${titulo}`} title="Arraste para mudar a largura · duplo clique volta ao padrão" data-testid="alca-coluna"
+          onPointerDown={(e) => {
+            e.stopPropagation(); e.preventDefault();
+            const alvo = e.currentTarget; alvo.setPointerCapture(e.pointerId);
+            const x0 = e.clientX; let w = largura;
+            const mover = (ev: PointerEvent) => { w = Math.max(80, Math.min(1600, Math.round(largura + ev.clientX - x0))); aoRedimensionar(id, w); };
+            const soltar = () => { alvo.removeEventListener("pointermove", mover); alvo.removeEventListener("pointerup", soltar); alvo.removeEventListener("pointercancel", soltar); };
+            alvo.addEventListener("pointermove", mover); alvo.addEventListener("pointerup", soltar); alvo.addEventListener("pointercancel", soltar);
+          }}
+          onPointerMove={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); aoRedimensionar(id, null); }} />
+      )}
     </span>
   );
 }

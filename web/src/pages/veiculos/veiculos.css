@@ -390,3 +390,7 @@
 .mt-reservar__tabela .mt-comchk .mt-chk-sel { margin: 0 10px 0 0; flex: none; }
 .mt-reservar__tabela .mt-primeira { justify-content: flex-start; text-align: left; }
 .mt-reservar__tabela .mt-primeira__txt { text-align: left; margin: 0; }
+/* alça para mudar a largura da coluna na importação em massa */
+.mt-titulo-arrasta { position: relative; }
+.mt-titulo-alca { position: absolute; right: -4px; top: 0; bottom: 0; width: 9px; cursor: col-resize; z-index: 3; touch-action: none; }
+.mt-titulo-alca:hover, .mt-titulo-alca:active { background: color-mix(in srgb, var(--color-accent) 35%, transparent); }
