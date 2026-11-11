@@ -30,11 +30,21 @@ export function TituloArrastavel({ id, titulo, aoMover, largura, aoRedimensionar
         <span className="mt-titulo-alca" role="separator" aria-label={`Largura de ${titulo}`} title="Arraste para mudar a largura · duplo clique volta ao padrão" data-testid="alca-coluna"
           onPointerDown={(e) => {
             e.stopPropagation(); e.preventDefault();
-            // ouvintes na janela (não no elemento): a grade refaz o cabeçalho a cada largura nova e o elemento some no meio do arrasto
-            const x0 = e.clientX; document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none";
-            const mover = (ev: PointerEvent) => aoRedimensionar(id, Math.max(80, Math.min(1600, Math.round(largura + ev.clientX - x0))));
-            const soltar = () => { window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar); window.removeEventListener("pointercancel", soltar); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
-            window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar); window.addEventListener("pointercancel", soltar);
+            // a grade só mede as colunas de novo depois de um instante: durante o arrasto uma linha-guia (com a largura) segue o mouse e a largura vale ao soltar
+            const x0 = e.clientX, rect = e.currentTarget.parentElement?.getBoundingClientRect();
+            const guia = document.createElement("div"); guia.setAttribute("data-testid", "guia-de-largura");
+            guia.style.cssText = `position:fixed;top:${rect ? rect.top : 0}px;bottom:0;width:2px;background:var(--color-accent);z-index:9999;pointer-events:none;`;
+            const rotulo = document.createElement("span"); rotulo.style.cssText = "position:absolute;top:0;left:6px;padding:2px 6px;border-radius:4px;background:var(--color-accent);color:#fff;font-size:12px;white-space:nowrap;";
+            guia.appendChild(rotulo); document.body.appendChild(guia);
+            document.body.style.cursor = "col-resize"; document.body.style.userSelect = "none";
+            const calc = (cx: number) => Math.max(80, Math.min(1600, Math.round(largura + cx - x0)));
+            const mostrar = (cx: number) => { guia.style.left = `${cx}px`; rotulo.textContent = `${calc(cx)} px`; };
+            mostrar(e.clientX);
+            const mover = (ev: PointerEvent) => mostrar(ev.clientX);
+            const limpar = () => { window.removeEventListener("pointermove", mover); window.removeEventListener("pointerup", soltar); window.removeEventListener("pointercancel", cancelar); guia.remove(); document.body.style.cursor = ""; document.body.style.userSelect = ""; };
+            const soltar = (ev: PointerEvent) => { limpar(); aoRedimensionar(id, calc(ev.clientX)); };
+            const cancelar = () => limpar();
+            window.addEventListener("pointermove", mover); window.addEventListener("pointerup", soltar); window.addEventListener("pointercancel", cancelar);
           }}
           onPointerMove={(e) => e.stopPropagation()} onPointerUp={(e) => e.stopPropagation()} onDoubleClick={(e) => { e.stopPropagation(); aoRedimensionar(id, null); }} />
       )}
