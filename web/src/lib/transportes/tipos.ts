@@ -17,7 +17,10 @@ export const STATUS_DA_MODALIDADE: Record<Modalidade, readonly { value: string; 
   retirada: [],
 };
 /** Todos os status numa lista só (a coluna mostra os de todas as modalidades). */
-export const TODOS_STATUS_PAGAMENTO = [...STATUS_DA_MODALIDADE.pta, ...STATUS_DA_MODALIDADE.tso.filter((s) => !STATUS_DA_MODALIDADE.pta.some((p) => p.value === s.value))];
+/** A ordem oficial dos status de pagamento (de todas as modalidades): Solicitado → Orçamento recebido → Aprovar NF → Aprovado → Pago. */
+const ORDEM_OFICIAL_DO_PAGAMENTO = ["solicitado", "orcamento_recebido", "aprovar_nf", "aprovado", "pago"];
+export const TODOS_STATUS_PAGAMENTO = [...STATUS_DA_MODALIDADE.pta, ...STATUS_DA_MODALIDADE.tso.filter((s) => !STATUS_DA_MODALIDADE.pta.some((p) => p.value === s.value))]
+  .sort((a, b) => ORDEM_OFICIAL_DO_PAGAMENTO.indexOf(a.value) - ORDEM_OFICIAL_DO_PAGAMENTO.indexOf(b.value));
 export const rotuloStatusPagamento = (v: string) => TODOS_STATUS_PAGAMENTO.find((s) => s.value === v)?.label ?? v;
 
 export type Transporte = {

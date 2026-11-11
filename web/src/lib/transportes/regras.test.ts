@@ -37,3 +37,10 @@ describe("ligações", () => {
     expect(reservasDoTransporte({ id: "t1", sentido: "ida" }, [{ id: "r1", transporte_ida_id: "t1", transporte_volta_id: null }, { id: "r2", transporte_ida_id: null, transporte_volta_id: "t1" }])).toEqual(["r1"]);
   });
 });
+
+import { TODOS_STATUS_PAGAMENTO } from "./tipos";
+describe("ordem oficial dos status de pagamento", () => {
+  it("Solicitado, Orçamento recebido, Aprovar NF, Aprovado e Pago", () => {
+    expect(TODOS_STATUS_PAGAMENTO.map((s) => s.value)).toEqual(["solicitado", "orcamento_recebido", "aprovar_nf", "aprovado", "pago"]);
+  });
+});
