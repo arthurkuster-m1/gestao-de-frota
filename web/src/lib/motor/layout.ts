@@ -51,6 +51,8 @@ export const preferenciasDaTabelaSchema = z
     /** Ordem escolhida (arrastando) das chips rápidas de uma visualização fixa, como "mae" ou "mae/versão". */
     ordemDosChips: z.array(z.string().min(1).max(160)).max(400).optional(),
     /** Chips rápidas arquivadas (somem da lista; os carros continuam em "Todas"). */
+    /** Ordem das abas depois de "Todas" (fixas e salvas misturadas); guardada na linha reservada __ordem-das-abas__. */
+    ordemDasAbas: z.array(z.string().min(1).max(100)).max(100).optional(),
     chipsArquivados: z.array(z.string().min(1).max(160)).max(400).optional(),
     /** Colunas (ids) em que o conteúdo quebra de linha: um item por linha, em vez de tudo numa linha só. */
     quebrarLinhas: z.array(z.string().min(1).max(80)).max(100).optional(),

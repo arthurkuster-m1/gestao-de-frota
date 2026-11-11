@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode } from "react";
+import { useMemo, useRef, useState, type ReactNode } from "react";
 import { DndContext, PointerSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
@@ -26,6 +26,8 @@ type Props<T> = {
   onSalvar: () => Promise<void>; onDescartar: () => void;
   /** Arrastar uma aba muda a ordem: recebe os ids das abas salvas na nova ordem. */
   onReordenar?: (ids: string[]) => Promise<void>;
+  /** Ordem guardada das abas depois de "Todas" (ids das fixas e das salvas misturados). */
+  ordemDasAbas?: readonly string[];
   onRenomear: (id: string, nome: string) => Promise<void>; onDuplicar: (v: VisaoSalva) => Promise<void>; onExcluir: (id: string) => Promise<void>;
   /** Ícones à direita (filtrar, ordenar, agrupar, busca) e os botões de ação da tela (ex.: Novo). */
   ferramentas: ReactNode; acoes?: ReactNode;
@@ -47,7 +49,7 @@ function AbaArrastavel({ id, ativo, children }: { id: string; ativo: boolean; ch
   return <span ref={setNodeRef} {...(ativo ? { ...attributes, ...listeners } : {})} tabIndex={undefined} role={undefined} aria-roledescription={undefined} style={{ display: "inline-flex", transform: CSS.Translate.toString(transform), transition, opacity: isDragging ? 0.6 : 1, zIndex: isDragging ? 5 : undefined, cursor: ativo ? "grab" : undefined }} data-testid="aba-arrastavel">{children}</span>;
 }
 
-export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onReordenar, onRenomear, onDuplicar, onExcluir, ferramentas, sobreposto, acoes, fixas = [], nomeDaBase = "Todas" }: Props<T>) {
+export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupado, erro, layoutAtivo, layoutsDisponiveis, layoutFixo, campos, prefs, onPrefs, onNovoLayout, onSalvarComo, onSalvar, onDescartar, onReordenar, ordemDasAbas = [], onRenomear, onDuplicar, onExcluir, ferramentas, sobreposto, acoes, fixas = [], nomeDaBase = "Todas" }: Props<T>) {
   const [salvandoComo, setSalvandoComo] = useState(false);
   const [excluindo, setExcluindo] = useState<VisaoSalva | null>(null);
   const [nome, setNome] = useState("");
@@ -59,10 +61,16 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
   const envia = async (fn: () => Promise<void>, fechar?: () => void) => { setFalha(null); try { await fn(); fechar?.(); } catch (e) { setFalha((e as Error).message); } };
   const nomes = visoes.map((v) => v.nome);
   const sensores = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 6 } }));   // clicar continua abrindo a aba; só arrastar muda a ordem
+  // as abas depois de "Todas": as fixas e as salvas, na ordem guardada (as que não estão na lista vão para o fim: fixas primeiro, depois as salvas)
+  const abasEmOrdem = useMemo(() => {
+    const base = [...fixas.map((f) => ({ id: f.id, rotulo: f.rotulo, fixa: true as const, visao: undefined as VisaoSalva | undefined })), ...visoes.map((v) => ({ id: v.id, rotulo: v.nome, fixa: false as const, visao: v as VisaoSalva | undefined }))];
+    const pos = (id: string, i: number) => { const k = ordemDasAbas.indexOf(id); return k >= 0 ? k : 1e6 + i; };
+    return base.map((x, i) => ({ x, p: pos(x.id, i) })).sort((a, b) => a.p - b.p).map((y) => y.x);
+  }, [fixas, visoes, ordemDasAbas]);
   const aoSoltar = (e: DragEndEvent) => {
     if (!onReordenar || !e.over || e.active.id === e.over.id) return;
-    const de = visoes.findIndex((v) => v.id === e.active.id), para = visoes.findIndex((v) => v.id === e.over!.id);
-    if (de >= 0 && para >= 0) void envia(() => onReordenar(arrayMove(visoes, de, para).map((v) => v.id)));
+    const de = abasEmOrdem.findIndex((v) => v.id === e.active.id), para = abasEmOrdem.findIndex((v) => v.id === e.over!.id);
+    if (de >= 0 && para >= 0) void envia(() => onReordenar(arrayMove(abasEmOrdem, de, para).map((v) => v.id)));
   };
 
   const aba = (id: string, texto: string, layout: Layout) => (
@@ -79,10 +87,9 @@ export function BarraDeVisualizacoes<T>({ visoes, abaId, onAba, alterada, ocupad
       <div className="mt-vbar" data-testid="barra-visualizacoes">
         <div className="mt-abas" role="tablist" aria-label="Visualizações">
           {aba("todas", "Todas", abaId === "todas" ? layoutAtivo : "tabela")}
-          {fixas.map((f) => aba(f.id, f.rotulo, abaId === f.id ? layoutAtivo : "tabela"))}
           <DndContext sensors={sensores} collisionDetection={closestCenter} onDragEnd={aoSoltar}>
-            <SortableContext items={visoes.map((v) => v.id)} strategy={horizontalListSortingStrategy}>
-              {visoes.map((v) => <AbaArrastavel key={v.id} id={v.id} ativo={!!onReordenar && visoes.length > 1}>{aba(v.id, v.nome, v.id === abaId ? layoutAtivo : layoutDe(v))}</AbaArrastavel>)}
+            <SortableContext items={abasEmOrdem.map((it) => it.id)} strategy={horizontalListSortingStrategy}>
+              {abasEmOrdem.map((it) => <AbaArrastavel key={it.id} id={it.id} ativo={!!onReordenar && abasEmOrdem.length > 1}>{it.fixa ? aba(it.id, it.rotulo, abaId === it.id ? layoutAtivo : "tabela") : aba(it.id, it.rotulo, it.id === abaId ? layoutAtivo : layoutDe(it.visao!))}</AbaArrastavel>)}
             </SortableContext>
           </DndContext>
           <Painel soIcone rotulo="Nova visualização" icone={<Plus size={18} />} largura={260} testid="nova-aba">

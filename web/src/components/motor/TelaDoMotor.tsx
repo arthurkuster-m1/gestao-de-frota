@@ -91,6 +91,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
   const nomeDaBaseSalva = naFixa ? `__${chipsRapidos!.id}__` : fixaDeFabrica ? `__${fixaDeFabrica.id}__` : NOME_DA_VISAO_PADRAO; // linha reservada (escondida das abas) de Todas ou da fixa aberta
   const linhaPadrao: VisaoSalva | undefined = v.visoes.find((x) => x.nome === nomeDaBaseSalva);
   const todasSalva: PreferenciasDaTabela = useMemo(() => (linhaPadrao ? configSegura(linhaPadrao.config) : fixaDeFabrica?.prefs ?? {}), [linhaPadrao, fixaDeFabrica]);
+  const ordemDasAbas = useMemo(() => v.visoes.find((x) => x.nome === "__ordem-das-abas__")?.config.ordemDasAbas ?? [], [v.visoes]);
   const abas = useMemo(() => v.visoes.filter((x) => !/^__.+__$/.test(x.nome)), [v.visoes]);
   const ativa: VisaoSalva | undefined = abas.find((x) => x.id === abaId);
   const abaValida = abaId === "todas" || naFixa || !!fixaDeFabrica || !!ativa || v.carregando;
@@ -143,7 +144,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
           onRenomear={async (id, nome) => { await comAviso(() => v.atualizar(id, { nome })); }}
           onDuplicar={async (x) => { const nova = await comAviso(() => v.criar(`${x.nome} (cópia)`, x.tipo, ativa?.id === x.id ? prefs : x.config)); if (nova) irParaAba(nova.id); }}
           onExcluir={async (id) => { await comAviso(() => v.excluir(id)); irParaAba("todas"); }}
-          onReordenar={async (ids) => { await comAviso(() => v.reordenar(ids)); }}
+          ordemDasAbas={ordemDasAbas} onReordenar={async (ids) => { await comAviso(async () => { const salvas = new Set(abas.map((x) => x.id)); await v.reordenar(ids.filter((id) => salvas.has(id))); await v.salvarPadrao("__ordem-das-abas__", "tabela", { ordemDasAbas: ids }); }); }}
           acoes={acoes} fixas={[...(chipsRapidos ? [{ id: chipsRapidos.id, rotulo: chipsRapidos.rotulo }] : []), ...(visoesFixas ?? []).map((f) => ({ id: f.id, rotulo: f.rotulo }))]} nomeDaBase={naFixa ? chipsRapidos!.rotulo : fixaDeFabrica ? fixaDeFabrica.rotulo : "Todas"}
           ferramentas={<>
             <BarraDeConsulta campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} aoAdicionar={setFiltroNovo} />
