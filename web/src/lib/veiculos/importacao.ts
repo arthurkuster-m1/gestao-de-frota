@@ -3,10 +3,10 @@
  * Cada linha vira um resultado com a situação (tom) e, se ok, o veículo pronto para gravar.
  */
 import { lerData } from "../eventos/importacao";
-import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type VeiculoNovo } from "./tipos";
+import { CICLO, DEPARTAMENTOS, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type VeiculoNovo } from "./tipos";
 
 export type CampoDeData = "data_pedido" | "data_liberacao" | "data_chegada_planta" | "data_faturamento" | "data_placas_solicitadas" | "data_emplacamento" | "data_devolucao";
-export type CampoLinha = "modelo" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios" | CampoDeData;
+export type CampoLinha = "modelo" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios" | "departamento" | CampoDeData;
 export type LinhaCrua = Partial<Record<CampoLinha, string>>;
 export type Tom = "ok" | "erro" | "dup" | "ign";
 export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
@@ -14,7 +14,7 @@ export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
 export const CAMPOS: { id: CampoLinha; titulo: string; largura: number }[] = [
   { id: "modelo", titulo: "Modelo", largura: 130 }, { id: "cor", titulo: "Cor", largura: 110 },
   { id: "my", titulo: "MY", largura: 80 }, { id: "pedido", titulo: "Pedido", largura: 120 }, { id: "vin", titulo: "VIN (chassi)", largura: 190 },
-  { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 130 }, { id: "seguro", titulo: "Seguro", largura: 150 },
+  { id: "departamento", titulo: "Departamento", largura: 140 }, { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 130 }, { id: "seguro", titulo: "Seguro", largura: 150 },
   { id: "ciclo", titulo: "Ciclo de vida", largura: 190 }, { id: "comentarios", titulo: "Comentários", largura: 200 },
   { id: "data_pedido", titulo: "Data do pedido", largura: 150 }, { id: "data_liberacao", titulo: "Data de liberação", largura: 160 }, { id: "data_chegada_planta", titulo: "Chegou na planta em", largura: 170 }, { id: "data_faturamento", titulo: "Data de faturamento", largura: 170 },
   { id: "data_placas_solicitadas", titulo: "Placas solicitadas em", largura: 190 }, { id: "data_emplacamento", titulo: "Data de emplacamento", largura: 180 }, { id: "data_devolucao", titulo: "Data de devolução", largura: 160 },
@@ -28,7 +28,7 @@ const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 /** Nomes de coluna aceitos no cabeçalho colado (sem acento, minúsculas). */
 const ALIAS: Record<string, CampoLinha> = {
   modelo: "modelo", cor: "cor", my: "my", "ano modelo": "my", "ano-modelo": "my", pedido: "pedido", "n pedido": "pedido",
-  vin: "vin", chassi: "vin", "vin (chassi)": "vin", placa: "placa", blindado: "blindado", seguro: "seguro",
+  vin: "vin", chassi: "vin", "vin (chassi)": "vin", placa: "placa", blindado: "blindado", seguro: "seguro", departamento: "departamento", depto: "departamento", area: "departamento",
   "data do pedido": "data_pedido", "data pedido": "data_pedido", "data de pedido": "data_pedido",
   "data de liberacao": "data_liberacao", "data liberacao": "data_liberacao", "data da liberacao": "data_liberacao", liberacao: "data_liberacao",
   "chegou na planta": "data_chegada_planta", "chegou na planta em": "data_chegada_planta", "data de chegada na planta": "data_chegada_planta", "chegada na planta": "data_chegada_planta",
@@ -93,6 +93,9 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   if (blind === "x") return { tom: "erro", texto: `Blindado: use Sim ou Não (veio "${l.blindado}")` };
   const seguro = achar(SEGURO, l.seguro);
   if (seguro === "x") return { tom: "erro", texto: `Seguro desconhecido: "${l.seguro}" (Pendente, Cadastrado ou Cancelado)` };
+  const deptoDigitado = vazioParaNulo(l.departamento);
+  const departamento = deptoDigitado ? (DEPARTAMENTOS.find((d) => semAcento(d) === semAcento(deptoDigitado)) ?? deptoDigitado.trim()) : null;   // vazio: Marketing (o banco preenche)
+  if (departamento && departamento.length > 60) return { tom: "erro", texto: "Departamento: no máximo 60 caracteres" };
   const ciclo = achar(CICLO, l.ciclo);
   if (ciclo === "x") return { tom: "erro", texto: `Ciclo de vida desconhecido: "${l.ciclo}"` };
   const datas: Partial<Record<CampoDeData, string>> = {};
@@ -115,7 +118,7 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   const veiculo: VeiculoNovo = {
     modelo, cor: vazioParaNulo(l.cor), my: vazioParaNulo(l.my), pedido: vazioParaNulo(l.pedido),
     vin, placa, blindado: blind === null ? false : blind,
-    seguro_status: (seguro ?? "pendente") as Seguro, status_ciclo: (ciclo ?? "pedido_recebido") as Ciclo, comentarios: vazioParaNulo(l.comentarios), ...datas,
+    seguro_status: (seguro ?? "pendente") as Seguro, status_ciclo: (ciclo ?? "pedido_recebido") as Ciclo, comentarios: vazioParaNulo(l.comentarios), ...(departamento ? { departamento } : {}), ...datas,
   };
   return { tom: "ok", texto: "Pronta para cadastrar", veiculo };
 }

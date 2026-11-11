@@ -37,7 +37,7 @@ const ABAS: { id: Aba; rotulo: string }[] = [
 /** A ficha em blocos, com divisor: Uso, Dados e Datas (o resto das propriedades fica fora da ficha). */
 const BLOCOS: { titulo: string; ids: string[] }[] = [
   { titulo: "Uso", ids: ["codigo", "statusUso", "agenda", "comentarios"] },
-  { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "pedido", "ciclo", "seguro"] },
+  { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "pedido", "ciclo", "departamento", "seguro"] },
   { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "chegouPlantaEm", "faturadoEm", "placasSolicitadasEm", "emplacadoEm", "devolvidoEm"] },
   { titulo: "Prazos da placa", ids: ["diasParaSolicitar", "diasParaEmplacar", "diasTotalPlaca"] },
 ];

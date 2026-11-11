@@ -1,14 +1,14 @@
 import { useMemo, useState } from "react";
 import { Button, DateField, Field, Input, Segmented, Select, Sheet, Switch, Textarea, useToast } from "../../ds";
 import { criarVeiculo } from "../../lib/veiculos/dados";
-import { CICLO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type Veiculo, type VeiculoNovo } from "../../lib/veiculos/tipos";
+import { CICLO, DEPARTAMENTOS, DEPARTAMENTO_PADRAO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type Veiculo, type VeiculoNovo } from "../../lib/veiculos/tipos";
 import "./veiculos.css";
 
 type Estado = {
   modelo: string; cor: string; my: string; pedido: string; vin: string; placa: string; blindado: boolean;
-  seguro: Seguro; ciclo: Ciclo; d_pedido: string; d_lib: string; d_fat: string; d_empl: string; d_dev: string; comentarios: string;
+  seguro: Seguro; ciclo: Ciclo; departamento: string; d_pedido: string; d_lib: string; d_fat: string; d_empl: string; d_dev: string; comentarios: string;
 };
-const VAZIO: Estado = { modelo: "", cor: "", my: "", pedido: "", vin: "", placa: "", blindado: false, seguro: "pendente", ciclo: "pedido_recebido", d_pedido: "", d_lib: "", d_fat: "", d_empl: "", d_dev: "", comentarios: "" };
+const VAZIO: Estado = { modelo: "", cor: "", my: "", pedido: "", vin: "", placa: "", blindado: false, seguro: "pendente", ciclo: "pedido_recebido", departamento: DEPARTAMENTO_PADRAO, d_pedido: "", d_lib: "", d_fat: "", d_empl: "", d_dev: "", comentarios: "" };
 
 /** "ONIX RS 3456": a mesma conta do banco (modelo + 4 últimos do VIN), só para mostrar enquanto digita. */
 export const codigoPrevisto = (modelo: string, vin: string) => {
@@ -39,6 +39,7 @@ export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; o
     vin: vin || null, placa: placa || null, blindado: f.blindado, seguro_status: f.seguro, status_ciclo: f.ciclo,
     data_pedido: f.d_pedido || null, data_liberacao: f.d_lib || null, data_faturamento: f.d_fat || null, data_emplacamento: f.d_empl || null, data_devolucao: f.d_dev || null,
     comentarios: vazioParaNulo(f.comentarios),
+    ...(f.departamento !== DEPARTAMENTO_PADRAO ? { departamento: f.departamento } : {}),   // Marketing é o padrão do banco
   });
 
   async function salvar(outro = false) {
@@ -68,6 +69,7 @@ export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; o
         </div>
         <div className="mt-evf mt-evf--3">
           <Field label="Ciclo de vida"><Select value={f.ciclo} onChange={(e) => set("ciclo", e.target.value as Ciclo)}>{CICLO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</Select></Field>
+          <Field label="Departamento"><Select value={f.departamento} onChange={(e) => set("departamento", e.target.value)} aria-label="Departamento do veículo">{DEPARTAMENTOS.map((d) => <option key={d} value={d}>{d}</option>)}</Select></Field>
           <Field label="Seguro"><Segmented block options={SEGURO.map((s) => ({ value: s.value, label: s.label }))} value={f.seguro} onChange={(v) => set("seguro", v)} /></Field>
           <Field label="Blindado"><Switch checked={f.blindado} onChange={(v) => set("blindado", v)} label={f.blindado ? "Sim" : "Não"} /></Field>
         </div>

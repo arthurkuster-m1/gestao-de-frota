@@ -23,6 +23,9 @@ export const SEGURO = [
 export type Seguro = (typeof SEGURO)[number]["value"];
 
 export const rotuloCiclo = (v: string) => CICLO.find((c) => c.value === v)?.label ?? v;
+/** Os departamentos de sempre; o carro pode ter outro texto (cadastrado na importação). */
+export const DEPARTAMENTOS = ["Marketing", "RP", "UC", "Acessórios", "Outro"] as const;
+export const DEPARTAMENTO_PADRAO = "Marketing";
 export const rotuloSeguro = (v: string) => SEGURO.find((c) => c.value === v)?.label ?? v;
 
 export type Veiculo = {
@@ -31,6 +34,7 @@ export type Veiculo = {
   modelo: string; versao: string | null; cor: string | null; my: string | null; pedido: string | null;
   vin: string | null; placa: string | null; blindado: boolean;
   seguro_status: Seguro; status_ciclo: Ciclo;
+  /** de quem é o carro: Marketing, ou o departamento de onde foi emprestado (RP, UC, Acessórios…) */ departamento?: string;
   data_pedido: string | null; data_liberacao: string | null; data_chegada_planta: string | null; data_faturamento: string | null; data_placas_solicitadas: string | null; data_emplacamento: string | null; data_devolucao: string | null;
   comentarios: string | null;
   created_at: string;
@@ -41,6 +45,7 @@ export type VeiculoNovo = {
   modelo: string; cor?: string | null; my?: string | null; pedido?: string | null;
   vin?: string | null; placa?: string | null; blindado?: boolean;
   seguro_status?: Seguro; status_ciclo?: Ciclo;
+  /** vazio = Marketing (o banco preenche) */ departamento?: string;
   data_pedido?: string | null; data_liberacao?: string | null; data_chegada_planta?: string | null; data_faturamento?: string | null; data_placas_solicitadas?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
   comentarios?: string | null;
 };
