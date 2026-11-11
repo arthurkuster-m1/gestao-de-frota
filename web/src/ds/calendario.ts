@@ -27,6 +27,25 @@ export function brParaISO(texto: string): string | null {
   return `${a}-${pad(m)}-${pad(d)}`;
 }
 
+/**
+ * Data digitada de qualquer jeito → ISO: "19/11" (ano de hoje), "19/11/26" (2026), "19/11/2026", "1911" e "191126" (sem barras).
+ * Data impossível (31/02) → null. `ano` só existe para os testes (padrão: o ano de hoje).
+ */
+export function completarData(texto: string, ano: number = new Date().getFullYear()): string | null {
+  const t = texto.trim();
+  if (!t) return null;
+  const direta = brParaISO(t); if (direta) return direta;
+  let d: string, m: string, a: string | undefined;
+  const sep = /^(\d{1,2})[/.\-](\d{1,2})(?:[/.\-](\d{2}|\d{4}))?[/.\-]?$/.exec(t);
+  if (sep) { d = sep[1]!; m = sep[2]!; a = sep[3]; } else {
+    const dg = /^\d{4}$|^\d{6}$/.test(t) ? t : null;   // só números: ddmm ou ddmmaa
+    if (!dg) return null;
+    d = dg.slice(0, 2); m = dg.slice(2, 4); a = dg.length === 6 ? dg.slice(4) : undefined;
+  }
+  const anoCheio = a === undefined ? ano : a.length === 2 ? 2000 + +a : +a;
+  return brParaISO(`${d.padStart(2, "0")}/${m.padStart(2, "0")}/${String(anoCheio).padStart(4, "0")}`);
+}
+
 /** Máscara enquanto digita: "05102026" → "05/10/2026". Aceita colar já com barras. */
 export function mascaraData(texto: string): string {
   const d = texto.replace(/\D/g, "").slice(0, 8);

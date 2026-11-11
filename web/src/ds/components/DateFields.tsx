@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { CalendarBlank, CaretDoubleLeft, CaretDoubleRight, CaretLeft, CaretRight } from "@phosphor-icons/react";
 import { cx } from "../cx";
 import { usePopover } from "../popover";
-import { DIAS_SEMANA, MESES_CURTOS, brParaISO, diasDoCalendario, hojeISO, isoParaBR, mascaraData, somarDias, somarMeses, tituloDoMes } from "../calendario";
+import { DIAS_SEMANA, MESES_CURTOS, brParaISO, completarData, diasDoCalendario, hojeISO, isoParaBR, mascaraData, somarDias, somarMeses, tituloDoMes } from "../calendario";
 
 type Alteracao = { target: { value: string }; currentTarget: { value: string } };
 type Comum = { id?: string; disabled?: boolean; className?: string; "aria-label"?: string; "aria-describedby"?: string; "aria-invalid"?: boolean | "true" | "false" };
@@ -46,6 +46,11 @@ export function DateField({ value, onChange, id, disabled, className, ...aria }:
   const escolherAno = (ano: number) => { irPara(somarMeses(foco, 12 * (ano - +foco.slice(0, 4)))); setVisao("meses"); };
   const inicioBlocoAnos = vis.ano - 5 + blocoAnos * 12;
 
+  /** Ao sair do campo (Tab): "19/11" vira 19/11 do ano de hoje, "19/11/26" vira 2026; o que valer é salvo na hora. */
+  function confirmarDigitado() {
+    const iso = completarData(texto);
+    if (iso) { if (iso !== value) onChange(evento(iso)); setTexto(isoParaBR(iso)); } else setTexto(isoParaBR(value));
+  }
   function aoDigitar(bruto: string) {
     const t = /^\d{4}-\d{2}-\d{2}$/.test(bruto.trim()) ? isoParaBR(bruto.trim()) : mascaraData(bruto);
     setTexto(t);
@@ -73,7 +78,7 @@ export function DateField({ value, onChange, id, disabled, className, ...aria }:
         <input
           ref={campo} id={id} type="text" inputMode="numeric" autoComplete="off" placeholder="dd/mm/aaaa" maxLength={10} disabled={disabled} data-value={value}
           value={texto} aria-label={aria["aria-label"]} aria-describedby={aria["aria-describedby"]} aria-invalid={aria["aria-invalid"]}
-          onFocus={() => { focado.current = true; }} onBlur={() => { focado.current = false; setTexto(isoParaBR(value)); }}
+          onFocus={() => { focado.current = true; }} onBlur={() => { focado.current = false; confirmarDigitado(); }}
           onChange={(e) => aoDigitar(e.target.value)}
           onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); abrir(); } }}
         />

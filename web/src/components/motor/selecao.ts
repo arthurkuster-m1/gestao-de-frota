@@ -1,3 +1,4 @@
+import { completarData } from "../../ds/calendario";
 import type { ValorDoCampo } from "../../lib/motor/consulta";
 import { formatarDiaBr } from "../../lib/motor/datas";
 import type { ValorEditavel } from "./edicao";
@@ -48,9 +49,8 @@ export function converterColado<T>(c: CampoDaTela<T>, texto: string): ValorEdita
   if (c.tipo === "caixa") { const n = t.toLowerCase(); return ["sim", "true", "1", "x", "verdadeiro"].includes(n); }
   if (t === "") return null;
   if (c.tipo === "data") {
-    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec(t);
-    if (m) return `${m[3]}-${m[2]!.padStart(2, "0")}-${m[1]!.padStart(2, "0")}`;
-    return /^\d{4}-\d{2}-\d{2}$/.test(t) ? t : undefined;
+    if (/^\d{4}-\d{2}-\d{2}$/.test(t)) return t;
+    return completarData(t) ?? undefined;   // aceita 19/11 (ano de hoje), 19/11/26 e 19/11/2026
   }
   if (c.tipo === "opcao") {
     const n = t.toLowerCase();

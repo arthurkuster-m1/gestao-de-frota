@@ -21,3 +21,21 @@ describe("grade do calendário", () => {
   it("dias de outro mês vêm marcados", () => { expect(g[0].noMes).toBe(false); expect(g[0].iso).toBe("2026-09-27"); expect(g.filter((d) => d.noMes).length).toBe(31); });
   it("dezembro vira o ano", () => expect(diasDoCalendario(2026, 11).at(-1)!.iso.startsWith("2027")).toBe(true));
 });
+
+import { completarData } from "./calendario";
+describe("completarData (19/11 vira 19/11 do ano de hoje)", () => {
+  it("aceita dia/mês, ano com 2 ou 4 dígitos e só números", () => {
+    expect(completarData("19/11", 2026)).toBe("2026-11-19");
+    expect(completarData("1/2", 2026)).toBe("2026-02-01");
+    expect(completarData("19/11/26", 2026)).toBe("2026-11-19");
+    expect(completarData("19/11/2027", 2026)).toBe("2027-11-19");
+    expect(completarData("1911", 2026)).toBe("2026-11-19");
+    expect(completarData("191126", 2026)).toBe("2026-11-19");
+    expect(completarData("19.11", 2026)).toBe("2026-11-19");
+  });
+  it("data impossível ou texto solto não vale", () => {
+    expect(completarData("31/02", 2026)).toBeNull();
+    expect(completarData("abc", 2026)).toBeNull();
+    expect(completarData("", 2026)).toBeNull();
+  });
+});

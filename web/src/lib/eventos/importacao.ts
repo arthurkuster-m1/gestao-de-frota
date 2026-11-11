@@ -50,8 +50,8 @@ export function lerData(texto: string | undefined): string | null | "x" {
   const t = (texto ?? "").trim();
   if (!t) return null;
   let a: number, m: number, d: number;
-  const br = /^(\d{1,2})\/(\d{1,2})\/(\d{2}|\d{4})$/.exec(t), iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
-  if (br) { d = +br[1]!; m = +br[2]!; a = br[3]!.length === 2 ? 2000 + +br[3]! : +br[3]!; } else if (iso) { a = +iso[1]!; m = +iso[2]!; d = +iso[3]!; } else return "x";
+  const br = /^(\d{1,2})\/(\d{1,2})(?:\/(\d{2}|\d{4}))?$/.exec(t), iso = /^(\d{4})-(\d{2})-(\d{2})$/.exec(t);
+  if (br) { d = +br[1]!; m = +br[2]!; a = br[3] === undefined ? new Date().getFullYear() : br[3].length === 2 ? 2000 + +br[3] : +br[3]; } else if (iso) { a = +iso[1]!; m = +iso[2]!; d = +iso[3]!; } else return "x";
   const dt = new Date(Date.UTC(a, m - 1, d));
   if (dt.getUTCFullYear() !== a || dt.getUTCMonth() !== m - 1 || dt.getUTCDate() !== d) return "x";
   return `${String(a).padStart(4, "0")}-${String(m).padStart(2, "0")}-${String(d).padStart(2, "0")}`;
