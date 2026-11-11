@@ -4,8 +4,8 @@ import { planoDoRegistro, proximosPassos } from "./registros";
 const v = (status_ciclo: string, blindado = false, placa: string | null = null) => ({ status_ciclo, blindado, placa }) as never;
 describe("registrar ações do veículo", () => {
   it("faturamento registra a data e leva Disponível sem faturamento a Disponível sem placa", () => {
-    expect(planoDoRegistro("faturamento", v("disponivel_sem_faturamento"), { data: "2026-11-12" })).toEqual({ patch: { data_faturamento: "2026-11-12", status_ciclo: "disponivel_sem_placa" }, resumo: ["Faturado em 12/11/2026", "Ciclo de vida → Disponível sem placa"] });
-    expect(planoDoRegistro("faturamento", v("disponivel"), { data: "2026-11-12" }).patch).toEqual({ data_faturamento: "2026-11-12" });
+    expect(planoDoRegistro("faturamento", v("disponivel_sem_faturamento"), { data: "2026-11-12" })).toEqual({ patch: { data_faturamento: "2026-11-12", faturado: true, status_ciclo: "disponivel_sem_placa" }, resumo: ["Faturado em 12/11/2026", "Ciclo de vida → Disponível sem placa"] });
+    expect(planoDoRegistro("faturamento", v("disponivel"), { data: "2026-11-12" }).patch).toEqual({ data_faturamento: "2026-11-12", faturado: true });
   });
   it("emplacamento: placa + data; blindado vai para Em blindagem, os demais para Pronto", () => {
     expect(planoDoRegistro("emplacamento", v("disponivel_sem_faturamento"), { data: "2026-11-12", placa: "ABC1D23" }).patch).toEqual({ data_emplacamento: "2026-11-12", placa: "ABC1D23", status_ciclo: "disponivel" });
@@ -29,5 +29,12 @@ describe("registrar ações do veículo", () => {
   });
   it("chegada na planta registra a data e leva o ciclo a Disponível sem faturamento; placas solicitadas só registra a data", () => {
     expect(planoDoRegistro("chegada", v("liberado"), { data: "2026-11-12" })).toEqual({ patch: { data_chegada_planta: "2026-11-12", status_ciclo: "disponivel_sem_faturamento" }, resumo: ["Chegou na planta em 12/11/2026", "Ciclo de vida → Disponível sem faturamento"] });
+  });
+});
+
+describe("faturado sem data (histórico antigo)", () => {
+  it("o próximo passo e as placas aceitam o carro marcado como faturado", () => {
+    expect(proximosPassos({ status_ciclo: "disponivel_sem_faturamento", faturado: true } as never)).toEqual(["placas", "emplacamento", "devolucao"]);
+    expect(proximosPassos({ status_ciclo: "disponivel_sem_faturamento" } as never)).toEqual(["faturamento", "devolucao"]);
   });
 });

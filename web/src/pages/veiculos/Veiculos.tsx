@@ -31,7 +31,7 @@ import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
 import { partirModelo } from "../../lib/veiculos/modelo";
 import { avisoDoCicloAutomatico } from "../../lib/veiculos/ciclo";
-import { CICLO, DEPARTAMENTOS, SEGURO, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
+import { CICLO, DEPARTAMENTOS, SEGURO, estaFaturado, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
 import "../veiculos/veiculos.css";
 
 const dia = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
@@ -61,6 +61,7 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "ciclo", titulo: "Ciclo de vida", tipo: "opcao", valorDe: (v) => v.status_ciclo, opcoes: OPCOES_CICLO, rotuloDoValor: (x) => OPCOES_CICLO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => CICLO.findIndex((c) => c.value === x), largura: 210, edicao: { coluna: "status_ciclo", obrigatorio: true } },
   { id: "departamento", titulo: "Departamento", tipo: "opcao", valorDe: (v) => v.departamento ?? "Marketing", opcoes: DEPARTAMENTOS.map((d) => ({ value: d, label: d })), largura: 140, edicao: { coluna: "departamento", obrigatorio: true } },
   { id: "seguro", titulo: "Seguro", tipo: "opcao", valorDe: (v) => v.seguro_status, opcoes: OPCOES_SEGURO, rotuloDoValor: (x) => OPCOES_SEGURO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => SEGURO.findIndex((s) => s.value === x), largura: 130, edicao: { coluna: "seguro_status", obrigatorio: true } },
+  { id: "faturado", titulo: "Faturado", tipo: "caixa", valorDe: (v) => estaFaturado(v), largura: 110, edicao: { coluna: "faturado" } },
   { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false, edicao: { coluna: "blindado" } },
   { id: "pedidoEm", titulo: "Pedido recebido em", tipo: "data", valorDe: (v) => v.data_pedido, largura: 200, padrao: false, edicao: { coluna: "data_pedido" } },
   { id: "liberadoEm", titulo: "Liberado em", tipo: "data", valorDe: (v) => v.data_liberacao, largura: 170, padrao: false, edicao: { coluna: "data_liberacao" } },

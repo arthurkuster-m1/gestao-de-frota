@@ -39,7 +39,8 @@ export function AcoesDosVeiculosSelecionados({ d, ids, limpar, semPlanejamento, 
       <Button size="sm" variant="secondary" icon={<CalendarPlus size={16} />} onClick={() => setEscolhendo(true)} data-testid="sel-adicionar-evento">Adicionar em evento</Button>
       {!semPlanejamento && <Button size="sm" variant="secondary" icon={<CalendarBlank size={16} />} onClick={() => navigate(`/planejamento?veiculos=${ids.join(",")}`)} data-testid="sel-ver-planejamento">Visualizar no Planejamento</Button>}
       <Button size="sm" variant="secondary" icon={<ArrowUUpLeft size={16} />} loading={ocupado} onClick={() => void marcar({ status_ciclo: "em_devolucao" }, "marcado(s) para devolução")} data-testid="sel-devolucao">Marcar para Devolução</Button>
-      <Button size="sm" variant="secondary" icon={<Receipt size={16} />} loading={ocupado} onClick={() => void marcar({ data_faturamento: hojeLocal() }, "marcado(s) como faturado(s)")} data-testid="sel-faturado">Marcar como Faturado(s)</Button>
+      <Button size="sm" variant="secondary" icon={<Receipt size={16} />} loading={ocupado} onClick={() => void marcar({ data_faturamento: hojeLocal(), faturado: true }, "marcado(s) como faturado(s)")} data-testid="sel-faturado">Marcar como Faturado(s)</Button>
+      <Button size="sm" variant="secondary" icon={<Receipt size={16} />} loading={ocupado} onClick={() => void marcar({ faturado: true }, "marcado(s) como faturado(s), sem data")} data-testid="sel-faturado-sem-data" title="Para carros do histórico antigo, faturados mas sem data de faturamento">Faturado (sem data)</Button>
 
       <Button size="sm" variant="danger" icon={<Trash size={16} />} onClick={() => setExcluindo(true)} data-testid="sel-excluir">Excluir</Button>
       <ExcluirVeiculos aberto={excluindo} onFechar={() => setExcluindo(false)} veiculos={d.veiculos.filter((v) => ids.includes(v.id))}

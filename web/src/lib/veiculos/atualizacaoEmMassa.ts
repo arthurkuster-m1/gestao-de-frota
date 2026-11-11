@@ -2,7 +2,7 @@
  * Atualização em massa de veículos (colar uma lista de VINs/códigos/placas e aplicar UMA ação a todos). Funções puras: a tela só as chama.
  * Cada linha vira um resultado com a situação (tom) e, se ok, o plano do que muda no cadastro do carro.
  */
-import { CICLO, normalizarPlaca, normalizarVin, placaValida, type Veiculo } from "./tipos";
+import { CICLO, estaFaturado, normalizarPlaca, normalizarVin, placaValida, type Veiculo } from "./tipos";
 import { planoDoRegistro, type Plano } from "./registros";
 import { lerData } from "../eventos/importacao";
 import { reservavelPeloCiclo, rotuloDoUso, usoDoCiclo } from "../eventos/uso";
@@ -107,7 +107,7 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
       const plano = planoDoRegistro("faturamento", v, { data: dataDaLinha }); return { tom: "ok", texto: `${nome}: ${plano.resumo.join(" · ")}`, veiculo: v, plano };
     }
     if (acao === "placas") {
-      if (!v.data_faturamento) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para solicitar as placas` };
+      if (!estaFaturado(v)) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para solicitar as placas` };
       if (v.data_placas_solicitadas) return { tom: "dup", texto: `${nome}: placas já solicitadas em ${v.data_placas_solicitadas.split("-").reverse().join("/")}: será ignorado`, veiculo: v };
       const plano = planoDoRegistro("placas", v, { data: dataDaLinha });
       const dias = v.data_chegada_planta ? Math.round((Date.parse(`${dataDaLinha}T12:00:00Z`) - Date.parse(`${v.data_chegada_planta}T12:00:00Z`)) / 86400000) : null;
@@ -117,7 +117,7 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     const placa = normalizarPlaca(l.placa ?? "");
     if (!placa) return { tom: "erro", texto: `${nome}: falta a placa` };
     if (!placaValida(placa)) return { tom: "erro", texto: `${nome}: placa inválida (7 caracteres): ${placa}` };
-    if (!v.data_faturamento && pos(v.status_ciclo) <= pos("disponivel_sem_faturamento")) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para emplacar` };
+    if (!estaFaturado(v) && pos(v.status_ciclo) <= pos("disponivel_sem_faturamento")) return { tom: "erro", texto: `${nome} ainda não foi faturado: não dá para emplacar` };
     if (v.data_emplacamento && v.placa) return { tom: "dup", texto: `${nome} já está emplacado (${v.placa}): será ignorado`, veiculo: v };
     const dono = ctx.veiculos.find((x) => x.placa === placa && x.id !== v.id);
     if (dono) return { tom: "erro", texto: `A placa ${placa} já é de ${dono.codigo ?? dono.modelo}` };

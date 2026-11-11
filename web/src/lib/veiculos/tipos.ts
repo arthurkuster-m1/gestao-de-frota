@@ -26,6 +26,8 @@ export const rotuloCiclo = (v: string) => CICLO.find((c) => c.value === v)?.labe
 /** Os departamentos de sempre; o carro pode ter outro texto (cadastrado na importação). */
 export const DEPARTAMENTOS = ["Marketing", "RP", "UC", "Acessórios", "Outro"] as const;
 export const DEPARTAMENTO_PADRAO = "Marketing";
+/** Faturado: marcado, ou com data de faturamento (histórico antigo tem o carro faturado sem data). */
+export const estaFaturado = (v: { faturado?: boolean; data_faturamento?: string | null }) => !!v.faturado || !!v.data_faturamento;
 export const rotuloSeguro = (v: string) => SEGURO.find((c) => c.value === v)?.label ?? v;
 
 export type Veiculo = {
@@ -34,6 +36,7 @@ export type Veiculo = {
   modelo: string; versao: string | null; cor: string | null; my: string | null; pedido: string | null;
   vin: string | null; placa: string | null; blindado: boolean;
   seguro_status: Seguro; status_ciclo: Ciclo;
+  /** foi faturado (com ou sem data; o banco mantém junto da data de faturamento e do ciclo) */ faturado?: boolean;
   /** de quem é o carro: Marketing, ou o departamento de onde foi emprestado (RP, UC, Acessórios…) */ departamento?: string;
   data_pedido: string | null; data_liberacao: string | null; data_chegada_planta: string | null; data_faturamento: string | null; data_placas_solicitadas: string | null; data_emplacamento: string | null; data_devolucao: string | null;
   comentarios: string | null;
@@ -45,6 +48,7 @@ export type VeiculoNovo = {
   modelo: string; cor?: string | null; my?: string | null; pedido?: string | null;
   vin?: string | null; placa?: string | null; blindado?: boolean;
   seguro_status?: Seguro; status_ciclo?: Ciclo;
+  faturado?: boolean;
   /** vazio = Marketing (o banco preenche) */ departamento?: string;
   data_pedido?: string | null; data_liberacao?: string | null; data_chegada_planta?: string | null; data_faturamento?: string | null; data_placas_solicitadas?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
   comentarios?: string | null;

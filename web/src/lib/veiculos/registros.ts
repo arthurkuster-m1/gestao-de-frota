@@ -1,4 +1,4 @@
-import { CICLO, rotuloCiclo, type Ciclo, type Veiculo, type VeiculoNovo } from "./tipos";
+import { CICLO, estaFaturado, rotuloCiclo, type Ciclo, type Veiculo, type VeiculoNovo } from "./tipos";
 
 export type TipoDeRegistro = "liberacao" | "chegada" | "faturamento" | "placas" | "emplacamento" | "devolucao" | "devolucaoCvo";
 export type Plano = { patch: Partial<VeiculoNovo>; resumo: string[] };
@@ -18,7 +18,7 @@ export function planoDoRegistro(tipo: TipoDeRegistro, v: Pick<Veiculo, "status_c
   switch (tipo) {
     case "liberacao": patch.data_liberacao = dados.data; resumo.push(`Liberado em ${br(dados.data)}`); ciclo("liberado"); break;
     case "chegada": patch.data_chegada_planta = dados.data; resumo.push(`Chegou na planta em ${br(dados.data)}`); ciclo("disponivel_sem_faturamento"); break;
-    case "faturamento": patch.data_faturamento = dados.data; resumo.push(`Faturado em ${br(dados.data)}`); if (v.status_ciclo === "disponivel_sem_faturamento") ciclo("disponivel_sem_placa"); break;   // faturado e ainda sem placa
+    case "faturamento": patch.data_faturamento = dados.data; patch.faturado = true; resumo.push(`Faturado em ${br(dados.data)}`); if (v.status_ciclo === "disponivel_sem_faturamento") ciclo("disponivel_sem_placa"); break;   // faturado e ainda sem placa
     case "placas": patch.data_placas_solicitadas = dados.data; resumo.push(`Placas solicitadas em ${br(dados.data)}`); break;
     case "emplacamento":
       patch.data_emplacamento = dados.data; resumo.push(`Emplacado em ${br(dados.data)}`);
@@ -36,12 +36,12 @@ export const ROTULO_DO_REGISTRO: Record<TipoDeRegistro, string> = { liberacao: "
  * pedido recebido → liberação → chegada na planta → faturamento (ou devolução) → placas solicitadas → emplacamento → devolução.
  * Não dá para solicitar placas nem emplacar sem faturar, nem faturar sem o carro ter chegado; devolver, dá a partir da chegada.
  */
-export function proximosPassos(v: Pick<Veiculo, "status_ciclo"> & Partial<Pick<Veiculo, "data_faturamento" | "data_placas_solicitadas" | "data_emplacamento">>): TipoDeRegistro[] {
+export function proximosPassos(v: Pick<Veiculo, "status_ciclo"> & Partial<Pick<Veiculo, "faturado" | "data_faturamento" | "data_placas_solicitadas" | "data_emplacamento">>): TipoDeRegistro[] {
   switch (v.status_ciclo) {
     case "pedido_recebido": return ["liberacao"];
     case "liberado": case "em_transporte_0km": return ["chegada"];
     case "disponivel_sem_faturamento": case "disponivel_sem_placa":
-      if (!v.data_faturamento) return ["faturamento", "devolucao"];
+      if (!estaFaturado(v)) return ["faturamento", "devolucao"];
       return v.data_placas_solicitadas ? ["emplacamento", "devolucao"] : ["placas", "emplacamento", "devolucao"];
     case "devolvido": return [];
     default: return ["devolucao"];   // em blindagem, pronto, gravame, venda VIP, em devolução

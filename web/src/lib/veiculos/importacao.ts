@@ -6,7 +6,7 @@ import { lerData } from "../eventos/importacao";
 import { CICLO, DEPARTAMENTOS, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type VeiculoNovo } from "./tipos";
 
 export type CampoDeData = "data_pedido" | "data_liberacao" | "data_chegada_planta" | "data_faturamento" | "data_placas_solicitadas" | "data_emplacamento" | "data_devolucao";
-export type CampoLinha = "modelo" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios" | "departamento" | CampoDeData;
+export type CampoLinha = "modelo" | "cor" | "my" | "pedido" | "vin" | "placa" | "blindado" | "seguro" | "ciclo" | "comentarios" | "departamento" | "faturado" | CampoDeData;
 export type LinhaCrua = Partial<Record<CampoLinha, string>>;
 export type Tom = "ok" | "erro" | "dup" | "ign";
 export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
@@ -14,7 +14,7 @@ export type ResultadoLinha = { tom: Tom; texto: string; veiculo?: VeiculoNovo };
 export const CAMPOS: { id: CampoLinha; titulo: string; largura: number }[] = [
   { id: "modelo", titulo: "Modelo", largura: 130 }, { id: "cor", titulo: "Cor", largura: 110 },
   { id: "my", titulo: "MY", largura: 80 }, { id: "pedido", titulo: "Pedido", largura: 120 }, { id: "vin", titulo: "VIN (chassi)", largura: 190 },
-  { id: "departamento", titulo: "Departamento", largura: 140 }, { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 130 }, { id: "seguro", titulo: "Seguro", largura: 150 },
+  { id: "departamento", titulo: "Departamento", largura: 140 }, { id: "faturado", titulo: "Faturado", largura: 110 }, { id: "placa", titulo: "Placa", largura: 100 }, { id: "blindado", titulo: "Blindado", largura: 130 }, { id: "seguro", titulo: "Seguro", largura: 150 },
   { id: "ciclo", titulo: "Ciclo de vida", largura: 190 }, { id: "comentarios", titulo: "Comentários", largura: 200 },
   { id: "data_pedido", titulo: "Data do pedido", largura: 150 }, { id: "data_liberacao", titulo: "Data de liberação", largura: 160 }, { id: "data_chegada_planta", titulo: "Chegou na planta em", largura: 170 }, { id: "data_faturamento", titulo: "Data de faturamento", largura: 170 },
   { id: "data_placas_solicitadas", titulo: "Placas solicitadas em", largura: 190 }, { id: "data_emplacamento", titulo: "Data de emplacamento", largura: 180 }, { id: "data_devolucao", titulo: "Data de devolução", largura: 160 },
@@ -28,7 +28,7 @@ const semAcento = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLo
 /** Nomes de coluna aceitos no cabeçalho colado (sem acento, minúsculas). */
 const ALIAS: Record<string, CampoLinha> = {
   modelo: "modelo", cor: "cor", my: "my", "ano modelo": "my", "ano-modelo": "my", pedido: "pedido", "n pedido": "pedido",
-  vin: "vin", chassi: "vin", "vin (chassi)": "vin", placa: "placa", blindado: "blindado", seguro: "seguro", departamento: "departamento", depto: "departamento", area: "departamento",
+  vin: "vin", chassi: "vin", "vin (chassi)": "vin", placa: "placa", blindado: "blindado", seguro: "seguro", faturado: "faturado", departamento: "departamento", depto: "departamento", area: "departamento",
   "data do pedido": "data_pedido", "data pedido": "data_pedido", "data de pedido": "data_pedido",
   "data de liberacao": "data_liberacao", "data liberacao": "data_liberacao", "data da liberacao": "data_liberacao", liberacao: "data_liberacao",
   "chegou na planta": "data_chegada_planta", "chegou na planta em": "data_chegada_planta", "data de chegada na planta": "data_chegada_planta", "chegada na planta": "data_chegada_planta",
@@ -91,6 +91,8 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   if (placa && !placaValida(placa)) return { tom: "erro", texto: `Placa inválida (7 caracteres): ${placa}` };
   const blind = parseBlindado(l.blindado);
   if (blind === "x") return { tom: "erro", texto: `Blindado: use Sim ou Não (veio "${l.blindado}")` };
+  const fat = parseBlindado(l.faturado);
+  if (fat === "x") return { tom: "erro", texto: `Faturado: use Sim ou Não (veio "${l.faturado}")` };
   const seguro = achar(SEGURO, l.seguro);
   if (seguro === "x") return { tom: "erro", texto: `Seguro desconhecido: "${l.seguro}" (Pendente, Cadastrado ou Cancelado)` };
   const deptoDigitado = vazioParaNulo(l.departamento);
@@ -118,7 +120,7 @@ export function validarLinha(l: LinhaCrua, ex: Existentes, vistas: Existentes): 
   const veiculo: VeiculoNovo = {
     modelo, cor: vazioParaNulo(l.cor), my: vazioParaNulo(l.my), pedido: vazioParaNulo(l.pedido),
     vin, placa, blindado: blind === null ? false : blind,
-    seguro_status: (seguro ?? "pendente") as Seguro, status_ciclo: (ciclo ?? "pedido_recebido") as Ciclo, comentarios: vazioParaNulo(l.comentarios), ...(departamento ? { departamento } : {}), ...datas,
+    seguro_status: (seguro ?? "pendente") as Seguro, status_ciclo: (ciclo ?? "pedido_recebido") as Ciclo, comentarios: vazioParaNulo(l.comentarios), ...(departamento ? { departamento } : {}), ...(fat === true ? { faturado: true } : {}), ...datas,
   };
   return { tom: "ok", texto: "Pronta para cadastrar", veiculo };
 }

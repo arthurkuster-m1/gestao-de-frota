@@ -32,7 +32,7 @@ const COLUNA_SITUACAO = {
 };
 
 /** Colunas de valor fixo: a célula vira uma caixa de seleção com as opções (as mesmas que a validação aceita). */
-const OPCOES_DA_COLUNA: Partial<Record<CampoLinha, readonly Opcao[]>> = { blindado: SIM_NAO, seguro: SEGURO, ciclo: CICLO };
+const OPCOES_DA_COLUNA: Partial<Record<CampoLinha, readonly Opcao[]>> = { blindado: SIM_NAO, faturado: SIM_NAO, seguro: SEGURO, ciclo: CICLO };
 const CHAVE_COLUNAS = "frota:massa-veiculos:colunas";
 type PrefsDeColunas = { ordem: CampoLinha[]; ligadas: CampoLinha[] };
 const TODOS_OS_IDS = CAMPOS.map((c) => c.id);
