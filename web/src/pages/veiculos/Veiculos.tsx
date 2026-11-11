@@ -1,5 +1,5 @@
 import { prazosDaPlaca } from "../../lib/veiculos/prazos";
-import { BotoesDeCopia } from "./BotoesDeCopia";
+import { BotaoCopiarColuna, BotoesDeCopia } from "./BotoesDeCopia";
 import { useVersaoDosDados } from "../../lib/sincronia";
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
@@ -145,7 +145,7 @@ export function Veiculos() {
 
   return (
     <>
-    <TelaDoMotor<Veiculo> tela="veiculos" iconeDaPrimeira={<Car size={16} />} extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} aoAtualizar={(novos) => setLista((l) => { const m = new Map(novos.map((x) => [x.id, x])); return (l ?? []).map((x) => m.get(x.id) ?? x); })} />} chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
+    <TelaDoMotor<Veiculo> tela="veiculos" iconeDaPrimeira={<Car size={16} />} extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} extrasDaColuna={(id, ls) => (id === "placa" || id === "vin" || id === "comentarios" ? <BotaoCopiarColuna campoId={id} veiculos={ls} /> : null)} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} aoAtualizar={(novos) => setLista((l) => { const m = new Map(novos.map((x) => [x.id, x])); return (l ?? []).map((x) => m.get(x.id) ?? x); })} />} chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
       acoes={<NovoMenu aoNovo={() => setNovo(true)} />}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
