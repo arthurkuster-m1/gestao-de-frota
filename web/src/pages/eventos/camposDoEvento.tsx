@@ -37,6 +37,7 @@ export const camposDoEvento = (ctx: ContextoDeEventos): CampoDaTela<Evento>[] =>
     { id: "distVolta", titulo: "Distância de volta (km)", tipo: "numero", valorDe: (e) => e.distancia_volta_km ?? null, largura: 170, padrao: false, edicao: { coluna: "distancia_volta_km" } },
     { id: "solicitante", titulo: "Solicitante", tipo: "texto", valorDe: (e) => e.solicitante, largura: 200, edicao: { coluna: "solicitante" } },
     { id: "origem", titulo: "Origem", tipo: "texto", valorDe: (e) => e.origem ?? null, largura: 320, padrao: false, edicao: { coluna: "origem", maxLength: 300, endereco: true, validar: validarEndereco, sugestaoDeEndereco: ORIGEM_PADRAO } },
+    { id: "origemNome", titulo: "Nome do local de origem", tipo: "texto", valorDe: (e) => e.origem_rotulo ?? null, largura: 220, padrao: false, edicao: { coluna: "origem_rotulo", maxLength: 120 } },
     { id: "contatoOrigem", titulo: "Contato da origem", tipo: "texto", valorDe: (e) => e.contato_origem ?? null, largura: 220, padrao: false, edicao: { coluna: "contato_origem", maxLength: 200 } },
     { id: "enderecoRetorno", titulo: "Local do retorno", tipo: "texto", valorDe: (e) => e.endereco_retorno ?? null, largura: 320, padrao: false, edicao: { coluna: "endereco_retorno", maxLength: 300, endereco: true, validar: validarEndereco } },
     { id: "contatoRetorno", titulo: "Contato do retorno", tipo: "texto", valorDe: (e) => e.contato_retorno ?? null, largura: 220, padrao: false, edicao: { coluna: "contato_retorno", maxLength: 200 } },

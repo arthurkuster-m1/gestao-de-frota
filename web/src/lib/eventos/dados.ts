@@ -24,6 +24,7 @@ const COLUNAS_EVENTO_BASE = "id, nome, tipo, status, solicitante, comentarios, c
 const GRUPOS_DO_EVENTO = [
   { cols: ", envio_previsto, retorno_previsto, distancia_ida_km, distancia_volta_km", falta: /envio_previsto|retorno_previsto|distancia_ida_km|distancia_volta_km/, semAte: 0 },
   { cols: ", contato_origem, contato_retorno, endereco_retorno, custos_extras", falta: /contato_origem|contato_retorno|endereco_retorno|custos_extras/, semAte: 0 },
+  { cols: ", origem_rotulo", falta: /origem_rotulo/, semAte: 0 },
 ];
 const colunasEvento = () => (COLUNAS_EVENTO_BASE + GRUPOS_DO_EVENTO.filter((g) => Date.now() >= g.semAte).map((g) => g.cols).join("")) as "*";
 /** Se o erro é de coluna que falta num grupo, desliga o grupo por 20 s e devolve true (vale tentar de novo). */

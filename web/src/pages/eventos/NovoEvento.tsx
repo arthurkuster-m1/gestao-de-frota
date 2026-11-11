@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { Button, DateField, Field, Input, Select, Sheet } from "../../ds";
+import { contatoDoEndereco, lembrarContato, useContatosDeEndereco } from "../../lib/eventos/contatosDeEndereco";
 import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
 import { type Evento, type EventoLocalNovo } from "../../lib/eventos/tipos";
 import { CampoDeEndereco } from "../../components/motor/EditorDeEndereco";
@@ -20,6 +21,7 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
   onCriar: (e: Dados, locais: EventoLocalNovo[], pedidos: PedidoDeCarro[]) => Promise<Evento>; onCriado: (e: Evento) => void;
 }) {
   const { tipos: tiposDeEvento } = useTiposDeEvento();
+  useContatosDeEndereco();
   const [f, setF] = useState(VAZIO);
   const [pedidos, setPedidos] = useState<PedidoDeCarro[]>([]);
   const [falha, setFalha] = useState<string | null>(null);
@@ -39,6 +41,7 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
       const e = await onCriar(
         { nome: f.nome, tipo: f.tipo || null, solicitante: f.solicitante.trim() || null, chegada_prevista: f.chegada || null, retirada_prevista: f.retirada || null, contato: f.contato.trim() || null, cliente_id: f.cliente || null },
         f.endereco.trim() || f.local.trim() ? [{ rotulo: f.local.trim() || null, endereco: f.endereco.trim() || "Endereço a informar" }] : [], pedidosPreenchidos);
+      if (f.endereco.trim() && f.contato.trim()) void lembrarContato(f.endereco, f.contato);   // o endereço passa a lembrar esse contato
       setF(VAZIO); setPedidos([]); onFechar(); onCriado(e);
     } catch (x) { setFalha((x as Error).message); } finally { setEnviando(false); }
   }
@@ -65,7 +68,7 @@ export function NovoEvento({ aberto, onFechar, onCriar, onCriado }: {
         </Field>
         <div className="mt-evf mt-evf--2">
           <Field label="Nome do local"><Input value={f.local} onChange={(e) => set({ local: e.target.value })} placeholder="Ex.: Pavilhão de Exposições" maxLength={80} /></Field>
-          <Field label="Endereço completo"><CampoDeEndereco valor={f.endereco} onChange={(v) => set({ endereco: v })} titulo="Endereço do evento" /></Field>
+          <Field label="Endereço completo"><CampoDeEndereco valor={f.endereco} onChange={(v) => set({ endereco: v, ...(f.contato.trim() ? {} : { contato: contatoDoEndereco(v) ?? "" }) })} titulo="Endereço do evento" /></Field>
         </div>
         <ModelosDesejadosForm pedidos={pedidos} onChange={setPedidos} />
         <div className="mt-evf__rodape">

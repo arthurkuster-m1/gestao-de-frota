@@ -17,6 +17,7 @@ import type { Checklist, ChecklistNovo, Momento } from "../../lib/checklists/tip
 import type { Manutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import { camposDoContrato, type ContextoDeContratos } from "../contratos/camposDeContratos";
+import { contatoDoEndereco, lembrarContato, useContatosDeEndereco } from "../../lib/eventos/contatosDeEndereco";
 import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
 import { GerarContrato } from "../contratos/GerarContrato";
 import { AlertaDeDivergencia } from "../contratos/AlertaDeDivergencia";
@@ -81,7 +82,17 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   useEffect(() => { listarClientes().then(setClientes, () => setClientes([])); }, [versao]);
   useEffect(() => { setComentario(evento.comentarios ?? ""); }, [evento.id, evento.comentarios]);
 
-  const edEvento = useEdicao<Evento>((e) => e.id, p.onEditarEvento);
+  useContatosDeEndereco();   // carrega os contatos lembrados por endereço
+  // salvar um contato (da origem, do local ou do retorno) lembra o contato daquele endereço: o mesmo endereço volta com o mesmo contato
+  const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
+    await p.onEditarEvento(linha, campo, valor);
+    const v = typeof valor === "string" ? valor.trim() : "";
+    if (!v) return;
+    if (campo.id === "contatoOrigem") void lembrarContato(linha.origem, v);
+    else if (campo.id === "contato") void lembrarContato(p.locais.filter((l) => l.evento_id === linha.id && (l.tipo ?? "local") === "local").sort((a, b) => a.posicao - b.posicao)[0]?.endereco, v);
+    else if (campo.id === "contatoRetorno") void lembrarContato(linha.endereco_retorno ?? linha.origem, v);
+  };
+  const edEvento = useEdicao<Evento>((e) => e.id, editarEvento);
   const pedidosDoEvento = useMemo(() => p.desejados.filter((x) => x.evento_id === evento.id), [p.desejados, evento.id]);
   const atendidos = useMemo(() => atendimentoDosPedidos(pedidosDoEvento, [...p.reservas, ...(p.reservasSemData ?? [])].filter((r) => r.evento_id === evento.id), new Map(p.veiculos.map((v) => [v.id, v]))), [pedidosDoEvento, p.reservas, p.reservasSemData, p.veiculos, evento.id]);
   const locaisDoEvento = useMemo(() => p.locais.filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.locais, evento.id]);
@@ -89,6 +100,13 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   const campoComentarios = campos.find((c) => c.id === "comentarios");
   const campoStatus = campos.find((c) => c.id === "status");
   const campoOrigem = campos.find((c) => c.id === "origem");
+  const campoOrigemNome = campos.find((c) => c.id === "origemNome");
+  const campoContatoOrigem = campos.find((c) => c.id === "contatoOrigem"), campoContato = campos.find((c) => c.id === "contato"), campoContatoRetorno = campos.find((c) => c.id === "contatoRetorno");
+  /** Endereço com contato conhecido e contato do evento vazio: o contato entra sozinho. */
+  const preencherContato = async (campoDoContato: typeof campoContato, atual: string | null | undefined, endereco: string | null) => {
+    const c = endereco ? contatoDoEndereco(endereco) : null;
+    if (campoDoContato && c && !(atual ?? "").trim()) await p.onEditarEvento(evento, campoDoContato, c);
+  };
   const campoEnderecoLocal = camposDoLocal.find((c) => c.id === "endereco")!;
   const origensExtras = useMemo(() => (p.origens ?? []).filter((l) => l.evento_id === evento.id).sort((a, b) => a.posicao - b.posicao), [p.origens, evento.id]);
   async function copiarDados() {
@@ -133,15 +151,23 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
   /** Salvar um endereço de local ou origem extra: texto novo troca, vazio remove. */
   const campoRotuloLocal: CampoDaTela<EventoLocal> = { ...campoEnderecoLocal, id: "rotulo", titulo: "Nome do local", valorDe: (l) => l.rotulo, edicao: { coluna: "rotulo", maxLength: 120 } };
   // endereços que já existem no sistema (de todos os eventos), para oferecer ao digitar o nome do local ou o nome de um evento
-  const conhecidos = useMemo<EnderecoConhecido[]>(() => { const nomes = new Map(p.eventos.map((e) => [e.id, e.nome])); return p.locais.filter((l) => (l.tipo ?? "local") === "local" && l.endereco).map((l) => ({ nome: l.rotulo, endereco: l.endereco, evento: nomes.get(l.evento_id) ?? null })); }, [p.locais, p.eventos]);
+  const conhecidos = useMemo<EnderecoConhecido[]>(() => { const nomes = new Map(p.eventos.map((e) => [e.id, e.nome])); return [...p.locais.filter((l) => l.endereco).map((l) => ({ nome: l.rotulo, endereco: l.endereco, evento: nomes.get(l.evento_id) ?? null })), ...p.eventos.filter((e) => e.origem).map((e) => ({ nome: e.origem_rotulo ?? null, endereco: e.origem!, evento: e.nome })), ...p.eventos.filter((e) => e.endereco_retorno).map((e) => ({ nome: null, endereco: e.endereco_retorno!, evento: e.nome }))]; }, [p.locais, p.eventos]);   // origem, local e retorno vivem no mesmo banco de endereços
   const salvarLocal = async (l: EventoLocal, v: string | null, n?: string | null) => {
     try {
       if (!v) { await p.onRemoverLocal(l); return; }
       if (n !== undefined && (n ?? null) !== (l.rotulo ?? null)) await p.onEditarLocal(l, campoRotuloLocal, n);
       await p.onEditarLocal({ ...l, rotulo: n === undefined ? l.rotulo : n }, campoEnderecoLocal, v);
+      if ((l.tipo ?? "local") === "local" && locaisDoEvento[0]?.id === l.id) await preencherContato(campoContato, evento.contato, v);
     } catch (e) { erro(e as Error); }
   };
-  const salvarOrigemPrincipal = (v: string | null) => { if (campoOrigem) void p.onEditarEvento(evento, campoOrigem, v).catch(erro); };
+  const salvarOrigemPrincipal = async (v: string | null, n?: string | null) => {
+    try {
+      if (!campoOrigem) return;
+      if (n !== undefined && campoOrigemNome && (n ?? null) !== (evento.origem_rotulo ?? null)) await p.onEditarEvento(evento, campoOrigemNome, n);
+      await p.onEditarEvento(evento, campoOrigem, v);
+      await preencherContato(campoContatoOrigem, evento.contato_origem, v);
+    } catch (e) { erro(e as Error); }
+  };
 
   async function salvarComentario() {
     if (!campoComentarios || comentario === (evento.comentarios ?? "")) return;
@@ -223,14 +249,14 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
             <section data-testid="secao-enderecos">
               <SecaoDoDados titulo="Endereços" />
               <dl className="mt-ficha" data-testid="ficha-enderecos">
-                <LinhaDeEndereco sugestao={ORIGEM_PADRAO} titulo="Local de Origem" valor={evento.origem ?? null} onSalvar={salvarOrigemPrincipal} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
-                {origensExtras.map((l, i) => <LinhaDeEndereco sugestao={ORIGEM_PADRAO} key={l.id} titulo={`Local de Origem ${i + 2}`} valor={l.endereco} onSalvar={(v) => void salvarLocal(l, v)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
+                <LinhaDeEndereco sugestao={ORIGEM_PADRAO} titulo="Local de Origem" comNome nome={evento.origem_rotulo ?? null} conhecidos={conhecidos} valor={evento.origem ?? null} onSalvar={(v, n) => void salvarOrigemPrincipal(v, n)} onAdicionar={() => setAdicionando("origem")} rotuloAdicionar="Adicionar outra origem" testid="linha-origem" />
+                {origensExtras.map((l, i) => <LinhaDeEndereco sugestao={ORIGEM_PADRAO} key={l.id} titulo={`Local de Origem ${i + 2}`} comNome nome={l.rotulo} conhecidos={conhecidos} valor={l.endereco} onSalvar={(v, n) => void salvarLocal(l, v, n)} onRemover={() => void p.onRemoverLocal(l).catch(erro)} testid="linha-origem-extra" />)}
                 {linhaCampo("contatoOrigem")}
                 {locaisDoEvento.length === 0
-                  ? <LinhaDeEndereco titulo="Local do Evento" valor={null} comNome conhecidos={conhecidos} onSalvar={(v, n) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v, rotulo: n ?? undefined }]).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
+                  ? <LinhaDeEndereco titulo="Local do Evento" valor={null} comNome conhecidos={conhecidos} onSalvar={(v, n) => { if (v) void p.onAdicionarLocais(evento.id, [{ endereco: v, rotulo: n ?? undefined }]).then(() => preencherContato(campoContato, evento.contato, v)).catch(erro); }} onAdicionar={() => setAdicionando("local")} rotuloAdicionar="Adicionar outro local" testid="linha-local" />
                   : locaisDoEvento.map((l, i) => <LinhaDeEndereco key={l.id} titulo={i === 0 ? "Local do Evento" : `Local do Evento ${i + 1}`} comNome nome={l.rotulo} conhecidos={conhecidos} valor={l.endereco} onSalvar={(v, n) => void salvarLocal(l, v, n)} onAdicionar={i === 0 ? () => setAdicionando("local") : undefined} rotuloAdicionar="Adicionar outro local" onRemover={i === 0 ? undefined : () => void p.onRemoverLocal(l).catch(erro)} testid="linha-local" />)}
                 {linhaCampo("contato")}
-                <LinhaDeEndereco titulo="Local do Retorno" valor={evento.endereco_retorno ?? null} placeholder="Vazio = volta para a origem" onSalvar={(v) => { if (campoRetorno) void p.onEditarEvento(evento, campoRetorno, v).catch(erro); }} testid="linha-retorno" />
+                <LinhaDeEndereco titulo="Local do Retorno" valor={evento.endereco_retorno ?? null} placeholder="Vazio = volta para a origem" onSalvar={(v) => { if (campoRetorno) void p.onEditarEvento(evento, campoRetorno, v).then(() => preencherContato(campoContatoRetorno, evento.contato_retorno, v)).catch(erro); }} testid="linha-retorno" />
                 {linhaCampo("contatoRetorno")}
               </dl>
             </section>
@@ -246,8 +272,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
               <p className="t-body-sm t-muted">Envio e retorno somam os transportes de ida e de volta cadastrados nos carros do evento (valor planejado).</p>
             </section>
 
-            <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} comNome={adicionando === "local"} conhecidos={conhecidos} onFechar={() => setAdicionando(null)}
-              onSalvar={(t, n) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo, rotulo: n ?? undefined }]).catch(erro); }} />
+            <JanelaDeEndereco sugestao={adicionando === "origem" ? ORIGEM_PADRAO : undefined} aberto={adicionando !== null} titulo={adicionando === "origem" ? "Nova origem" : "Novo local"} valor={null} comNome conhecidos={conhecidos} onFechar={() => setAdicionando(null)}
+              onSalvar={(t, n) => { const tipo = adicionando; setAdicionando(null); if (t && tipo) void p.onAdicionarLocais(evento.id, [{ endereco: t, tipo, rotulo: n ?? undefined }]).then(() => (tipo === "local" && locaisDoEvento.length === 0 ? preencherContato(campoContato, evento.contato, t) : undefined)).catch(erro); }} />
 
             <div><Button variant="danger" icon={<Trash size={18} />} onClick={() => setExcluindo(true)} data-testid="excluir-evento">Excluir evento</Button></div>
           </div>
