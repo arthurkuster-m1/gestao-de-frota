@@ -1,11 +1,13 @@
 import { prazosDaPlaca } from "../../lib/veiculos/prazos";
+import { GerenciarDepartamentos } from "./GerenciarDepartamentos";
+import { departamentosAtuais, useDepartamentos } from "../../lib/veiculos/departamentos";
 import { BotaoCopiarColuna, BotoesDeCopia } from "./BotoesDeCopia";
 import { useVersaoDosDados } from "../../lib/sincronia";
 import { LinkNoLugar, useAbrirNoLugar } from "../../app/noLugar";
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
 import { ArrowsClockwise, Plus, Table, Car } from "@phosphor-icons/react";
-import { Button, Card, EmptyState, useToast } from "../../ds";
+import { Button, Card, EmptyState, Sheet, useToast } from "../../ds";
 import { usePopover } from "../../ds/popover";
 import type { ConfigDeChips } from "../../components/motor/ChipsRapidos";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
@@ -31,7 +33,7 @@ import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { atualizarCampos, listarVeiculos } from "../../lib/veiculos/dados";
 import { partirModelo } from "../../lib/veiculos/modelo";
 import { avisoDoCicloAutomatico } from "../../lib/veiculos/ciclo";
-import { CICLO, DEPARTAMENTOS, SEGURO, estaFaturado, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
+import { CICLO, SEGURO, estaFaturado, normalizarPlaca, normalizarVin, placaValida, vinValido, type Veiculo } from "../../lib/veiculos/tipos";
 import "../veiculos/veiculos.css";
 
 const dia = (iso: string | null) => (iso ? iso.slice(0, 10) : null);
@@ -41,7 +43,7 @@ const OPCOES_SEGURO: OpcaoDoCampo[] = SEGURO.map((s) => ({ value: s.value, label
 
 /** Os campos de veículo: o que a consulta filtra/ordena/agrupa e o que a tabela mostra. Os não marcados `padrao:false` começam visíveis. */
 /** O que os campos calculados (Status de uso, Agenda) precisam saber: as reservas de cada carro. `carregado: false` = ainda sem as tabelas de eventos. */
-export type ContextoDeUso = { reservas: Map<string, Reserva[]>; nomeDoEvento: (id: string) => string; carregado: boolean; hoje: string; manutencoes?: Map<string, Manutencao[]> };
+export type ContextoDeUso = { /** nomes dos departamentos gerenciados */ departamentos?: string[]; reservas: Map<string, Reserva[]>; nomeDoEvento: (id: string) => string; carregado: boolean; hoje: string; manutencoes?: Map<string, Manutencao[]> };
 const SEM_USO: ContextoDeUso = { reservas: new Map(), nomeDoEvento: () => "?", carregado: false, hoje: "" };
 const TOM_USO = Object.fromEntries(STATUS_DE_USO.map((u) => [u.value, u.tom])) as Record<string, OpcaoDoCampo["tom"]>;
 const OPCOES_USO: OpcaoDoCampo[] = STATUS_DE_USO.map((u) => ({ value: u.value, label: u.label, tom: TOM_USO[u.value] }));
@@ -59,7 +61,7 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "my", titulo: "MY", tipo: "texto", valorDe: (v) => v.my, largura: 90, edicao: { coluna: "my", maxLength: 9 } },
   { id: "pedido", titulo: "Pedido", tipo: "texto", valorDe: (v) => v.pedido, largura: 140, padrao: false, edicao: { coluna: "pedido" } },
   { id: "ciclo", titulo: "Ciclo de vida", tipo: "opcao", valorDe: (v) => v.status_ciclo, opcoes: OPCOES_CICLO, rotuloDoValor: (x) => OPCOES_CICLO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => CICLO.findIndex((c) => c.value === x), largura: 210, edicao: { coluna: "status_ciclo", obrigatorio: true } },
-  { id: "departamento", titulo: "Departamento", tipo: "opcao", valorDe: (v) => v.departamento ?? "Marketing", opcoes: DEPARTAMENTOS.map((d) => ({ value: d, label: d })), largura: 140, edicao: { coluna: "departamento", obrigatorio: true } },
+  { id: "departamento", titulo: "Departamento", tipo: "opcao", valorDe: (v) => v.departamento ?? "Marketing", opcoes: (ctx.departamentos ?? departamentosAtuais().map((d) => d.nome)).map((d) => ({ value: d, label: d })), largura: 140, edicao: { coluna: "departamento", obrigatorio: true } },
   { id: "seguro", titulo: "Seguro", tipo: "opcao", valorDe: (v) => v.seguro_status, opcoes: OPCOES_SEGURO, rotuloDoValor: (x) => OPCOES_SEGURO.find((o) => o.value === x)?.label ?? x, ordemDoValor: (x) => SEGURO.findIndex((s) => s.value === x), largura: 130, edicao: { coluna: "seguro_status", obrigatorio: true } },
   { id: "faturado", titulo: "Faturado", tipo: "caixa", valorDe: (v) => estaFaturado(v), largura: 110, edicao: { coluna: "faturado" } },
   { id: "blindado", titulo: "Blindado", tipo: "caixa", valorDe: (v) => v.blindado, largura: 110, padrao: false, edicao: { coluna: "blindado" } },
@@ -89,6 +91,7 @@ export function Veiculos() {
   const d = useDadosDeEventos();
   const criacao = useCriacaoNaLinha(d);
   const [busca, setBusca] = useSearchParams();
+  const [gerenciandoDeptos, setGerenciandoDeptos] = useState(false);
   const [novo, setNovo] = useState(busca.get("novo") === "1");   // /veiculos/novo (link antigo) abre a janela
   useEffect(() => { if (busca.get("novo")) { const b = new URLSearchParams(busca); b.delete("novo"); setBusca(b, { replace: true }); } }, [busca, setBusca]);
   const reservas = d.eventos ? d.reservas : null;
@@ -105,11 +108,12 @@ export function Veiculos() {
   const filas = useRef(new Map<string, Promise<void>>());
   useEffect(() => { listarVeiculos().then((l) => setLista(l.map((x) => (pendentes.current.has(x.id) ? { ...x, ...pendentes.current.get(x.id) } : x))), (e: Error) => setErro(e.message)); }, [versao]);
 
+  const departamentos = useDepartamentos();
   const ctx = useMemo<ContextoDeUso>(() => {
     if (!d.eventos) return SEM_USO;
     const nomes = new Map(eventos.map((e) => [e.id, e.nome]));
-    return { reservas: reservasPorVeiculo(d.reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal(), manutencoes: man.doCarro };
-  }, [d.reservas, d.eventos, eventos, man.doCarro]);
+    return { reservas: reservasPorVeiculo(d.reservas), nomeDoEvento: (id) => nomes.get(id) ?? "?", carregado: true, hoje: hojeLocal(), manutencoes: man.doCarro, departamentos: departamentos.map((x) => x.nome) };
+  }, [d.reservas, d.eventos, eventos, man.doCarro, departamentos]);
   const campos = useMemo(() => camposDoVeiculo(ctx), [ctx]);
 
   const editar: OnEditar<Veiculo> = async (linha, campo, valor) => {
@@ -146,7 +150,7 @@ export function Veiculos() {
   return (
     <>
     <TelaDoMotor<Veiculo> tela="veiculos" iconeDaPrimeira={<Car size={16} />} extrasDaPrimeira={(ls) => <BotoesDeCopia veiculos={ls} />} extrasDaColuna={(id, ls) => (id === "placa" || id === "vin" || id === "comentarios" ? <BotaoCopiarColuna campoId={id} veiculos={ls} /> : null)} acoesDaSelecao={({ ids, limpar }) => <AcoesDosVeiculosSelecionados d={d} ids={ids} limpar={limpar} aoAtualizar={(novos) => setLista((l) => { const m = new Map(novos.map((x) => [x.id, x])); return (l ?? []).map((x) => m.get(x.id) ?? x); })} />} chipsRapidos={CHIPS_POR_MODELO} titulo="Veículos" subtitulo="Todos os carros, do pedido à devolução."
-      acoes={<NovoMenu aoNovo={() => setNovo(true)} />}
+      acoes={<><Button variant="secondary" onClick={() => setGerenciandoDeptos(true)} data-testid="gerenciar-departamentos">Departamentos</Button><NovoMenu aoNovo={() => setNovo(true)} /></>}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
       linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
@@ -155,6 +159,7 @@ export function Veiculos() {
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Button icon={<Plus size={20} />} onClick={() => setNovo(true)}>Cadastrar o primeiro</Button>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
       filhos={<JanelaDoVeiculo reservasSemData={aberto ? d.reservasSemData.filter((r) => r.veiculo_id === aberto.id) : []} clientes={clientesPorId} locais={d.locais} veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
     {criacao.dialogos}
+    <Sheet open={gerenciandoDeptos} onClose={() => setGerenciandoDeptos(false)} title="Departamentos" wide><GerenciarDepartamentos /></Sheet>
     <NovoVeiculo aberto={novo} onFechar={() => setNovo(false)} onCriado={(v) => setLista((l) => [v, ...(l ?? [])])} />
     </>
   );

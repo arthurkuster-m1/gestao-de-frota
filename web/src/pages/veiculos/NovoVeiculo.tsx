@@ -1,7 +1,8 @@
 import { useMemo, useState } from "react";
 import { Button, DateField, Field, Input, Segmented, Select, Sheet, Switch, Textarea, useToast } from "../../ds";
 import { criarVeiculo } from "../../lib/veiculos/dados";
-import { CICLO, DEPARTAMENTOS, DEPARTAMENTO_PADRAO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type Veiculo, type VeiculoNovo } from "../../lib/veiculos/tipos";
+import { useDepartamentos } from "../../lib/veiculos/departamentos";
+import { CICLO, DEPARTAMENTO_PADRAO, SEGURO, normalizarPlaca, normalizarVin, placaValida, vazioParaNulo, vinValido, type Ciclo, type Seguro, type Veiculo, type VeiculoNovo } from "../../lib/veiculos/tipos";
 import "./veiculos.css";
 
 type Estado = {
@@ -18,6 +19,7 @@ export const codigoPrevisto = (modelo: string, vin: string) => {
 
 /** Cadastro de veículo em janela larga (como o de eventos). Ctrl + Enter cadastra. Só a importação em massa abre página inteira. */
 export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; onFechar: () => void; onCriado: (v: Veiculo) => void }) {
+  const departamentos = useDepartamentos();
   const toast = useToast();
   const [f, setF] = useState<Estado>(VAZIO);
   const [erro, setErro] = useState<string | null>(null);
@@ -69,7 +71,7 @@ export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; o
         </div>
         <div className="mt-evf mt-evf--3">
           <Field label="Ciclo de vida"><Select value={f.ciclo} onChange={(e) => set("ciclo", e.target.value as Ciclo)}>{CICLO.map((c) => <option key={c.value} value={c.value}>{c.label}</option>)}</Select></Field>
-          <Field label="Departamento"><Select value={f.departamento} onChange={(e) => set("departamento", e.target.value)} aria-label="Departamento do veículo">{DEPARTAMENTOS.map((d) => <option key={d} value={d}>{d}</option>)}</Select></Field>
+          <Field label="Departamento"><Select value={f.departamento} onChange={(e) => set("departamento", e.target.value)} aria-label="Departamento do veículo">{departamentos.map((d) => <option key={d.nome} value={d.nome}>{d.nome}</option>)}</Select></Field>
           <Field label="Seguro"><Segmented block options={SEGURO.map((s) => ({ value: s.value, label: s.label }))} value={f.seguro} onChange={(v) => set("seguro", v)} /></Field>
           <Field label="Blindado"><Switch checked={f.blindado} onChange={(v) => set("blindado", v)} label={f.blindado ? "Sim" : "Não"} /></Field>
         </div>
