@@ -426,3 +426,13 @@ html[data-theme="light"] body:has(.mt-abas-wrap) { --color-bg: var(--nt-fundo); 
 .mt-tabela td.mt-editando { position: relative; box-shadow: none; overflow: visible; }
 .mt-tabela td.mt-editando > .mt-ed:not(.mt-ed--opcao) { position: absolute; left: -3px; right: -3px; top: -4px; bottom: -4px; width: auto; height: auto; z-index: 30; padding: 0 17px; border-radius: 6px; background: var(--color-bg); box-shadow: 0 0 0 1px rgba(15, 15, 15, .1), 0 3px 10px rgba(15, 15, 15, .14); }
 .mt-tabela td.mt-editando > .mt-ed.is-erro { box-shadow: 0 0 0 2px var(--color-error), 0 3px 10px rgba(15, 15, 15, .14); }
+/* chips rápidas: arquivar (×) e arrastar */
+.mt-rap__item { display: inline-flex; flex: none; cursor: grab; }
+.mt-rap__chip { padding-right: 6px; gap: 2px; }
+.mt-rap__main { display: inline-flex; align-items: center; gap: 6px; min-height: inherit; padding: 0 0 0 0; border: 0; background: none; color: inherit; font: inherit; cursor: pointer; }
+.mt-rap__arq { display: inline-grid; place-items: center; width: 20px; height: 20px; padding: 0; border: 0; border-radius: 50%; background: none; color: inherit; font-size: 14px; line-height: 1; cursor: pointer; opacity: 0; }
+.mt-rap__chip:hover .mt-rap__arq, .mt-rap__arq:focus-visible { opacity: .7; }
+.mt-rap__arq:hover { opacity: 1; background: var(--color-surface-elevated); }
+.mt-rap__chip.is-arquivada { opacity: .6; border-style: dashed; }
+.mt-rap__chip.is-arquivada .mt-rap__arq { opacity: .9; }
+.mt-rap__ver { justify-self: start; border: 0; background: none; padding: 0 2px; color: var(--color-text-subtle); font: inherit; font-size: 12.5px; cursor: pointer; text-decoration: underline; }

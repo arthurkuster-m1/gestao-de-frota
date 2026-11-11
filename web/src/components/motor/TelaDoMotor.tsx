@@ -156,7 +156,7 @@ export function TelaDoMotor<T>({ tela, titulo, subtitulo, acoes, avisos, cabecal
             </div>
           </>} />
 
-        {naFixa && linhas && <ChipsRapidos cfg={chipsRapidos!} linhas={linhas} selecao={rapidos} onSelecao={setRapidos} ordem={prefs.ordemDosChips ?? []} onOrdem={(o) => onPrefs({ ...prefs, ordemDosChips: o })} />}
+        {naFixa && linhas && <ChipsRapidos cfg={chipsRapidos!} linhas={linhas} selecao={rapidos} onSelecao={setRapidos} ordem={prefs.ordemDosChips ?? []} onOrdem={(o) => onPrefs({ ...prefs, ordemDosChips: o })} arquivados={prefs.chipsArquivados ?? []} onArquivados={(a) => onPrefs({ ...prefs, chipsArquivados: a })} />}
 
         <ChipsDeFiltro campos={campos} linhas={linhas ?? []} consulta={prefs} onChange={(c) => onPrefs({ ...prefs, ...c })} abrirIndice={filtroNovo} aoAbrir={() => setFiltroNovo(null)} aoAdicionar={setFiltroNovo} />
 
