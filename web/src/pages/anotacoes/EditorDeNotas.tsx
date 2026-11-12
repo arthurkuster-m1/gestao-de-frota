@@ -51,6 +51,8 @@ export interface PropsDoEditorDeNotas {
   aoRemoverSubpagina: (id: string) => void;
   /** A ordem dos cartões mudou: a barra lateral segue a mesma ordem. */
   aoReordenarSubpaginas: (ids: string[]) => void;
+  /** Entrega ao dono da página os atalhos do cursor: `inicio` (primeira linha) e `fim` (último bloco; cria uma linha nova se o último tem conteúdo). */
+  aoPronto?: (cursor: { inicio: () => void; fim: () => void }) => void;
 }
 
 function temaAtual(): "light" | "dark" { return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
@@ -59,7 +61,7 @@ function temaAtual(): "light" | "dark" { return document.documentElement.getAttr
  * O EDITOR DE ANOTAÇÕES, no estilo Notion: clique e escreva; "/" abre o menu de blocos; a alça arrasta blocos.
  * As SUBPÁGINAS são cartões dentro do texto, na ordem que você arrastar. O documento é guardado como o editor entrega.
  */
-export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas }: PropsDoEditorDeNotas) {
+export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto }: PropsDoEditorDeNotas) {
   const [tema, setTema] = useState(temaAtual);
   useEffect(() => {
     const o = new MutationObserver(() => setTema(temaAtual()));
@@ -186,6 +188,21 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
     window.addEventListener("mouseup", soltar);
   }
 
+  /** Cursor na primeira linha (Enter no título). */
+  const cursorNoInicio = () => { const primeiro = editor.document[0]; if (primeiro) editor.setTextCursorPosition(primeiro, "start"); editor.focus(); };
+  /** Cursor no fim: no último bloco se estiver vazio; senão numa linha nova logo abaixo. */
+  const cursorNoFim = () => {
+    const blocos = editor.document;
+    const ultimo = blocos[blocos.length - 1];
+    if (!ultimo) return;
+    const vazio = ultimo.type === "paragraph" && Array.isArray(ultimo.content) && ultimo.content.length === 0;
+    if (vazio) editor.setTextCursorPosition(ultimo, "end");
+    else { const [novo] = editor.insertBlocks([{ type: "paragraph" }], ultimo, "after"); if (novo) editor.setTextCursorPosition(novo, "end"); }
+    editor.focus();
+  };
+  const cursorRef = useRef({ inicio: cursorNoInicio, fim: cursorNoFim }); cursorRef.current = { inicio: cursorNoInicio, fim: cursorNoFim };
+  useEffect(() => { aoPronto?.({ inicio: () => cursorRef.current.inicio(), fim: () => cursorRef.current.fim() }); }, [aoPronto]);
+
   // Clicar no "papel" abaixo do último bloco coloca o cursor no fim, num parágrafo vazio.
   function clicouNoPapel(e: MouseEvent<HTMLDivElement>) {
     if (!editavel || !ehPapelEmBranco(e.target as HTMLElement)) return;
@@ -194,13 +211,7 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
     const blocosNaTela = papel.current?.querySelectorAll<HTMLElement>(".bn-block-outer[data-id]");
     const fimDoTexto = blocosNaTela?.length ? Math.max(...[...blocosNaTela].map((b) => b.getBoundingClientRect().bottom)) : 0;
     if (e.target !== papel.current && e.clientY <= fimDoTexto) return;
-    const blocos = editor.document;
-    const ultimo = blocos[blocos.length - 1];
-    if (!ultimo) return;
-    const vazio = ultimo.type === "paragraph" && Array.isArray(ultimo.content) && ultimo.content.length === 0;
-    if (vazio) editor.setTextCursorPosition(ultimo, "end");
-    else { const [novo] = editor.insertBlocks([{ type: "paragraph" }], ultimo, "after"); if (novo) editor.setTextCursorPosition(novo, "end"); }
-    editor.focus();
+    cursorNoFim();
   }
 
   return (

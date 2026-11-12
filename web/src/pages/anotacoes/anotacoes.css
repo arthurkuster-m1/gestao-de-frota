@@ -45,3 +45,10 @@
 .an-cartao:hover { background: var(--nt-hover, var(--color-surface-elevated)); }
 .an-aviso { display: flex; gap: 12px; align-items: center; max-width: 860px; margin: 0 auto 8px; padding: 8px 12px; border-radius: 8px; background: var(--color-surface-elevated); font-size: 14px; }
 .an-aviso button { border: 0; background: none; color: var(--color-accent); font: inherit; font-weight: 600; cursor: pointer; }
+
+/* Fundo da tela de Anotações: branco (o cinza do app sai daqui). */
+body:has(.an-tela) { --color-bg: var(--color-surface); background: var(--color-surface); }
+/* A área clicável da página ocupa a altura da tela: clicar em qualquer ponto em branco já abre o cursor para escrever. */
+.an-area { min-height: calc(100dvh - 150px); cursor: text; }
+.an-area .an-pagina { cursor: auto; }
+.an-area .an-pagina > * { cursor: auto; }
