@@ -11,7 +11,7 @@ const fetchComAviso: typeof fetch = async (entrada, init) => {
   const r = await fetch(entrada, init);
   const metodo = (init?.method ?? (entrada instanceof Request ? entrada.method : "GET")).toUpperCase();
   const alvo = typeof entrada === "string" ? entrada : entrada instanceof URL ? entrada.href : entrada.url;
-  if (r.ok && metodo !== "GET" && metodo !== "HEAD" && alvo.includes("/rest/v1/") && !/visoes_salvas/.test(alvo)) avisarMudanca();
+  if (r.ok && metodo !== "GET" && metodo !== "HEAD" && alvo.includes("/rest/v1/") && !/visoes_salvas|notes_pages|notes_user_state/.test(alvo)) avisarMudanca();
   return r;
 };
 
