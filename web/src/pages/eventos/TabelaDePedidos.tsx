@@ -46,7 +46,7 @@ export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, s
                 {onNota && (
                   <td style={{ minWidth: 260 }} onClick={(e) => { e.stopPropagation(); if (editandoNota?.id !== p.id) setEditandoNota({ id: p.id, texto: p.nota ?? "" }); }} data-testid="nota-do-pedido" title="Clique para escrever o comentário">
                     {editandoNota?.id === p.id
-                      ? <Input value={editandoNota.texto} autoFocus maxLength={2000} aria-label={`Comentário do modelo ${p.modelo}`} placeholder="Ex.: pedi para a Júlia, aguardando resposta" onChange={(e) => setEditandoNota({ id: p.id, texto: e.target.value })} onBlur={() => guardarNota(p, editandoNota.texto)}
+                      ? <Input value={editandoNota.texto} autoFocus maxLength={2000} aria-label={`Comentário do modelo ${p.modelo}`} placeholder="Comentários e Status sobre essa solicitação" onChange={(e) => setEditandoNota({ id: p.id, texto: e.target.value })} onBlur={() => guardarNota(p, editandoNota.texto)}
                           onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); if (e.key === "Escape") setEditandoNota(null); }} />
                       : p.nota ? <span>{p.nota}</span> : <span className="t-muted">—</span>}
                   </td>
