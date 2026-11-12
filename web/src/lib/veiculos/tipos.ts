@@ -38,6 +38,7 @@ export type Veiculo = {
   seguro_status: Seguro; status_ciclo: Ciclo;
   /** foi faturado (com ou sem data; o banco mantém junto da data de faturamento e do ciclo) */ faturado?: boolean;
   /** de quem é o carro: Marketing, ou o departamento de onde foi emprestado (RP, UC, Acessórios…) */ departamento?: string;
+  /** previsões: datas que ainda vão acontecer (o ciclo só avança com a data real) */ data_liberacao_prevista?: string | null; data_faturamento_prevista?: string | null; data_emplacamento_prevista?: string | null;
   data_pedido: string | null; data_liberacao: string | null; data_chegada_planta: string | null; data_faturamento: string | null; data_placas_solicitadas: string | null; data_emplacamento: string | null; data_devolucao: string | null;
   comentarios: string | null;
   created_at: string;
@@ -50,6 +51,7 @@ export type VeiculoNovo = {
   seguro_status?: Seguro; status_ciclo?: Ciclo;
   faturado?: boolean;
   /** vazio = Marketing (o banco preenche) */ departamento?: string;
+  data_liberacao_prevista?: string | null; data_faturamento_prevista?: string | null; data_emplacamento_prevista?: string | null;
   data_pedido?: string | null; data_liberacao?: string | null; data_chegada_planta?: string | null; data_faturamento?: string | null; data_placas_solicitadas?: string | null; data_emplacamento?: string | null; data_devolucao?: string | null;
   comentarios?: string | null;
 };

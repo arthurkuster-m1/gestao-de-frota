@@ -7,6 +7,7 @@ import type { PreferenciasDaTabela } from "../../lib/motor/layout";
 import { formatarDiaBr, hojeLocal, somarDias } from "../../lib/motor/datas";
 import { atendimentoDosPedidos, combina, pedidoQueAtende, rotuloDoDesejado } from "../../lib/eventos/desejados";
 import { SEM_FIM, type Evento, type ModeloDesejado, type Reserva } from "../../lib/eventos/tipos";
+import { disponivelAPartirDe } from "../../lib/veiculos/previsoes";
 import { agendaTexto, conflitos, reservasPorVeiculo, reservavelPeloCiclo } from "../../lib/eventos/uso";
 import { manutencoesPorVeiculo, manutencoesQueBloqueiam } from "../../lib/manutencoes/regras";
 import type { Manutencao } from "../../lib/manutencoes/tipos";
@@ -72,17 +73,19 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const linhas = useMemo(() => {
     const q = busca.trim().toLowerCase();
     return todos
-      .filter((v) => reservavelPeloCiclo(v.status_ciclo) && !jaNoEvento.has(v.id))
+      .filter((v) => (reservavelPeloCiclo(v.status_ciclo) || !!disponivelAPartirDe(v)) && !jaNoEvento.has(v.id))   // bloqueado pelo ciclo, mas com data PREVISTA de liberação: dá para reservar (só avisa se o evento começa antes)
       .filter((v) => !selecionado || marcados.has(v.id) || combina(v, selecionado))
       .filter((v) => !q || `${v.codigo ?? ""} ${v.pedido ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""} ${v.comentarios ?? ""}`.toLowerCase().includes(q))
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
         const choques = periodoOk ? conflitos({ inicio, fim }, r, evento.id) : [];
         const noConserto = periodoOk ? manutencoesQueBloqueiam({ inicio, fim }, oficina.get(v.id) ?? []) : [];
-        return { v, choques, noConserto };
+        const liberaEm = disponivelAPartirDe(v);
+        const antesDaPrevisao = !!liberaEm && periodoOk && inicio < liberaEm;
+        return { v, choques, noConserto, liberaEm, antesDaPrevisao };
       })
-      .filter((l) => !soLivres || marcados.has(l.v.id) || (l.choques.length === 0 && l.noConserto.length === 0))
-      .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0) - Number(b.choques.length + b.noConserto.length > 0) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
+      .filter((l) => !soLivres || marcados.has(l.v.id) || (l.choques.length === 0 && l.noConserto.length === 0 && !l.antesDaPrevisao))
+      .sort((a, b) => Number(a.choques.length + a.noConserto.length > 0 || a.antesDaPrevisao) - Number(b.choques.length + b.noConserto.length > 0 || b.antesDaPrevisao) || (a.v.codigo ?? a.v.modelo).localeCompare(b.v.codigo ?? b.v.modelo, "pt-BR", { numeric: true }));
   }, [todos, busca, jaNoEvento, porCarro, oficina, periodoOk, inicio, fim, evento.id, selecionado, soLivres, marcados]);
 
   // o que cada carro MARCADO atende (na ordem da tabela): o pedido escolhido tem prioridade
@@ -101,7 +104,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
   const campos = useMemo<CampoDaTela<Veiculo>[]>(() => {
     const base = camposDoVeiculo(ctx);
     const doPadrao = COLUNAS.map((id) => ({ ...base.find((c) => c.id === id)!, padrao: true }));
-    const avisoDe = (v: Veiculo) => { const l = linhas.find((x) => x.v.id === v.id); if (!l) return ""; const t: string[] = []; if (l.noConserto.length) t.push(`Manutenção: ${l.noConserto.map((m) => m.nome).join(", ")}`); if (l.choques.length) t.push(`Reservado: ${agendaTexto(l.choques, (id) => nomes.get(id) ?? "?", hojeLocal())}`); return t.join(" · "); };
+    const avisoDe = (v: Veiculo) => { const l = linhas.find((x) => x.v.id === v.id); if (!l) return ""; const t: string[] = []; if (l.liberaEm) t.push(l.antesDaPrevisao ? `Ainda não liberado: previsto para ${formatarDiaBr(l.liberaEm)} (o evento começa antes)` : `Liberação prevista para ${formatarDiaBr(l.liberaEm)}`); if (l.noConserto.length) t.push(`Manutenção: ${l.noConserto.map((m) => m.nome).join(", ")}`); if (l.choques.length) t.push(`Reservado: ${agendaTexto(l.choques, (id) => nomes.get(id) ?? "?", hojeLocal())}`); return t.join(" · "); };
     return [
       ...doPadrao,
       { id: "pedido", titulo: "Pedido", tipo: "texto", valorDe: (v) => { const p = pedidoDoCarro.get(v.id); return p ? rotuloDoDesejado(p) : null; }, celula: (v) => { const p = pedidoDoCarro.get(v.id); return p ? <span className="mt-ped__status is-reservado">OK · {rotuloDoDesejado(p)}</span> : <span className="mt-vazio">—</span>; }, largura: 240, padrao: true },
@@ -115,7 +118,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
     alternarVarios: (ids, marcar) => setMarcados((s) => { const n = new Set(s); for (const id of ids) { if (marcar) n.add(id); else n.delete(id); } return n; }),
     definir: (ids) => setMarcados(new Set(ids)),
   }), [marcados]);
-  const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0)).length;
+  const comConflito = linhas.filter((l) => marcados.has(l.v.id) && (l.choques.length > 0 || l.noConserto.length > 0 || l.antesDaPrevisao)).length;
 
   async function reservarSemData() {
     if (!onReservarSemData) return;
@@ -151,7 +154,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
             rotuloDoTotal={(n) => `${n} carro${n === 1 ? "" : "s"}`}
             vazio={<p className="t-body t-muted" style={{ padding: 16 }}>Nenhum carro para escolher. {selecionado || soLivres ? "Tire um filtro (pedido escolhido ou “Só disponíveis”)." : ""}</p>} />
         </div>
-        {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva ou manutenção nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
+        {comConflito > 0 && <p className="t-body-sm" style={{ color: "var(--color-warning-fg)" }}>{comConflito} carro{comConflito === 1 ? "" : "s"} marcado{comConflito === 1 ? "" : "s"} já tem{comConflito === 1 ? "" : "m"} reserva, manutenção ou liberação prevista depois do início nesse período. Dá para reservar mesmo assim (troca de carro é comum).</p>}
         {erro && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
         <div className="mt-reservar__rodape">
           {onReservarSemData && <Button size="lg" variant="secondary" disabled={marcados.size === 0} loading={enviando} onClick={() => void reservarSemData()} data-testid="reservar-sem-data">Adicionar {marcados.size || ""} carro{marcados.size === 1 ? "" : "s"} sem data</Button>}

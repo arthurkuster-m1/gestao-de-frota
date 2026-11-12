@@ -17,6 +17,8 @@ import { barrasDoVeiculo } from "../../lib/eventos/barras";
 import { barrasDeManutencao } from "../../lib/manutencoes/barras";
 import { AgendaDoCarro, type ItemDaAgenda } from "./AgendaDoCarro";
 import { AgendaEmTags } from "./AgendaEmTags";
+import { PrevisoesQueChegaram } from "./PrevisoesQueChegaram";
+import type { MarcoPrevisto } from "../../lib/veiculos/previsoes";
 import { EventosDoVeiculo } from "./EventosDoVeiculo";
 import { RegistrarAcoes } from "./RegistrarAcoes";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
@@ -39,6 +41,7 @@ const BLOCOS: { titulo: string; ids: string[] }[] = [
   { titulo: "Uso", ids: ["codigo", "statusUso", "agenda", "comentarios"] },
   { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "faturado", "pedido", "ciclo", "departamento", "seguro"] },
   { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "chegouPlantaEm", "faturadoEm", "placasSolicitadasEm", "emplacadoEm", "devolvidoEm"] },
+  { titulo: "Previsões (datas que ainda vão acontecer)", ids: ["liberacaoPrevisto", "faturamentoPrevisto", "emplacamentoPrevisto"] },
   { titulo: "Prazos da placa", ids: ["diasParaSolicitar", "diasParaEmplacar", "diasTotalPlaca"] },
 ];
 
@@ -108,6 +111,9 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
           </div>
           <div className="mt-janela__conteudo">
             <AlertaDeDivergencia alertas={divergenciasDoCarro} comEvento />
+            {veiculo && <PrevisoesQueChegaram veiculo={veiculo} hoje={hoje}
+              aoConfirmar={async (m: MarcoPrevisto) => { const real = campos.find((c) => c.edicao?.coluna === m.real), prev = campos.find((c) => c.edicao?.coluna === m.previsto); if (!real || !prev) return; try { await onEditar(veiculo, real, veiculo[m.previsto] ?? null); await onEditar({ ...veiculo, [m.real]: veiculo[m.previsto] ?? null }, prev, null); } catch (e) { ed.setErro((e as Error).message); } }}
+              aoAdiar={async (m: MarcoPrevisto, nova: string) => { const prev = campos.find((c) => c.edicao?.coluna === m.previsto); if (prev) try { await onEditar(veiculo, prev, nova); } catch (e) { ed.setErro((e as Error).message); } }} />}
             {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
             {aba === "dados" && (
               <div className="ds-stack">

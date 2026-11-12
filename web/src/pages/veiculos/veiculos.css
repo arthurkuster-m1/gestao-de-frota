@@ -409,3 +409,10 @@
 /* link do contrato na tabela: texto cortado + botão de abrir */
 .mt-link-contrato { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
 .mt-link-contrato > a:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* aviso: a data prevista chegou */
+.mt-previsoes { display: grid; gap: 8px; }
+.mt-previsao { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-warning-fg, #b45309); background: var(--color-warning-bg, rgba(245, 158, 11, 0.12)); }
+.mt-previsao__texto { display: inline-flex; gap: 6px; align-items: center; }
+.mt-previsao__acoes { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.mt-previsao__adiar { display: inline-flex; gap: 6px; align-items: center; }
