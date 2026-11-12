@@ -20,14 +20,17 @@ export function useEdicao<T>(idDe: (l: T) => string, onEditar?: OnEditar<T>) {
   // Clicar em outra célula com um editor aberto só FECHA o editor (como no Notion): o clique seguinte é que abre o outro campo.
   const abertoNoClique = useRef(false); const editandoRef = useRef<Editando>(null); editandoRef.current = editando;
   useEffect(() => {
-    const baixo = (e: MouseEvent) => {
-      abertoNoClique.current = editandoRef.current !== null;
-      // clicar fora do campo em edição SAI da edição, mesmo se a tela impedir o foco de mudar (selecionar linhas, arrastar…)
-      if (editandoRef.current !== null && !(e.target as HTMLElement | null)?.closest?.(".mt-ed, .mt-campo-editando, [popover], dialog")) (document.activeElement as HTMLElement | null)?.blur?.();
+    const baixo = () => { abertoNoClique.current = editandoRef.current !== null; };
+    // clicar fora do campo em edição SAI da edição. Escuta o "pointerdown" (e não só o mouse): há telas que cancelam o clique (selecionar linhas
+    // arrastando a partir do fundo da página), e aí o "mousedown" nem chega a acontecer.
+    const fora = (e: Event) => {
+      if (editandoRef.current === null) return;
+      abertoNoClique.current = true;   // o clique que sai da edição não abre outra
+      if (!(e.target as HTMLElement | null)?.closest?.(".mt-ed, .mt-campo-editando, [popover], dialog")) (document.activeElement as HTMLElement | null)?.blur?.();
     };
     const tecla = () => { abertoNoClique.current = false; };
-    document.addEventListener("mousedown", baixo, true); document.addEventListener("keydown", tecla, true);
-    return () => { document.removeEventListener("mousedown", baixo, true); document.removeEventListener("keydown", tecla, true); };
+    document.addEventListener("pointerdown", fora, true); document.addEventListener("mousedown", fora, true); document.addEventListener("mousedown", baixo, true); document.addEventListener("keydown", tecla, true);
+    return () => { document.removeEventListener("pointerdown", fora, true); document.removeEventListener("mousedown", fora, true); document.removeEventListener("mousedown", baixo, true); document.removeEventListener("keydown", tecla, true); };
   }, []);
   const abrir = (l: T, c: CampoDaTela<T>) => { if (abertoNoClique.current) { abertoNoClique.current = false; return; } setErro(null); setEditando({ id: idDe(l), campo: c.id }); };
   const cancelar = () => setEditando(null);
