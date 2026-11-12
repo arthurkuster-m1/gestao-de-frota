@@ -17,7 +17,9 @@ export function NovoClienteRapido({ aberto, onFechar, onCriado }: { aberto: bool
   useEffect(() => { if (aberto) { setTipo("juridica"); setNome(""); setDocumento(""); setEndereco(""); setTocado(false); setFalha(null); } }, [aberto]);
   const pj = tipo === "juridica";
   const erroNome = nome.trim() ? null : pj ? "Informe a razão social." : "Informe o nome completo.";
-  const erroDoc = !documento.trim() ? null : (pj ? cnpjValido(documento) : cpfValido(documento)) ? null : pj ? "CNPJ inválido." : "CPF inválido.";
+  const tamanhoOk = documento.replace(/\D/g, "").length === (pj ? 14 : 11);
+  const erroDoc = !documento.trim() || tamanhoOk ? null : pj ? "O CNPJ precisa ter 14 dígitos." : "O CPF precisa ter 11 dígitos.";
+  const avisoDoc = tamanhoOk && !(pj ? cnpjValido(documento) : cpfValido(documento)) ? `Atenção: os dígitos verificadores deste ${pj ? "CNPJ" : "CPF"} não conferem. Pode salvar mesmo assim; confira com o cliente.` : undefined;
 
   async function salvar() {
     setTocado(true);
@@ -37,7 +39,7 @@ export function NovoClienteRapido({ aberto, onFechar, onCriado }: { aberto: bool
         onSubmit={(e) => { e.preventDefault(); e.stopPropagation(); void salvar(); }}
         onKeyDown={(e) => { if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) e.stopPropagation(); }}>
         <Field label="Tipo de pessoa"><Segmented block options={[{ value: "juridica", label: "Pessoa jurídica" }, { value: "fisica", label: "Pessoa física" }]} value={tipo} onChange={(v: TipoPessoa) => { setTipo(v); setDocumento(""); }} /></Field>
-        <Field label={pj ? "CNPJ" : "CPF"} error={tocado ? erroDoc : null}><Input value={documento} inputMode="numeric" placeholder={pj ? "00.000.000/0000-00" : "000.000.000-00"} onChange={(e) => setDocumento(pj ? maskCnpj(e.target.value) : maskCpf(e.target.value))} autoFocus /></Field>
+        <Field label={pj ? "CNPJ" : "CPF"} error={tocado ? erroDoc : null} hint={avisoDoc}><Input value={documento} inputMode="numeric" placeholder={pj ? "00.000.000/0000-00" : "000.000.000-00"} onChange={(e) => setDocumento(pj ? maskCnpj(e.target.value) : maskCpf(e.target.value))} autoFocus /></Field>
         <Field label={pj ? "Razão social" : "Nome completo"} error={tocado ? erroNome : null}><Input value={nome} onChange={(e) => setNome(e.target.value)} /></Field>
         <Field label="Endereço"><CampoDeEndereco valor={endereco} onChange={setEndereco} titulo="Endereço do cliente" /></Field>
         {falha && <p className="t-body-sm" role="alert" style={{ color: "var(--color-error-fg)" }}>{falha}</p>}

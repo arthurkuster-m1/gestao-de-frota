@@ -7,6 +7,8 @@ import { cnpjValido, cpfValido, maskCep, maskCnpj, maskCpf, soDigitos } from "..
 import "../veiculos/veiculos.css";
 
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
+/** Tamanho certo, mas dígitos verificadores que não conferem: só avisa (vale o documento que o cliente informou). */
+const avisoDoDocumento = (doc: string, pj: boolean) => (soDigitos(doc).length === (pj ? 14 : 11) && !(pj ? cnpjValido(doc) : cpfValido(doc)) ? `Atenção: os dígitos verificadores deste ${pj ? "CNPJ" : "CPF"} não conferem. Pode salvar mesmo assim; confira com o cliente.` : undefined);
 const emailOk = (s: string) => !s.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
 /** Página de cliente; com `embutido`, vira o formulário completo dentro de uma janela (ex.: na ficha do evento) e devolve o cliente criado sem sair da tela. */
@@ -31,7 +33,7 @@ export function FormCliente({ embutido }: { embutido?: { nomeInicial?: string; o
   const pj = c.tipo_pessoa === "juridica";
   const erros = useMemo(() => ({
     nome: c.nome.trim() ? null : (pj ? "Informe a razão social." : "Informe o nome completo."),
-    documento: !c.documento.trim() ? null : (pj ? cnpjValido(c.documento) : cpfValido(c.documento)) ? null : (pj ? "CNPJ inválido." : "CPF inválido."),
+    documento: !c.documento.trim() || soDigitos(c.documento).length === (pj ? 14 : 11) ? null : (pj ? "O CNPJ precisa ter 14 dígitos." : "O CPF precisa ter 11 dígitos."),   // dígitos verificadores errados é só alerta (abaixo)
     email: emailOk(c.email) ? null : "E-mail inválido.",
     testemunha_email: emailOk(c.testemunha_email) ? null : "E-mail inválido.",
     motoristas: c.motoristas.map((m) => ({ nome: m.nome.trim() ? null : "Informe o nome.", cpf: !m.cpf.trim() || soDigitos(m.cpf).length === 11 ? null : "O CPF precisa ter 11 dígitos." })),   // dígitos verificadores errados é só alerta (abaixo): vale o CPF que o cliente informou
@@ -63,7 +65,7 @@ export function FormCliente({ embutido }: { embutido?: { nomeInicial?: string; o
             <Field label="Tipo de pessoa"><Segmented block options={[{ value: "juridica", label: "Pessoa jurídica" }, { value: "fisica", label: "Pessoa física" }]} value={c.tipo_pessoa} onChange={(v: TipoPessoa) => set("tipo_pessoa", v)} /></Field>
             <div className="vei-form__linha">
               <Field label={pj ? "Razão social" : "Nome completo"} error={mostra(erros.nome)}><Input value={c.nome} onChange={(e) => set("nome", e.target.value)} /></Field>
-              <Field label={pj ? "CNPJ" : "CPF"} error={mostra(erros.documento)}><Input value={c.documento} inputMode="numeric" placeholder={pj ? "00.000.000/0000-00" : "000.000.000-00"} onChange={(e) => set("documento", pj ? maskCnpj(e.target.value) : maskCpf(e.target.value))} /></Field>
+              <Field label={pj ? "CNPJ" : "CPF"} error={mostra(erros.documento)} hint={avisoDoDocumento(c.documento, pj)}><Input value={c.documento} inputMode="numeric" placeholder={pj ? "00.000.000/0000-00" : "000.000.000-00"} onChange={(e) => set("documento", pj ? maskCnpj(e.target.value) : maskCpf(e.target.value))} /></Field>
             </div>
             <div className="vei-form__linha">
               <Field label="E-mail" error={mostra(erros.email)}><Input type="email" value={c.email} onChange={(e) => set("email", e.target.value)} /></Field>
