@@ -3,6 +3,7 @@ import { useVersaoDosDados } from "../../lib/sincronia";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, Copy, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
+import { FormCliente } from "../clientes/FormCliente";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
@@ -66,7 +67,9 @@ type Props = {
  * (como o cliente, logo abaixo do nome). O evento manda: transportes e contratos são os dele.
  */
 export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: () => void; onFechar: () => void }) {
-  const { evento, campos, tr, cheia, aoAlternarCheia, onFechar } = p;
+  const { evento, tr, cheia, aoAlternarCheia, onFechar } = p;
+  const [criandoCliente, setCriandoCliente] = useState<string | null>(null);   // nome digitado: abre o cadastro completo do cliente por cima da ficha
+  const campos = useMemo(() => p.campos.map((c) => (c.id === "cliente" && c.edicao ? { ...c, edicao: { ...c.edicao, criarNovo: { rotulo: "Criar novo cliente", aoCriar: (t: string) => setCriandoCliente(t) } } } : c)), [p.campos]);
   const navigate = useNavigate();
   const toast = useToast();
   const { aba, onAba } = p;
@@ -311,6 +314,9 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       <JanelaDoContrato contrato={contratoAberto} campos={camposC} ctx={ctxCDocs} veiculos={p.veiculos} carrosDoContrato={contratoAberto ? k.carros.filter((c) => c.contrato_id === contratoAberto.id) : []} itens={k.itens} reservasDoEvento={contratoAberto ? (ctxC.reservasDoEvento.get(contratoAberto.evento_id) ?? []) : []}
         onEditar={k.editar} onEditarAditivo={k.editarAditivo} onIncluirCarro={k.incluirCarro} onTirarCarro={k.tirarCarro} onNovoAditivo={k.novoAditivo} onTirarAditivo={k.tirarAditivo}
         onExcluir={async (c) => { await k.excluir(c); setIdContrato(null); }} onFechar={() => setIdContrato(null)} />
+      <Sheet open={criandoCliente !== null} onClose={() => setCriandoCliente(null)} title="Novo cliente" wide>
+        {criandoCliente !== null && <FormCliente embutido={{ nomeInicial: criandoCliente, onSalvo: (c) => { const campo = campos.find((x) => x.id === "cliente"); setCriandoCliente(null); if (campo) void p.onEditarEvento(evento, campo, c.id).catch((e: Error) => setFalha(e.message)); } }} />}
+      </Sheet>
       <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos" wide>
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido) return; void p.onAdicionarDesejados(evento.id, novoPedido.filter((x) => x.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
           <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />

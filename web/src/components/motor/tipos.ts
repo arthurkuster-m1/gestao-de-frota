@@ -11,6 +11,8 @@ export type EdicaoDoCampo = {
   endereco?: boolean;
   /** Campo de endereço: endereço oferecido (Tab preenche, com o campo de colar vazio). */
   sugestaoDeEndereco?: string;
+  /** Campo de opção: oferece criar um item novo (ex.: cliente) com o texto digitado; quem cria escolhe o valor depois. */
+  criarNovo?: { rotulo: string; aoCriar: (textoDigitado: string) => void };
   /** Coluna do banco que recebe o valor. */
   coluna: string;
   obrigatorio?: boolean;

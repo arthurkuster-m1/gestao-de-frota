@@ -9,12 +9,13 @@ import "../veiculos/veiculos.css";
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
 const emailOk = (s: string) => !s.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s.trim());
 
-export function FormCliente() {
+/** Página de cliente; com `embutido`, vira o formulário completo dentro de uma janela (ex.: na ficha do evento) e devolve o cliente criado sem sair da tela. */
+export function FormCliente({ embutido }: { embutido?: { nomeInicial?: string; onSalvo: (c: { id: string; nome: string }) => void } } = {}) {
   const { id } = useParams();
   const editando = !!id;
   const navigate = useNavigate();
   const toast = useToast();
-  const [c, setC] = useState<Cliente>(clienteVazio);
+  const [c, setC] = useState<Cliente>(() => (embutido?.nomeInicial ? { ...clienteVazio(), nome: embutido.nomeInicial } : clienteVazio()));
   const [carregando, setCarregando] = useState(editando);
   const [erro, setErro] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
@@ -42,18 +43,19 @@ export function FormCliente() {
     setTocado(true);
     if (invalido) return;
     setEnviando(true);
-    try { await salvarCliente(c); toast("Cliente salvo"); navigate("/clientes"); }
+    try { const novoId = await salvarCliente(c); toast("Cliente salvo"); if (embutido) embutido.onSalvo({ id: novoId, nome: c.nome.trim() }); else navigate("/clientes"); }
     catch (x) { setErro((x as Error).message); } finally { setEnviando(false); }
   }
 
+  const Envolver = ({ children }: { children: React.ReactNode }) => (embutido ? <>{children}</> : <Page>{children}</Page>);
   if (carregando) return <Page><Card><Skeleton h={28} /><div style={{ height: 12 }} /><Skeleton h={28} /></Card></Page>;
   const mostra = (m: string | null) => (tocado ? m : null);
 
   return (
-    <Page>
+    <Envolver>
       <form className="vei-form" onSubmit={(e) => void salvar(e)} noValidate>
-        <Link to="/clientes" className="ds-row" style={{ textDecoration: "none" }}><ArrowLeft size={20} />Clientes</Link>
-        <h1 className="t-h1">{editando ? "Editar cliente" : "Novo cliente"}</h1>
+        {!embutido && <Link to="/clientes" className="ds-row" style={{ textDecoration: "none" }}><ArrowLeft size={20} />Clientes</Link>}
+        {!embutido && <h1 className="t-h1">{editando ? "Editar cliente" : "Novo cliente"}</h1>}
         <p className="t-body-sm t-muted ds-row"><LockKey size={16} />CPF, CNPJ, e-mails e CNH ficam criptografados no banco.</p>
 
         <Card>
@@ -123,6 +125,6 @@ export function FormCliente() {
         {erro && <p className="t-body" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
         <div className="ds-row"><Button type="submit" size="lg" loading={enviando}>{editando ? "Salvar" : "Cadastrar"}</Button></div>
       </form>
-    </Page>
+    </Envolver>
   );
 }
