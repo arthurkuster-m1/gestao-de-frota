@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, LockKey, Plus, Trash } from "@phosphor-icons/react";
 import { Button, Card, DateField, Field, Input, Page, Segmented, Select, Skeleton, Textarea, useToast } from "../../ds";
 import { buscarCliente, clienteVazio, motoristaVazio, salvarCliente, type Cliente, type Motorista, type TipoPessoa } from "../../lib/clientes/dados";
-import { cnpjValido, cpfValido, maskCep, maskCnpj, maskCpf } from "../../lib/clientes/documentos";
+import { cnpjValido, cpfValido, maskCep, maskCnpj, maskCpf, soDigitos } from "../../lib/clientes/documentos";
 import "../veiculos/veiculos.css";
 
 const UFS = ["AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA", "MT", "MS", "MG", "PA", "PB", "PR", "PE", "PI", "RJ", "RN", "RS", "RO", "RR", "SC", "SP", "SE", "TO"];
@@ -33,7 +33,7 @@ export function FormCliente() {
     documento: !c.documento.trim() ? null : (pj ? cnpjValido(c.documento) : cpfValido(c.documento)) ? null : (pj ? "CNPJ inválido." : "CPF inválido."),
     email: emailOk(c.email) ? null : "E-mail inválido.",
     testemunha_email: emailOk(c.testemunha_email) ? null : "E-mail inválido.",
-    motoristas: c.motoristas.map((m) => ({ nome: m.nome.trim() ? null : "Informe o nome.", cpf: !m.cpf.trim() || cpfValido(m.cpf) ? null : "CPF inválido." })),
+    motoristas: c.motoristas.map((m) => ({ nome: m.nome.trim() ? null : "Informe o nome.", cpf: !m.cpf.trim() || soDigitos(m.cpf).length === 11 ? null : "O CPF precisa ter 11 dígitos." })),   // dígitos verificadores errados é só alerta (abaixo): vale o CPF que o cliente informou
   }), [c, pj]);
   const invalido = !!(erros.nome || erros.documento || erros.email || erros.testemunha_email || erros.motoristas.some((m) => m.nome || m.cpf));
 
@@ -107,7 +107,7 @@ export function FormCliente() {
                 </div>
                 <div className="vei-form__linha">
                   <Field label="Nome completo" error={mostra(erros.motoristas[i]?.nome)}><Input value={m.nome} onChange={(e) => setMot(i, "nome", e.target.value)} /></Field>
-                  <Field label="CPF" error={mostra(erros.motoristas[i]?.cpf)}><Input value={m.cpf} inputMode="numeric" placeholder="000.000.000-00" onChange={(e) => setMot(i, "cpf", maskCpf(e.target.value))} /></Field>
+                  <Field label="CPF" error={mostra(erros.motoristas[i]?.cpf)} hint={m.cpf.trim() && soDigitos(m.cpf).length === 11 && !cpfValido(m.cpf) ? "Atenção: os dígitos verificadores deste CPF não conferem. Pode salvar mesmo assim; confira com o cliente." : undefined}><Input value={m.cpf} inputMode="numeric" placeholder="000.000.000-00" onChange={(e) => setMot(i, "cpf", maskCpf(e.target.value))} /></Field>
                 </div>
                 <div className="vei-form__linha">
                   <Field label="CNH (nº do registro)"><Input value={m.cnh_registro} inputMode="numeric" onChange={(e) => setMot(i, "cnh_registro", e.target.value)} /></Field>
