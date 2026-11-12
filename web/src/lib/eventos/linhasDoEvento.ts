@@ -1,5 +1,6 @@
 import type { Transporte, Sentido, Modalidade } from "../transportes/tipos";
 import type { Veiculo } from "../veiculos/tipos";
+import { atendimentoDosPedidos } from "./desejados";
 import type { Evento, EventoLocal, ModeloDesejado, ReservaDoEvento, StatusEvento } from "./tipos";
 
 /** Uma linha da tabela de veículos do evento: um carro já definido (reserva) ou um carro PEDIDO ainda sem definição (modelo desejado). */
@@ -14,10 +15,15 @@ export const codigoDaLinha = (l: LinhaDoEvento) => (l.veiculo ? codigoDoVeiculo(
 export function montarLinhas(eventoId: string, reservas: readonly ReservaDoEvento[], pedidos: readonly ModeloDesejado[], veiculos: readonly Veiculo[]): LinhaDoEvento[] {
   const porId = new Map(veiculos.map((v) => [v.id, v]));
   const doEvento = reservas.filter((r) => r.evento_id === eventoId && r.estado !== "cancelado");
-  const pedidoDaReserva = new Map(pedidos.filter((p) => p.reserva_id).map((p) => [p.reserva_id!, p]));
+  const doPedido = pedidos.filter((p) => p.evento_id === eventoId);
+  const pedidoDaReserva = new Map(doPedido.filter((p) => p.reserva_id).map((p) => [p.reserva_id!, p]));
+  // pedido sem vínculo gravado, mas que um carro do evento já atende: conta como atendido (a linha do carro herda o pedido; não sobra linha aberta)
+  const atende = atendimentoDosPedidos(doPedido, doEvento, porId as never);
+  const reservaDoCarro = new Map(doEvento.map((r) => [r.veiculo_id, r.id]));
+  for (const [pid, vid] of atende) { const rid = reservaDoCarro.get(vid), ped = doPedido.find((x) => x.id === pid); if (rid && ped && !pedidoDaReserva.has(rid)) pedidoDaReserva.set(rid, ped); }
   const definidas: LinhaDoEvento[] = doEvento.map((r) => ({ key: `r:${r.id}`, reserva: r, pedido: pedidoDaReserva.get(r.id) ?? null, veiculo: porId.get(r.veiculo_id) ?? null }))
     .sort((a, b) => codigoDaLinha(a).localeCompare(codigoDaLinha(b), "pt-BR", { numeric: true }));
-  const abertas: LinhaDoEvento[] = pedidos.filter((p) => p.evento_id === eventoId && !p.reserva_id).sort((a, b) => a.posicao - b.posicao)
+  const abertas: LinhaDoEvento[] = doPedido.filter((p) => !p.reserva_id && !atende.has(p.id)).sort((a, b) => a.posicao - b.posicao)
     .map((p) => ({ key: `p:${p.id}`, reserva: null, pedido: p, veiculo: null }));
   return [...definidas, ...abertas];
 }

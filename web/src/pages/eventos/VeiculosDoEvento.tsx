@@ -102,6 +102,8 @@ type Props = {
   onRemoverReserva: (r: { id: string }) => Promise<void>; onNaoAtendido: (id: string, naoAtendido: boolean) => Promise<void>; onErro: (m: string) => void;
   /** Checklist (envio) do mesmo jeito para vários carros: ids das reservas e os dados comuns. */
   onChecklistEmMassa?: (reservaIds: string[], dados: DadosEmMassa) => Promise<void>;
+  /** O mesmo para o checklist de retorno. */
+  onChecklistRetornoEmMassa?: (reservaIds: string[], dados: DadosEmMassa) => Promise<void>;
 };
 
 /**
@@ -110,7 +112,7 @@ type Props = {
  * arrastar o título para mudar a ordem, selecionar células (arrastando), copiar, colar, duplicar para baixo e marcar vários carros
  * para aplicar o MESMO transporte de uma vez.
  */
-export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro, onChecklistEmMassa }: Props) {
+export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reservas, reservasSemData = [], onReservarSemData, eventos, locais, desejados, manutencoes, tr, checklists = [], onSalvarChecklist, onSalvarReserva, onReservar, onRemoverReserva, onNaoAtendido, onErro, onChecklistEmMassa, onChecklistRetornoEmMassa }: Props) {
   const toast = useToast();
   const [prefs, setPrefs] = useState<Prefs>(lerPrefs);
   const muda = (p: Prefs) => { setPrefs(p); gravarPrefs(p); };
@@ -118,6 +120,8 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   const [escolhendo, setEscolhendo] = useState<{ pedido: ModeloDesejado | null } | null>(null);
   const [checklist, setChecklist] = useState<LinhaDoEvento | null>(null);
   const [loteDeChecklist, setLoteDeChecklist] = useState<LinhaDoEvento[] | null>(null);
+  const [momentoDoLote, setMomentoDoLote] = useState<"saida" | "retorno">("saida");
+  const abrirLote = (ls: LinhaDoEvento[], m: "saida" | "retorno") => { setMomentoDoLote(m); setLoteDeChecklist(ls); };
   const [arrastoDeLargura, setArrastoDeLargura] = useState<{ id: string; w: number } | null>(null);
   const prefsAgora = useRef(prefs); prefsAgora.current = prefs;
   const larguraDe = (id: string) => (arrastoDeLargura?.id === id ? arrastoDeLargura.w : prefs.larguras[id] ?? LARGURA_PADRAO[id] ?? 160);
@@ -445,6 +449,8 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
 
   const semSaida = new Set(reservasSemChecklist(definidas.map((l) => l.reserva!), checklists, "saida"));
   const linhasSemSaida = definidas.filter((l) => semSaida.has(l.reserva!.id));
+  const semRetorno_ = new Set(reservasSemChecklist(definidas.map((l) => l.reserva!), checklists, "retorno"));
+  const linhasSemRetorno = definidas.filter((l) => semRetorno_.has(l.reserva!.id));
   const definidos = definidas.length;
   const pedidoAlvo = escolhendo?.pedido ?? null;
   const nCols = 3 + colunasInfo.length + ordenadas.length;
@@ -476,7 +482,8 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
               {(prefs.ordem || prefs.agrupar) && <Button size="sm" variant="ghost" onClick={() => muda({ ...prefs, ordem: null, agrupar: null })}>Limpar ordem e grupos</Button>}
             </div>
           </Painel>
-          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => setLoteDeChecklist(linhasSemSaida)} data-testid="checklist-de-todos" title="Checklist de envio de todos os carros que ainda não têm">Checklist<span className="mt-so-pc"> de envio</span> ({linhasSemSaida.length})</Button>}
+          {onChecklistEmMassa && linhasSemSaida.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => abrirLote(linhasSemSaida, "saida")} data-testid="checklist-de-todos" title="Checklist de envio de todos os carros que ainda não têm">Checklist<span className="mt-so-pc"> de envio</span> ({linhasSemSaida.length})</Button>}
+          {!semRetorno && onChecklistRetornoEmMassa && linhasSemRetorno.length > 0 && <Button size="sm" variant="secondary" icon={<ListChecks size={16} />} onClick={() => abrirLote(linhasSemRetorno, "retorno")} data-testid="checklist-retorno-de-todos" title="Checklist de retorno de todos os carros que ainda não têm">Checklist<span className="mt-so-pc"> de retorno</span> ({linhasSemRetorno.length})</Button>}
           <Button size="sm" icon={<Plus size={16} />} onClick={() => setEscolhendo({ pedido: null })} data-testid="adicionar-carros">Reservar<span className="mt-so-pc"> carros</span></Button>
         </div>
       </div>
@@ -493,7 +500,8 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
         <div className="mt-vde__massa" role="toolbar" aria-label="Ações em massa" data-testid="barra-em-massa">
           {marcadas.length > 0 && <>
             <b>{marcadas.length} carro{marcadas.length === 1 ? "" : "s"} marcado{marcadas.length === 1 ? "" : "s"}</b>
-            {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => setLoteDeChecklist(marcadas.filter((l) => semSaida.has(l.reserva!.id)))} data-testid="massa-checklist">Checklist de envio…</Button>}
+            {onChecklistEmMassa && marcadas.some((l) => semSaida.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => abrirLote(marcadas.filter((l) => semSaida.has(l.reserva!.id)), "saida")} data-testid="massa-checklist">Checklist de envio…</Button>}
+            {!semRetorno && onChecklistRetornoEmMassa && marcadas.some((l) => semRetorno_.has(l.reserva!.id)) && <Button size="sm" variant="secondary" icon={<ListChecks size={14} />} onClick={() => abrirLote(marcadas.filter((l) => semRetorno_.has(l.reserva!.id)), "retorno")} data-testid="massa-checklist-retorno">Checklist de retorno…</Button>}
             <Button size="sm" variant="ghost" icon={<X size={14} />} onClick={() => setMarcados(new Set())}>Limpar</Button>
           </>}
           {faixa && multiplas(faixa) && <Button size="sm" variant="secondary" icon={<CopySimple size={16} />} onClick={() => fazer.current.duplicar()} data-testid="duplicar-para-baixo" title="Ctrl + D">Duplicar para baixo</Button>}
@@ -566,7 +574,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
       <AdicionarVeiculos aberto={!!escolhendo} onFechar={() => setEscolhendo(null)} evento={evento} veiculos={veiculos} reservas={reservas} eventos={eventos} manutencoes={manutencoes}
         pedidos={desejados} pedidoInicial={pedidoAlvo?.id ?? null} onNaoAtendido={onNaoAtendido} onReservar={(ids, ini, fim, janela, pid) => onReservar(evento.id, ids, ini, fim, janela, pid ?? pedidoAlvo?.id)}
         onReservarSemData={onReservarSemData ? (ids, pid) => onReservarSemData(evento.id, ids, pid ?? pedidoAlvo?.id) : undefined} />
-      {onChecklistEmMassa && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento="saida" carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={onChecklistEmMassa} />}
+      {(onChecklistEmMassa || onChecklistRetornoEmMassa) && <ChecklistEmMassaSheet aberto={!!loteDeChecklist} onFechar={() => { setLoteDeChecklist(null); setMarcados(new Set()); }} momento={momentoDoLote} carros={(loteDeChecklist ?? []).map((l) => ({ reservaId: l.reserva!.id, codigo: codigoDaLinha(l) }))} onConfirmar={(ids, dados) => (momentoDoLote === "saida" ? onChecklistEmMassa : onChecklistRetornoEmMassa)!(ids, dados)} />}
       <Sheet open={!!checklist} onClose={() => setChecklist(null)} title="Checklists" wide>
         {checklist?.reserva && onSalvarChecklist && <ChecklistsDaReserva reservaId={checklist.reserva.id} carro={codigoDaLinha(checklist)} checklists={checklists} onSalvar={onSalvarChecklist} />}
       </Sheet>

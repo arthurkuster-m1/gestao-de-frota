@@ -14,6 +14,11 @@ describe("linhas do evento", () => {
     expect(l.map((x) => x.key)).toEqual(["r:r1", "p:p2"]);
     expect(l[0]!.pedido?.id).toBe("p1");
   });
+  it("pedido que um carro já atende (sem vínculo gravado) não sobra como linha aberta", () => {
+    const l = montarLinhas("e", [r("r1", "v1")], [p("p1")], [v("v1")]);
+    expect(l.map((x) => x.key)).toEqual(["r:r1"]);
+    expect(l[0]!.pedido?.id).toBe("p1");
+  });
   it("sem carro, o código é MODELO COR MY", () => expect(codigoDaLinha({ key: "p:p2", reserva: null, pedido: p("p2"), veiculo: null })).toBe("S10 BRANCO 2027"));
   it("herda do evento até individualizar", () => {
     const ev = { status: "planejado" as const, chegada_prevista: "2026-11-05", retirada_prevista: "2026-11-08" };
