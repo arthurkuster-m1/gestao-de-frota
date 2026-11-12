@@ -394,3 +394,6 @@
 .mt-titulo-arrasta { position: relative; }
 .mt-titulo-alca { position: absolute; right: -4px; top: 0; bottom: 0; width: 9px; cursor: col-resize; z-index: 3; touch-action: none; }
 .mt-titulo-alca:hover, .mt-titulo-alca:active { background: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+
+/* datas editáveis (chegada e retirada) na lista de eventos do carro */
+.mt-evv__datas-ed { display: grid; grid-template-columns: auto minmax(150px, 1fr); gap: 4px 8px; align-items: center; min-width: 280px; }

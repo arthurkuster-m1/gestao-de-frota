@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { CaretDown, CaretRight, MagnifyingGlass, X } from "@phosphor-icons/react";
-import { Button, DateField, Input, Select, cx } from "../../ds";
+import { Button, DateField, Input, Select, cx, useToast } from "../../ds";
 import { LinkNoLugar } from "../../app/noLugar";
 import { Tag } from "../../components/motor/Tag";
 import { formatarDiaBr } from "../../lib/motor/datas";
@@ -15,7 +15,8 @@ type Linha = { r: ReservaDoEvento; e: Evento; cliente: string; local: string; te
  * Os eventos do carro, agrupados pelo status do evento. Pesquisa em tudo que se sabe do evento (nome, responsável, contato, cliente, local, datas…),
  * filtra por status e por período, e dá para selecionar vários e "filtrar seleção".
  */
-export function EventosDoVeiculo({ reservas, eventos, clientes, locais }: { reservas: ReservaDoEvento[]; eventos: Evento[]; clientes: ReadonlyMap<string, string>; locais: readonly EventoLocal[] }) {
+export function EventosDoVeiculo({ reservas, eventos, clientes, locais, onSalvarReserva }: { /** com isto, chegada e retirada se editam aqui (e o evento e os outros lugares acompanham) */ onSalvarReserva?: (id: string, patch: { chegada?: string; retirada?: string }) => Promise<void>; reservas: ReservaDoEvento[]; eventos: Evento[]; clientes: ReadonlyMap<string, string>; locais: readonly EventoLocal[] }) {
+  const toast = useToast();
   const [busca, setBusca] = useState("");
   const [status, setStatus] = useState("");
   const [de, setDe] = useState("");
@@ -79,7 +80,10 @@ export function EventosDoVeiculo({ reservas, eventos, clientes, locais }: { rese
                     <tr key={l.r.id} className={cx(marcados.has(l.r.id) && "is-sel")} data-testid="linha-evento-do-carro">
                       <td className="mt-evv__chk"><input type="checkbox" className="mt-chk-sel" aria-label={`Selecionar ${l.e.nome}`} checked={marcados.has(l.r.id)} onChange={() => alternar(l.r.id)} /></td>
                       <td><LinkNoLugar to={`/eventos/${l.e.id}`} className="mt-reserva__evento">{l.e.nome}</LinkNoLugar>{l.e.tipo && <span className="t-body-sm t-muted"> · {l.e.tipo}</span>}</td>
-                      <td>{l.r.reserva_inicio && l.r.reserva_fim ? `${formatarDiaBr(l.r.reserva_inicio)} a ${formatarDiaBr(l.r.reserva_fim)}` : <span className="mt-vazio">Sem data</span>}</td>
+                      <td>{onSalvarReserva && l.r.reserva_inicio && l.r.reserva_fim
+                        ? <div className="mt-evv__datas-ed"><span className="t-body-sm t-muted">Chegada</span><DateField value={l.r.chegada ?? l.r.reserva_inicio} aria-label={`Chegada em ${l.e.nome}`} onChange={(e) => { if (e.target.value) void onSalvarReserva(l.r.id, { chegada: e.target.value }).catch((x: Error) => toast(x.message)); }} />
+                          {l.r.reserva_fim !== "9999-12-31" && <><span className="t-body-sm t-muted">Retirada</span><DateField value={l.r.retirada ?? l.r.reserva_fim} aria-label={`Retirada em ${l.e.nome}`} onChange={(e) => { if (e.target.value) void onSalvarReserva(l.r.id, { retirada: e.target.value }).catch((x: Error) => toast(x.message)); }} /></>}</div>
+                        : l.r.reserva_inicio && l.r.reserva_fim ? `${formatarDiaBr(l.r.reserva_inicio)} a ${formatarDiaBr(l.r.reserva_fim)}` : <span className="mt-vazio">Sem data</span>}</td>
                       <td><Tag campoId="estadoReserva" opcao={{ value: est.value, label: est.label, tom: est.tom }} /></td>
                       <td>{l.e.solicitante ?? <span className="mt-vazio">—</span>}</td><td>{l.e.contato ?? <span className="mt-vazio">—</span>}</td><td>{l.cliente || <span className="mt-vazio">—</span>}</td><td>{l.local || <span className="mt-vazio">—</span>}</td>
                     </tr>

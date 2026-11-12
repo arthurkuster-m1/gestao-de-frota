@@ -64,7 +64,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: ReservaDoEvento[
   );
 }
 
-export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { /** carros deste veículo em eventos ainda sem data */ reservasSemData?: ReservaDoEvento[]; /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
+export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao, onSalvarReserva }: { /** muda chegada/retirada de uma reserva do carro (o evento e os demais lugares acompanham) */ onSalvarReserva?: (id: string, patch: { chegada?: string; retirada?: string }) => Promise<void>; /** carros deste veículo em eventos ainda sem data */ reservasSemData?: ReservaDoEvento[]; /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
@@ -142,7 +142,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                 )}
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
-            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo reservas={[...reservas, ...reservasSemData]} eventos={eventos} clientes={clientes} locais={locais} />
+            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo onSalvarReserva={onSalvarReserva} reservas={[...reservas, ...reservasSemData]} eventos={eventos} clientes={clientes} locais={locais} />
               : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "manutencoes" && (manutencoesErro ? <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">{manutencoesErro}</EmBreve> : (
               <div className="mt-reservas-ed" data-testid="aba-manutencoes">
