@@ -1,0 +1,11 @@
+/* Tabela: a primeira linha (cabeçalho) destacada, como título das colunas. */
+.bn-editor [data-content-type="table"] th { background-color: rgb(100 160 255 / 0.14); font-weight: 600; }
+/* Várias linhas selecionadas (arrastando por cima de vários blocos): o bloco inteiro pinta. */
+.notas-varios-selecionados .bn-editor ::selection { background: transparent; }
+.notas-retangulo { position: absolute; z-index: 30; pointer-events: none; border: 1px solid rgb(100 160 255 / 0.8); background: rgb(100 160 255 / 0.12); border-radius: 2px; }
+/* O editor usa a fonte e as cores do app. */
+.an-editor .bn-container { font-family: inherit; }
+.an-editor .bn-editor { padding-inline: 0; background: transparent; }
+.an-subpagina { display: flex; align-items: center; gap: 8px; width: 100%; padding: 8px 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); color: inherit; font: inherit; font-size: 14px; font-weight: 500; text-align: left; cursor: pointer; }
+.an-subpagina:hover { background: var(--color-surface-elevated); }
+.an-editor-carregando { min-height: 220px; display: grid; place-items: center; }

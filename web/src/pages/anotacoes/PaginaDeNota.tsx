@@ -1,17 +1,18 @@
 import { useEffect, useRef, useState } from "react";
-import { Plus } from "@phosphor-icons/react";
-import { Button } from "../../ds";
-import { caminhoDaNota, type NoDaArvore, type ResumoDaNota } from "../../lib/anotacoes/paginas";
+import { caminhoDaNota, type ResumoDaNota } from "../../lib/anotacoes/paginas";
 import type { useNota } from "./useNota";
 import { SeletorDeIcone } from "./SeletorDeIcone";
+import { EditorCarregavel } from "./EditorCarregavel";
+import { lerDocumento } from "../../lib/anotacoes/documento";
 
 type Props = {
-  nota: ResumoDaNota; todas: readonly ResumoDaNota[]; filhas: NoDaArvore[]; estado: ReturnType<typeof useNota>;
-  onSelecionar: (id: string) => void; onTitulo: (titulo: string) => void; onIcone: (icone: string | null) => void; onNovaSubpagina: () => void;
+  nota: ResumoDaNota; todas: readonly ResumoDaNota[]; estado: ReturnType<typeof useNota>;
+  onSelecionar: (id: string) => void; onTitulo: (titulo: string) => void; onIcone: (icone: string | null) => void;
+  onCriarSubpagina: () => Promise<string | null>; onRemoverSubpagina: (id: string) => void; onReordenarSubpaginas: (ids: string[]) => void;
 };
 
-/** A página aberta: caminho (migalhas), ícone, título (salva sozinho) e o corpo. O corpo vira o editor de blocos na próxima etapa. */
-export function PaginaDeNota({ nota, todas, filhas, estado, onSelecionar, onTitulo, onIcone, onNovaSubpagina }: Props) {
+/** A página aberta: caminho (migalhas), ícone, título (salva sozinho) e o corpo (editor de blocos, com as subpáginas como cartões). */
+export function PaginaDeNota({ nota, todas, estado, onSelecionar, onTitulo, onIcone, onCriarSubpagina, onRemoverSubpagina, onReordenarSubpaginas }: Props) {
   const [titulo, setTitulo] = useState(nota.title);
   const timer = useRef<ReturnType<typeof setTimeout>>(undefined);
   useEffect(() => { setTitulo(nota.title); }, [nota.id]);   // trocar de página troca o título na caixa
@@ -30,14 +31,12 @@ export function PaginaDeNota({ nota, todas, filhas, estado, onSelecionar, onTitu
         onBlur={(e) => gravar(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }} />
       <p className="t-body-sm t-muted an-estado" aria-live="polite">{estado.salvando ? "Salvando…" : estado.erro ? <span style={{ color: "var(--color-error-fg)" }}>{estado.erro}</span> : ""}</p>
       <div className="an-corpo" data-testid="corpo-da-pagina">
-        <p className="t-body t-muted">O editor de blocos (texto, listas, tabelas…) chega na próxima etapa. Por enquanto você já pode criar, nomear, organizar e apagar páginas.</p>
+        {estado.nota ? (
+          <EditorCarregavel key={nota.id} inicial={lerDocumento(estado.nota.blocks)} editavel paginas={todas} paginaId={nota.id}
+            aoMudar={(blocks) => estado.mudar({ blocks })} aoAbrir={onSelecionar}
+            aoCriarSubpagina={onCriarSubpagina} aoRemoverSubpagina={onRemoverSubpagina} aoReordenarSubpaginas={onReordenarSubpaginas} />
+        ) : estado.erro ? null : <p className="t-body-sm t-muted">Abrindo…</p>}
       </div>
-      <section className="an-filhas" aria-label="Subpáginas">
-        <div className="ds-row" style={{ justifyContent: "space-between" }}><h2 className="t-h3">Subpáginas</h2><Button size="sm" variant="secondary" icon={<Plus size={16} />} onClick={onNovaSubpagina}>Nova subpágina</Button></div>
-        {filhas.length === 0 ? <p className="t-body-sm t-muted">Esta página não tem subpáginas.</p> : (
-          <div className="an-cartoes">{filhas.map((f) => <button key={f.nota.id} type="button" className="an-cartao" onClick={() => onSelecionar(f.nota.id)}><span aria-hidden>{f.nota.icon ?? "📝"}</span><span>{f.nota.title || "Sem título"}</span></button>)}</div>
-        )}
-      </section>
     </article>
   );
 }

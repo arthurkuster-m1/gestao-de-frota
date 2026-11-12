@@ -29,7 +29,8 @@ export function Anotacoes() {
   const porId = useMemo(() => new Map(vivas.map((n) => [n.id, n])), [vivas]);
   const aberta = idAberto ? porId.get(idAberto) ?? null : null;
   const pagina = useNota(aberta ? aberta.id : null);
-  const filhas = useMemo(() => (aberta ? (achar(nos, aberta.id)?.filhas ?? []) : []), [nos, aberta]);
+  const [removida, setRemovida] = useState<{ id: string; titulo: string } | null>(null);
+  const [versao, setVersao] = useState(0);   // muda para o editor reabrir (ex.: ao desfazer a remoção de um cartão)
 
   const abrir = (id: string | null) => { const p = new URLSearchParams(busca); if (id) p.set("p", id); else p.delete("p"); setBusca(p, { replace: false }); };
   useEffect(() => { if (aberta) estado.abriu(aberta.id); }, [aberta?.id]);   // eslint-disable-line react-hooks/exhaustive-deps
@@ -89,7 +90,18 @@ export function Anotacoes() {
         </aside>
         <main className="an-principal">
           {aberta ? (
-            <PaginaDeNota key={aberta.id} nota={aberta} todas={vivas} filhas={filhas} estado={pagina} onSelecionar={abrir} onTitulo={(t) => void arvore.mudar(aberta.id, { title: t })} onIcone={(i) => void arvore.mudar(aberta.id, { icon: i })} onNovaSubpagina={() => void criar(aberta.id)} />
+            <>
+              {removida && (
+                <div className="an-aviso" role="status">Subpágina “{removida.titulo || "Sem título"}” foi para a lixeira.
+                  <button type="button" onClick={() => { void arvore.restaurar(removida.id).then(() => setVersao((v) => v + 1)); setRemovida(null); }}>Desfazer</button>
+                </div>
+              )}
+              <PaginaDeNota key={`${aberta.id}-${versao}`} nota={aberta} todas={vivas} estado={pagina} onSelecionar={abrir}
+                onTitulo={(t) => void arvore.mudar(aberta.id, { title: t })} onIcone={(i) => void arvore.mudar(aberta.id, { icon: i })}
+                onCriarSubpagina={async () => (await arvore.criar(aberta.id))?.id ?? null}
+                onRemoverSubpagina={(id) => { const n = porId.get(id); setRemovida({ id, titulo: n?.title ?? "" }); void arvore.paraALixeira(id); }}
+                onReordenarSubpaginas={(ids) => ids.forEach((id, i) => { if (porId.get(id)?.position !== i + 1) void arvore.mover(id, aberta.id, i + 1); })} />
+            </>
           ) : (
             <div className="an-vazio"><Star size={28} aria-hidden /><h1 className="t-h2">Anotações</h1><p className="t-body t-muted">{arvore.carregado && vivas.length === 0 ? "Comece criando a sua primeira página." : "Escolha uma página na lateral ou crie uma nova."}</p></div>
           )}
