@@ -74,7 +74,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
     return todos
       .filter((v) => reservavelPeloCiclo(v.status_ciclo) && !jaNoEvento.has(v.id))
       .filter((v) => !selecionado || marcados.has(v.id) || combina(v, selecionado))
-      .filter((v) => !q || `${v.codigo ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""} ${v.comentarios ?? ""}`.toLowerCase().includes(q))
+      .filter((v) => !q || `${v.codigo ?? ""} ${v.pedido ?? ""} ${v.modelo} ${v.placa ?? ""} ${v.cor ?? ""} ${v.comentarios ?? ""}`.toLowerCase().includes(q))
       .map((v) => {
         const r = porCarro.get(v.id) ?? [];
         const choques = periodoOk ? conflitos({ inicio, fim }, r, evento.id) : [];
@@ -141,7 +141,7 @@ export function AdicionarVeiculos({ aberto, onFechar, evento, veiculos, reservas
         {periodoOk && <p className="t-body-sm" data-testid="periodo-reserva">Reserva do carro: <b>{formatarDiaBr(inicio)} {fim === SEM_FIM ? "em diante (sem data de retirada: reserva em aberto)" : `a ${formatarDiaBr(fim)}`}</b>.</p>}
         {pedidosDoEvento.length > 0 && <TabelaDePedidos pedidos={pedidosDoEvento} atendidos={atendidos} previsao={previsao} codigoDoCarro={codigoDe} selecionadoId={selecionado?.id ?? null} onSelecionar={setPedidoSel} onNaoAtendido={onNaoAtendido} onErro={setErro} />}
         <div className="ds-row" style={{ flexWrap: "wrap", gap: 16 }}>
-          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, modelo, placa, cor, comentário)…" aria-label="Buscar carro para reservar" style={{ maxWidth: 420 }} />
+          <Input value={busca} onChange={(e) => setBusca(e.target.value)} placeholder="Buscar carro (código, pedido, modelo, placa, cor, comentário)…" aria-label="Buscar carro para reservar" style={{ maxWidth: 420 }} />
           <label className="ds-row" style={{ gap: 6 }}><input type="checkbox" checked={soLivres} onChange={(e) => setSoLivres(e.target.checked)} data-testid="so-livres" /><span className="t-body-sm">Só disponíveis no período</span></label>
           {selecionado && <span className="t-body-sm">Mostrando os carros que encaixam em <b>{rotuloDoDesejado(selecionado)}</b> <Button type="button" size="sm" variant="ghost" onClick={() => setPedidoSel(null)}>Ver todos</Button></span>}
         </div>

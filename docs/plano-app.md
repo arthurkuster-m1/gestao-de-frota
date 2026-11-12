@@ -27,7 +27,7 @@ Para o status e o comentário dos carros nunca ficarem desatualizados, **eles n�
 
 - **Status de Uso** do veículo = calculado a partir das reservas e das manutenções: manutenção grave aberta → *Manutenção*; reserva *em uso* → *Em Uso*; *em retorno* → *Em Retorno*; reserva futura → *Reservado*; senão *Disponível*. Quem muda é a reserva (o checklist de saída muda para *em uso*; o de retorno fecha). Manutenção "não grave" não bloqueia (o carro continua indo a eventos).
 - **Agenda em texto** ("EM USO - EVENTO TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - EVENTO X 07/11 ATÉ 12/11") = calculada das reservas. A aba **Comentários** é só texto livre do Arthur.
-- **Código** = modelo + 4 últimos dígitos do VIN (coluna gerada).
+- **Código** = modelo + 4 últimos dígitos do VIN; sem VIN, modelo + número do Pedido (coluna gerada).
 - **Valor Total** do evento = soma dos transportes. **Valor real** vem do pagamento.
 - **Venda VIP liberada** = faturamento há mais de 1 ano.
 - **Divergência de contrato** = comparação entre os carros e as datas da reserva e os carros e a vigência do contrato.
