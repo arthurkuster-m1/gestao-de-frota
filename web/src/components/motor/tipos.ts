@@ -25,6 +25,8 @@ export type EdicaoDoCampo = {
 export type CampoDaTela<T> = CampoConsultavel<T> & DefinicaoDeColuna & {
   edicao?: EdicaoDoCampo;
   titulo: string;
+  /** Ícone do cabeçalho no lugar do ícone do tipo (ex.: o carro na coluna Carros). */
+  icone?: "carro";
   /** Opções fixas (status, seguro…). Sem isto, campos de opção usam os valores que existem nas linhas. */
   opcoes?: readonly OpcaoDoCampo[];
   /** Célula própria; sem isto a tabela formata pelo tipo. */

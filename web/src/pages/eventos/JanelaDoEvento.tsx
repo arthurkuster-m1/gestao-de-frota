@@ -283,7 +283,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
           <div className="mt-reservas-ed" data-testid="aba-veiculos">
             <div className="ds-stack">
               <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}><h3 className="t-h3">Modelos solicitados</h3><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
-              <TabelaDePedidos pedidos={pedidosDoEvento} atendidos={atendidos} codigoDoCarro={(id) => { const v = p.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; }} onNaoAtendido={p.onNaoAtendido} onRemover={p.onRemoverDesejado} onErro={setFalha} />
+              <TabelaDePedidos recolherReservados pedidos={pedidosDoEvento} atendidos={atendidos} codigoDoCarro={(id) => { const v = p.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; }} onNaoAtendido={p.onNaoAtendido} onRemover={p.onRemoverDesejado} onErro={setFalha} />
             </div>
             <VeiculosDoEvento semRetorno={tiposDeEvento.semRetorno(evento.tipo)} onChecklistEmMassa={p.onChecklistEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
               checklists={p.checklists} onSalvarChecklist={p.onSalvarChecklist} onSalvarReserva={p.onSalvarReserva} onReservar={p.onReservar} onRemoverReserva={p.onRemoverReserva} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />

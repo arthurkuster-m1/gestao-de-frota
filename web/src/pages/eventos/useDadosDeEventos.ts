@@ -66,6 +66,7 @@ export function useDadosDeEventos() {
     }
   }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, ck.carregado, ck.checklists, semDataOk, hoje, tiposDeEvento.tipos]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  const pedidosPorEvento = useMemo(() => { const m = new Map<string, ModeloDesejado[]>(); for (const p of desejados) { const l = m.get(p.evento_id); if (l) l.push(p); else m.set(p.evento_id, [p]); } return m; }, [desejados]);
   const ctx = useMemo<ContextoDeEventos>(() => {
     const m = new Map<string, Reserva[]>();
     for (const r of reservas) { const l = m.get(r.evento_id); if (l) l.push(r); else m.set(r.evento_id, [r]); }
@@ -73,8 +74,8 @@ export function useDadosDeEventos() {
     for (const l of locais.filter((x) => x.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
     const sd = new Map<string, ReservaDoEvento[]>();
     for (const r of reservasSemData) { const l = sd.get(r.evento_id); if (l) l.push(r); else sd.set(r.evento_id, [r]); }
-    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento, tiposDeEvento: tiposDeEvento.tipos };
-  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento, tiposDeEvento.tipos]);
+    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento, tiposDeEvento: tiposDeEvento.tipos, desejadosDoEvento: pedidosPorEvento };
+  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento, tiposDeEvento.tipos, pedidosPorEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   /** Evento colocado em uso à mão: se há carros sem checklist de envio, o app oferece fazer o de todos. */

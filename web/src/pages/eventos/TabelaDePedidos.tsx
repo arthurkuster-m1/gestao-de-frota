@@ -9,22 +9,27 @@ import type { ModeloDesejado } from "../../lib/eventos/tipos";
  * `atendidos`: pedido → carro que o atende (da reserva ligada, ou de um carro do evento que caiba). `previsao`: pedido → carro marcado agora (ainda não reservado).
  * Com `onSelecionar`, clicar numa linha a escolhe como filtro dos carros.
  */
-export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, selecionadoId, onSelecionar, onNaoAtendido, onRemover, onErro }: {
+export function TabelaDePedidos({ pedidos, atendidos, previsao, codigoDoCarro, selecionadoId, onSelecionar, onNaoAtendido, onRemover, onErro, recolherReservados = false }: {
   pedidos: readonly ModeloDesejado[]; atendidos: ReadonlyMap<string, string>; previsao?: ReadonlyMap<string, string>; codigoDoCarro: (veiculoId: string) => string;
+  /** Os pedidos já reservados ficam dentro de um toggle (fechado), para só os pendentes ocuparem espaço. */ recolherReservados?: boolean;
   selecionadoId?: string | null; onSelecionar?: (id: string | null) => void; onNaoAtendido?: (id: string, naoAtendido: boolean) => Promise<void>; /** Com isto, cada linha ganha a lixeira (pede confirmação antes de excluir o modelo solicitado). */ onRemover?: (id: string) => Promise<void>; onErro?: (m: string) => void;
 }) {
   const [excluindo, setExcluindo] = useState<ModeloDesejado | null>(null);
   const [apagando, setApagando] = useState(false);
+  const [verReservados, setVerReservados] = useState(false);
   if (pedidos.length === 0) return null;
   const muda = (id: string, v: boolean) => void onNaoAtendido?.(id, v).catch((e: Error) => onErro?.(e.message));
   const feitos = pedidos.filter((p) => atendidos.has(p.id) || previsao?.has(p.id)).length;
+  const reservado = (id: string) => atendidos.has(id) || !!previsao?.has(id);
+  const visiveis = recolherReservados && !verReservados ? pedidos.filter((p) => !reservado(p.id)) : pedidos;
   return (
     <div className="mt-ped-wrap" data-testid="pedidos-do-evento">
       <table className="mt-ped">
-        <caption className="t-body-sm t-muted" style={{ textAlign: "left", paddingBottom: 4 }}>Pedidos do evento · {feitos} de {pedidos.length} atendido{pedidos.length === 1 ? "" : "s"}{onSelecionar ? " · clique num pedido para ver os carros que encaixam" : ""}</caption>
+        <caption className="t-body-sm t-muted" style={{ textAlign: "left", paddingBottom: 4 }}>Pedidos do evento · {feitos} de {pedidos.length} atendido{pedidos.length === 1 ? "" : "s"}{onSelecionar ? " · clique num pedido para ver os carros que encaixam" : ""}{recolherReservados && feitos > 0 && <button type="button" className="mt-rap__ver" style={{ marginLeft: 10 }} aria-expanded={verReservados} onClick={() => setVerReservados((v) => !v)} data-testid="toggle-reservados">{verReservados ? "▾ Esconder os reservados" : `▸ Mostrar os ${feitos} reservado${feitos === 1 ? "" : "s"}`}</button>}</caption>
         <thead><tr><th>Status</th><th>Modelo solicitado</th><th>Cor</th><th>MY</th><th>Blindagem</th><th /></tr></thead>
         <tbody>
-          {pedidos.map((p) => {
+          {recolherReservados && !verReservados && visiveis.length === 0 && <tr><td colSpan={6} className="t-body-sm t-muted" data-testid="todos-reservados">Todos os modelos solicitados já foram reservados.</td></tr>}
+          {visiveis.map((p) => {
             const carro = atendidos.get(p.id), previsto = previsao?.get(p.id);
             const status = carro ? "reservado" : previsto ? "reservado" : p.nao_atendido ? "indisp" : "reservar";
             return (
