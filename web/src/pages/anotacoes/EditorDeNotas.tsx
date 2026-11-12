@@ -133,20 +133,28 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
     setSelecionados((atual) => ids.length > 1 ? (JSON.stringify(atual) === JSON.stringify(ids) ? atual : ids) : atual.length ? [] : atual);
   }), [editor]);
 
+  /** O "papel" em branco (fora do texto dos blocos): só aí o arrasto desenha o retângulo. Em qualquer outro ponto o clique é do editor (foco e cursor). */
+  const ehPapelEmBranco = (alvo: HTMLElement) => alvo === papel.current || alvo.classList.contains("bn-container") || alvo.classList.contains("bn-editor");
+  /** O elemento que rola (a página da anotação), para rolar sozinho quando o arrasto chega na borda. */
+  const quemRola = (el: HTMLElement | null): HTMLElement => { for (let x = el; x; x = x.parentElement) { const o = getComputedStyle(x).overflowY; if ((o === "auto" || o === "scroll") && x.scrollHeight > x.clientHeight) return x; } return (document.scrollingElement as HTMLElement) ?? document.documentElement; };
+
   function comecouArrasto(e: MouseEvent<HTMLDivElement>) {
     const caixa = papel.current;
     if (!editavel || !caixa || e.button !== 0) return;
-    // Dentro do texto (ou de um botão/menu) o mouse segue escolhendo o texto, como sempre.
-    if ((e.target as HTMLElement).closest(".bn-inline-content, button, a, input, [role='menu']")) return;
+    // Clique no texto, no marcador de lista, na tabela, num botão ou menu: é do editor (foco, cursor e seleção de texto normais).
+    if (!ehPapelEmBranco(e.target as HTMLElement)) return;
     e.preventDefault();
-    const base = caixa.getBoundingClientRect();
-    const x0 = e.clientX, y0 = e.clientY;
+    const rolagem = quemRola(caixa), ehJanela = rolagem === document.scrollingElement || rolagem === document.documentElement;
+    const topoRolado = () => (ehJanela ? window.scrollY : rolagem.scrollTop);
+    const x0 = e.clientX, yConteudo0 = e.clientY + topoRolado();   // o ponto de partida acompanha o conteúdo quando a página rola
+    let mx = e.clientX, my = e.clientY, ultimoIntervalo = "";
     arrastou.current = false;
-    const mover = (ev: globalThis.MouseEvent) => {
-      if (!arrastou.current && Math.hypot(ev.clientX - x0, ev.clientY - y0) < 4) return;
+    const atualizar = () => {
+      const y0 = yConteudo0 - topoRolado();
+      if (!arrastou.current && Math.hypot(mx - x0, my - y0) < 4) return;
       arrastou.current = true;
-      const esquerda = Math.min(x0, ev.clientX), topo = Math.min(y0, ev.clientY);
-      const largura = Math.abs(ev.clientX - x0), altura = Math.abs(ev.clientY - y0);
+      const base = caixa.getBoundingClientRect();
+      const esquerda = Math.min(x0, mx), topo = Math.min(y0, my), largura = Math.abs(mx - x0), altura = Math.abs(my - y0);
       setRetangulo({ x: esquerda - base.left, y: topo - base.top, w: largura, h: altura });
       const dentro = [...caixa.querySelectorAll<HTMLElement>(".bn-block-outer[data-id]")].filter((el) => {
         const r = el.getBoundingClientRect();
@@ -155,18 +163,37 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
       // Só os blocos mais externos tocados: o filho vai junto com o pai.
       const raizes = dentro.filter((el) => !dentro.some((o) => o !== el && o.contains(el)));
       const ids = raizes.map((el) => el.dataset.id!).filter(Boolean);
+      const intervalo = ids.length > 1 ? `${ids[0]}→${ids[ids.length - 1]}` : "";
+      if (intervalo === ultimoIntervalo) return;   // a seleção só é refeita quando muda de fato (arrastar fica leve)
+      ultimoIntervalo = intervalo;
       setSelecionados(ids.length > 1 ? ids : []);
       if (ids.length > 1) editor.setSelection(ids[0]!, ids[ids.length - 1]!);
     };
-    const soltar = () => { window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", soltar); setRetangulo(null); };
+    const mover = (ev: globalThis.MouseEvent) => { mx = ev.clientX; my = ev.clientY; atualizar(); };
+    // chegou perto da borda de cima ou de baixo: a página rola sozinha para dar para selecionar blocos fora da tela
+    const relogio = window.setInterval(() => {
+      if (!arrastou.current) return;
+      const area = ehJanela ? { top: 0, bottom: window.innerHeight } : rolagem.getBoundingClientRect();
+      const passo = my < area.top + 48 ? -Math.ceil((area.top + 48 - my) / 4) : my > area.bottom - 48 ? Math.ceil((my - (area.bottom - 48)) / 4) : 0;
+      if (passo) { if (ehJanela) window.scrollBy(0, passo); else rolagem.scrollTop += passo; atualizar(); }
+    }, 16);
+    const soltar = () => {
+      window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", soltar); window.clearInterval(relogio);
+      setRetangulo(null);
+      if (arrastou.current) editor.focus();   // com o foco no editor, Delete/Backspace, copiar, recortar e arrastar a alça já valem para todos os blocos selecionados
+    };
     window.addEventListener("mousemove", mover);
     window.addEventListener("mouseup", soltar);
   }
 
   // Clicar no "papel" abaixo do último bloco coloca o cursor no fim, num parágrafo vazio.
   function clicouNoPapel(e: MouseEvent<HTMLDivElement>) {
-    if (!editavel || e.target !== e.currentTarget) return;
+    if (!editavel || !ehPapelEmBranco(e.target as HTMLElement)) return;
     if (arrastou.current) { arrastou.current = false; return; }
+    // só vale no branco ABAIXO do último bloco (nas margens de cima/lados o clique não cria parágrafo)
+    const blocosNaTela = papel.current?.querySelectorAll<HTMLElement>(".bn-block-outer[data-id]");
+    const fimDoTexto = blocosNaTela?.length ? Math.max(...[...blocosNaTela].map((b) => b.getBoundingClientRect().bottom)) : 0;
+    if (e.target !== papel.current && e.clientY <= fimDoTexto) return;
     const blocos = editor.document;
     const ultimo = blocos[blocos.length - 1];
     if (!ultimo) return;

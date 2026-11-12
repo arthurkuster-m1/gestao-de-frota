@@ -3,7 +3,7 @@
  * O editor de Anotações abre com o conteúdo salvo, mostra a subpágina como cartão (com o título
  * vivo da árvore) e acrescenta o cartão da filha que ainda não tinha.
  */
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeAll, describe, expect, it, vi } from "vitest";
 
 import EditorDeNotas from "./EditorDeNotas";
@@ -170,5 +170,19 @@ describe("EditorDeNotas", () => {
     expect(screen.getByDisplayValue("Topo")).toBeTruthy();
     // O fluxo com JSON quebrado caiu no padrão (três etapas), e o editor segue de pé.
     expect(screen.getAllByDisplayValue("Etapa 1").length).toBe(1);
+  });
+
+  it("clique no texto é do editor (não é barrado); só o branco da página desenha o retângulo de seleção", async () => {
+    render(
+      <EditorDeNotas inicial={[{ id: "b1", type: "bulletListItem", props: {}, content: [{ type: "text", text: "Item da lista", styles: {} }], children: [] }]} editavel paginas={[nota("mae", null, "Mãe")]} paginaId="mae"
+        aoMudar={() => undefined} aoAbrir={() => undefined} aoCriarSubpagina={async () => null} aoRemoverSubpagina={() => undefined} aoReordenarSubpaginas={() => undefined} />,
+    );
+    await waitFor(() => expect(screen.getByText("Item da lista")).toBeTruthy());
+    // marcador/área do bloco (fora do texto): o navegador segue tratando o clique, senão o cursor não mudava de lugar
+    const area = document.querySelector<HTMLElement>(".bn-block-content")!;
+    expect(fireEvent.mouseDown(area, { button: 0 })).toBe(true);
+    expect(fireEvent.mouseDown(screen.getByText("Item da lista"), { button: 0 })).toBe(true);
+    // o branco da página começa a seleção por retângulo
+    expect(fireEvent.mouseDown(document.querySelector(".an-editor")!, { button: 0 })).toBe(false);
   });
 });
