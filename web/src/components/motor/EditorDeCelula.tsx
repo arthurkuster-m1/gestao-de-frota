@@ -1,3 +1,4 @@
+import { completarData } from "../../ds/calendario";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, X } from "@phosphor-icons/react";
 import { DateField, cx } from "../../ds";
@@ -60,7 +61,7 @@ function EditorDeData({ valor, obrigatorio, rotulo, onConfirmar, onCancelar }: P
   useEffect(() => {
     const campo = raiz.current?.querySelector("input"); campo?.focus(); campo?.select(); // seleciona tudo: digitar substitui a data atual
     // clicar fora (e fora do calendário, que fica na camada de cima do navegador) cancela
-    const fora = (e: PointerEvent) => { const el = e.target as HTMLElement; if (raiz.current?.contains(el) || el.closest(".ds-pop, .ds-cal")) return; if (!feito.current) { feito.current = true; onCancelar(); } };
+    const fora = (e: PointerEvent) => { const el = e.target as HTMLElement; if (raiz.current?.contains(el) || el.closest(".ds-pop, .ds-cal")) return; if (feito.current) return; const digitado = completarData(raiz.current?.querySelector("input")?.value ?? ""); if (digitado) { fim(digitado); return; } feito.current = true; onCancelar(); };   // clicou fora com "12/10" digitado: vale (completa o ano)
     document.addEventListener("pointerdown", fora, true);
     return () => document.removeEventListener("pointerdown", fora, true);
   }, [onCancelar]);

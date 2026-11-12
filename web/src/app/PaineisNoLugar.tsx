@@ -4,10 +4,11 @@ import { AvisoDeChecklistEmMassa } from "../pages/checklists/AvisoDeChecklistEmM
 import { JanelaDoEventoLigada } from "../pages/eventos/JanelaDoEventoLigada";
 import type { AbaDoEvento } from "../pages/eventos/JanelaDoEvento";
 import { useDadosDeEventos } from "../pages/eventos/useDadosDeEventos";
+import { ManutencaoNoLugar } from "../pages/manutencoes/ManutencaoNoLugar";
 import { VeiculoNoLugar } from "../pages/veiculos/VeiculoNoLugar";
 import { NoLugarContext } from "./noLugar";
 
-type Aberto = { tipo: "evento" | "veiculo"; id: string; aba: AbaDoEvento; chave: number };
+type Aberto = { tipo: "evento" | "veiculo" | "manutencao"; id: string; aba: AbaDoEvento; chave: number };
 const ABAS: AbaDoEvento[] = ["dados", "veiculos", "transportes", "contratos"];
 
 function EventoNoLugar({ item, onAba, onFechar }: { item: Aberto; onAba: (a: AbaDoEvento) => void; onFechar: () => void }) {
@@ -16,7 +17,7 @@ function EventoNoLugar({ item, onAba, onFechar }: { item: Aberto; onAba: (a: Aba
 }
 
 /**
- * Evento e veículo abrem o painel lateral POR CIMA da página em que a pessoa está (o endereço não muda): ao fechar, ela continua onde estava.
+ * Evento, veículo e manutenção abrem o painel lateral POR CIMA da página em que a pessoa está (o endereço não muda): ao fechar, ela continua onde estava.
  * Nas telas "de casa" do painel (Eventos para evento, Veículos para veículo) o painel continua sendo o da própria tela.
  */
 export function PaineisNoLugar({ children }: { children: ReactNode }) {
@@ -26,9 +27,9 @@ export function PaineisNoLugar({ children }: { children: ReactNode }) {
   const fechar = useCallback((chave: number) => setPilha((p) => p.filter((x) => x.chave !== chave)), []);
 
   const abrir = useCallback((caminho: string) => {
-    const m = /^\/(eventos|veiculos)\/([^/?#]+)(?:\?aba=([a-z]+))?/.exec(caminho);
+    const m = /^\/(eventos|veiculos|manutencoes)\/([^/?#]+)(?:\?aba=([a-z]+))?/.exec(caminho);
     if (!m || pathname.startsWith(`/${m[1]}`)) { navigate(caminho); return; }
-    const tipo = m[1] === "eventos" ? "evento" : "veiculo";
+    const tipo = m[1] === "eventos" ? "evento" : m[1] === "manutencoes" ? "manutencao" : "veiculo";
     const aba = (ABAS as string[]).includes(m[3] ?? "") ? (m[3] as AbaDoEvento) : "dados";
     setPilha((p) => (p.at(-1)?.tipo === tipo && p.at(-1)?.id === m[2] ? p : [...p, { tipo, id: m[2]!, aba, chave: Date.now() + p.length }]));
   }, [pathname, navigate]);
@@ -38,7 +39,9 @@ export function PaineisNoLugar({ children }: { children: ReactNode }) {
       {children}
       {pilha.map((item) => item.tipo === "evento"
         ? <EventoNoLugar key={item.chave} item={item} onAba={(a) => setPilha((p) => p.map((x) => (x.chave === item.chave ? { ...x, aba: a } : x)))} onFechar={() => fechar(item.chave)} />
-        : <VeiculoNoLugar key={item.chave} id={item.id} onFechar={() => fechar(item.chave)} />)}
+        : item.tipo === "manutencao"
+          ? <ManutencaoNoLugar key={item.chave} id={item.id} onFechar={() => fechar(item.chave)} />
+          : <VeiculoNoLugar key={item.chave} id={item.id} onFechar={() => fechar(item.chave)} />)}
     </NoLugarContext.Provider>
   );
 }

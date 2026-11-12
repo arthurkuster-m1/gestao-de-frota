@@ -156,7 +156,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                     const s = STATUS_MANUTENCAO.find((x) => x.value === m.status)!;
                     return (
                       <li key={m.id} className="mt-reserva">
-                        <div className="mt-reserva__topo"><Link to={`/manutencoes/${m.id}`} className="mt-reserva__evento">{m.nome}</Link><Tag opcao={{ value: s.value, label: s.label, tom: s.tom }} /></div>
+                        <div className="mt-reserva__topo"><LinkNoLugar to={`/manutencoes/${m.id}`} className="mt-reserva__evento">{m.nome}</LinkNoLugar><Tag opcao={{ value: s.value, label: s.label, tom: s.tom }} /></div>
                         <span className="t-body-sm t-muted">{[m.tipo, `${formatarDiaBr(m.data_inicio)} até ${m.data_fim ? formatarDiaBr(m.data_fim) : "em aberto"}`, m.bloqueia_uso ? "bloqueia o uso" : "não bloqueia o uso"].filter(Boolean).join(" · ")}</span>
                       </li>
                     );
