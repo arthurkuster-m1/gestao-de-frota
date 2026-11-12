@@ -9,7 +9,7 @@ export function JanelaDoEventoLigada({ d, id, aba, onAba, onFechar, onExcluido }
   return (
     <JanelaDoEvento evento={evento} aba={aba} onAba={onAba} campos={d.campos} veiculos={d.veiculos} onChecklistEmMassa={(ids, dados) => d.ck.salvarEmMassa(ids, "saida", dados)} reservas={d.reservas} reservasSemData={d.reservasSemData} onReservarSemData={d.reservarSemDatas} eventos={d.eventos ?? []} locais={d.locais} origens={d.origensExtras} desejados={d.desejados} manutencoes={d.manutencoes} tr={d.tr}
       checklists={d.ck.checklists} onSalvarChecklist={d.ck.salvar} onEditarLocal={d.editarLocal} onAdicionarLocais={d.adicionarLocais} onRemoverLocal={d.tirarLocal} onEditarEvento={d.editarEvento}
-      onSalvarReserva={d.salvarReserva} onReservar={d.reservar} onRemoverReserva={d.remover} onNaoAtendido={d.marcarNaoAtendido} onRemoverDesejado={d.removerPedido} onAdicionarDesejados={d.adicionarDesejados}
+      onSalvarReserva={d.salvarReserva} onReservar={d.reservar} onRemoverReserva={d.remover} onNaoAtendido={d.marcarNaoAtendido} onNotaDoPedido={d.salvarNotaDoPedido} onRemoverDesejado={d.removerPedido} onAdicionarDesejados={d.adicionarDesejados}
       onExcluir={async (e) => { await d.excluir(e); onExcluido(); }} onFechar={onFechar} />
   );
 }

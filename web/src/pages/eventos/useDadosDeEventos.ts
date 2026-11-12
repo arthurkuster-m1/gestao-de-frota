@@ -164,6 +164,8 @@ export function useDadosDeEventos() {
     const feitos = await criarDesejados(eventoId, pedidos, desejados.filter((d) => d.evento_id === eventoId).length);
     setDesejados((l) => [...l, ...feitos]); toast(`${feitos.length} carro${feitos.length === 1 ? "" : "s"} pedido${feitos.length === 1 ? "" : "s"}`);
   };
+  /** Anotação livre de um modelo solicitado (o que está rolando com aquele pedido). */
+  const salvarNotaDoPedido = async (id: string, nota: string | null) => { const s = await atualizarDesejado(id, { nota }); setDesejados((l) => l.map((x) => (x.id === s.id ? s : x))); };
   /** Tira um modelo do pedido do evento (a solicitação mudou). A reserva do carro que o atendia continua. */
   const removerPedido = async (id: string) => { await removerDesejado(id); setDesejados((l) => l.filter((x) => x.id !== id)); toast("Modelo solicitado excluído"); };
   /** "Veículo não estava disponível": fica registrado que o pedido não foi atendido (desfazer = false). */
@@ -177,5 +179,5 @@ export function useDadosDeEventos() {
 
   const locaisSemOrigens = useMemo(() => locais.filter((l) => l.tipo !== "origem"), [locais]);
   const origensExtras = useMemo(() => locais.filter((l) => l.tipo === "origem"), [locais]);
-  return { tiposDeEvento: tiposDeEvento.tipos, semRetornoDoTipo: tiposDeEvento.semRetorno, removerPedido, pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
+  return { salvarNotaDoPedido, tiposDeEvento: tiposDeEvento.tipos, semRetornoDoTipo: tiposDeEvento.semRetorno, removerPedido, pendenciaDeChecklist, fecharPendenciaDeChecklist: () => setPendenciaDeChecklist(null), ck, tr, manutencoes: man.manutencoes, manutencoesDoCarro: man.doCarro, editarManutencao: man.editar, criarDeManutencao: man.criar, excluirDeManutencao: man.excluir, moverManutencao: man.mover, eventos, reservas, setReservas, reservasSemData, reservarSemDatas, locais: locaisSemOrigens, origensExtras, veiculos, clientes, desejados, anotacoes, adicionarDesejados, marcarNaoAtendido, criarNota, editarNota, moverNota, excluirNota, erro, ctx, campos, editarEvento, editarReserva, salvarReserva, reservar, remover, excluir, editarLocal, adicionarLocais, tirarLocal, moverEvento, criar };
 }

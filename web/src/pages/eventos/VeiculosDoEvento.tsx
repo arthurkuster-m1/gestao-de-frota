@@ -141,6 +141,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   const [marcados, setMarcados] = useState<Set<string>>(new Set());          // carros marcados (caixinha) para ações em massa
   const [sel, setSel] = useState<{ a: Ponto; b: Ponto } | null>(null);      // bloco de células selecionado
   const arrastandoSel = useRef(false);
+  const moveuSel = useRef(false);   // arrastou sobre outras células: soltar não abre a edição
 
   const pedidosDoEvento = useMemo(() => desejados.filter((p) => p.evento_id === evento.id), [desejados, evento.id]);
   const locaisDoEvento = useMemo(() => locais.filter((l) => l.evento_id === evento.id), [locais, evento.id]);
@@ -167,10 +168,18 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
 
   // edição individual: só com o interruptor ligado (clicar numa célula herdada liga e já abre o editor)
   const [pendente, setPendente] = useState<{ l: LinhaDoEvento; id: string } | null>(null);
-  const ed = useEdicao<LinhaDoEvento>((l) => l.key, individual ? async (l, campo, valor) => {
+  const ed = useEdicao<LinhaDoEvento>((l) => l.key, async (l, campo, valor) => {
     if (!l.reserva) throw new Error("Defina o veículo desta linha primeiro.");
-    await onSalvarReserva(l.reserva.id, { [campo.edicao!.coluna]: valor } as never);
-  } : undefined);
+    const coluna = campo.edicao!.coluna;
+    if (!individual && coluna === "comentarios") {   // chave da edição individual desligada: o comentário vale para TODOS os carros do evento
+      const ids = linhas.filter((x) => x.reserva).map((x) => x.reserva!.id);
+      await Promise.all(ids.map((id) => onSalvarReserva(id, { comentarios: valor } as never)));
+      toast(`Comentário aplicado a ${ids.length} carro${ids.length === 1 ? "" : "s"}`);
+      return;
+    }
+    if (!individual) throw new Error("Ligue a Edição individual para editar só este carro.");
+    await onSalvarReserva(l.reserva.id, { [coluna]: valor } as never);
+  });
 
   const campo = (id: string, titulo: string, tipo: "texto" | "data" | "opcao", coluna: string, valorDe: (l: LinhaDoEvento) => { valor: string | null; herdado: boolean }): CampoDaTela<LinhaDoEvento> => ({
     id, titulo, tipo, largura: 160, edicao: coluna === "origem" || coluna === "endereco_chegada" || coluna === "endereco_retorno" ? { coluna, endereco: true, validar: validarEndereco, ...(coluna === "origem" ? { sugestaoDeEndereco: ORIGEM_PADRAO } : {}) } : coluna === "comentarios" ? { coluna, maxLength: 2000 } : { coluna }, valorDe: (l) => valorDe(l).valor, ...(tipo === "opcao" ? { opcoes: OPCOES_STATUS_EVENTO } : {}),
@@ -293,10 +302,12 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
 
   // ---- seleção de células: copiar, colar e duplicar para baixo
   const faixa = sel ? intervaloDe(sel.a, sel.b) : null;
-  const ref = useRef({ faixa, linhas: visiveis, colunasSel, texto: textoDaCelula });
-  ref.current = { faixa, linhas: visiveis, colunasSel, texto: textoDaCelula };   // os ouvintes do documento leem sempre o estado de agora
-  const fazer = useRef<{ colar: (m: string[][]) => void; duplicar: () => void }>({ colar: () => undefined, duplicar: () => undefined });
+  const ref = useRef({ faixa, sel, linhas: visiveis, colunasSel, texto: textoDaCelula });
+  ref.current = { faixa, sel, linhas: visiveis, colunasSel, texto: textoDaCelula };   // os ouvintes do documento leem sempre o estado de agora
+  const fazer = useRef<{ colar: (m: string[][]) => void; duplicar: () => void; abrir: (l: LinhaDoEvento, colId: string) => void }>({ colar: () => undefined, duplicar: () => undefined, abrir: () => undefined });
   fazer.current = {
+    /** Enter na célula selecionada: abre a edição dela (como no Excel). */
+    abrir: (l, colId) => { const g = camposDoBloco[colId]; if (g) edT.abrir(l, g); else if (colId === "comentarios") ed.abrir(l, campos.comentarios); else if (individual && (CAMPOS_EDITAVEIS as string[]).includes(colId)) ed.abrir(l, campos[colId as keyof typeof campos]); },
     colar: (m) => void (async () => {
       const { faixa: f, linhas: ls, colunasSel: cs } = ref.current; if (!f) return;
       if (!individual) setIndividual(true);
@@ -362,6 +373,18 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
     };
     const tecla = (e: KeyboardEvent) => {
       if (e.key === "Escape") setSel(null);
+      if ((e.key.startsWith("Arrow") || e.key === "Enter") && !e.ctrlKey && !e.metaKey && !e.altKey && !(e.target as HTMLElement | null)?.closest("input, textarea, select, [popover], dialog, a")) {
+        const { sel: atual, linhas: ls, colunasSel: cs } = ref.current;
+        if (atual && ls.length && cs.length) {
+          if (e.key === "Enter") { if ((e.target as HTMLElement | null)?.closest("button")) return; const l = ls[atual.a.l], c = cs[atual.a.c]; if (l?.reserva && c) { e.preventDefault(); fazer.current.abrir(l, c); } return; }
+          e.preventDefault();
+          const mover = atual.b ?? atual.a, dl = e.key === "ArrowDown" ? 1 : e.key === "ArrowUp" ? -1 : 0, dc = e.key === "ArrowRight" ? 1 : e.key === "ArrowLeft" ? -1 : 0;
+          const p = { l: Math.max(0, Math.min(ls.length - 1, (e.shiftKey ? mover.l : atual.a.l) + dl)), c: Math.max(0, Math.min(cs.length - 1, (e.shiftKey ? mover.c : atual.a.c) + dc)) };
+          setSel(e.shiftKey ? { a: atual.a, b: p } : { a: p, b: p });
+          requestAnimationFrame(() => { document.querySelectorAll<HTMLElement>('[data-testid="linha-veiculo"]')[p.l]?.children[2 + p.c]?.scrollIntoView({ block: "nearest", inline: "nearest" }); });
+          return;
+        }
+      }
       if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "d" && ref.current.faixa && !(e.target as HTMLElement | null)?.closest("input, textarea, select")) { e.preventDefault(); fazer.current.duplicar(); }
     };
     window.addEventListener("mouseup", solta); document.addEventListener("mousedown", fora); document.addEventListener("keydown", tecla);
@@ -375,14 +398,15 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
     const dentro = !!faixa && multiplas(faixa) && li >= faixa.l0 && li <= faixa.l1 && ci >= faixa.c0 && ci <= faixa.c1;
     const bordas = cx(dentro && "mt-sel", !!sel && sel.a.l === li && sel.a.c === ci && "mt-sel-ancora");
     return (
-      <td key={colId} className={bordas} onMouseDown={(e) => { if (e.button !== 0 || (e.target as HTMLElement).closest("button, input, a, select, textarea")) return; const p = { l: li, c: ci }; if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); } else setSel({ a: p, b: p }); arrastandoSel.current = true; }}
-        onMouseEnter={() => { if (arrastandoSel.current) setSel((v) => (v ? { a: v.a, b: { l: li, c: ci } } : v)); }}>{conteudo}</td>
+      <td key={colId} className={bordas} onMouseDown={(e) => { if (e.button !== 0 || (e.target as HTMLElement).closest("button:not(.mt-valor--edita), input, a, select, textarea")) return; const p = { l: li, c: ci }; moveuSel.current = false; if (e.shiftKey && sel) { e.preventDefault(); setSel({ a: sel.a, b: p }); } else setSel({ a: p, b: p }); arrastandoSel.current = true; }}
+        onMouseEnter={() => { if (arrastandoSel.current) { moveuSel.current = true; setSel((v) => (v ? { a: v.a, b: { l: li, c: ci } } : v)); } }}
+        onClick={(e) => { if (moveuSel.current || e.shiftKey || (e.target as HTMLElement).closest("button, input, a, select, textarea")) return; e.currentTarget.querySelector<HTMLButtonElement>("button.mt-valor--edita")?.click(); }}>{conteudo}</td>
     );
   };
   const editavel = (l: LinhaDoEvento, id: keyof typeof campos): ReactNode => {
     const c = campos[id];
     if (!l.reserva) return <span className="mt-valor">{c.celula?.(l)}</span>;
-    if (individual) return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;
+    if (individual || id === "comentarios") return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;   // comentário: com a chave desligada vale para todos os carros
     return <button type="button" className="mt-valor mt-valor--edita" title="Clique para editar este carro (liga a Edição individual)" onClick={() => { setIndividual(true); setPendente({ l, id }); toast("Edição individual ligada"); }}>{c.celula?.(l)}</button>;
   };
   /** Célula de um bloco de transporte: sempre editável direto (não depende da Edição individual). */
