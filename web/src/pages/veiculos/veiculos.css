@@ -397,3 +397,8 @@
 
 /* datas editáveis (chegada e retirada) na lista de eventos do carro */
 .mt-evv__datas-ed { display: grid; grid-template-columns: auto minmax(150px, 1fr); gap: 4px 8px; align-items: center; min-width: 280px; }
+
+/* botão de copiar ao lado do endereço */
+.mt-com-copia { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.mt-com-copia > :first-child { flex: 1; min-width: 0; }
+.mt-copiar { flex: none; }

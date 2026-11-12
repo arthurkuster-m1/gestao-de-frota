@@ -1,4 +1,5 @@
 import { Plus, Trash } from "@phosphor-icons/react";
+import { BotaoCopiar } from "../../components/motor/BotaoCopiar";
 import { CampoDeEndereco, type EnderecoConhecido } from "../../components/motor/EditorDeEndereco";
 
 /**
@@ -15,6 +16,7 @@ export function LinhaDeEndereco({ titulo, valor, onSalvar, onAdicionar, rotuloAd
       <dd className="mt-linha-end">
         <CampoDeEndereco valor={valor ?? ""} titulo={titulo} placeholder={placeholder ?? "Clique para informar"} sugestao={sugestao} comNome={comNome} nome={nome} conhecidos={conhecidos} onChange={(v, n) => onSalvar(v.trim() ? v : null, n)} />
         <span className="mt-linha-end__acoes">
+          <BotaoCopiar texto={valor} rotulo={`Copiar ${titulo.toLowerCase()}`} />
           {onRemover && <button type="button" className="mt-btn mt-btn--icone" aria-label={`Remover ${titulo}`} title="Remover" onClick={onRemover}><Trash size={18} /></button>}
           {onAdicionar && <button type="button" className="mt-btn mt-btn--icone" aria-label={rotuloAdicionar ?? "Adicionar outro"} title={rotuloAdicionar ?? "Adicionar outro"} onClick={onAdicionar} data-testid="adicionar-endereco"><Plus size={18} weight="bold" /></button>}
         </span>

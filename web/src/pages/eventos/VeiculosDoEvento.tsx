@@ -1,3 +1,4 @@
+import { BotaoCopiar } from "../../components/motor/BotaoCopiar";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { DndContext, KeyboardSensor, PointerSensor, TouchSensor, closestCenter, useSensor, useSensors, type DragEndEvent } from "@dnd-kit/core";
 import { SortableContext, arrayMove, horizontalListSortingStrategy, sortableKeyboardCoordinates } from "@dnd-kit/sortable";
@@ -421,7 +422,9 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   const editavelNoBloco = (l: LinhaDoEvento, id: string): ReactNode => {
     const c = camposDoBloco[id]!;
     if (!l.reserva) return <span className="mt-valor">—</span>;
-    return <CampoEditavel linha={l} campo={c} ed={edT} navegaveis={idsDoBloco} />;
+    const campoEd = <CampoEditavel linha={l} campo={c} ed={edT} navegaveis={idsDoBloco} />;
+    if (!ENDERECOS.includes(id)) return campoEd;
+    return <span className="mt-com-copia">{campoEd}<BotaoCopiar texto={textoDaCelula(id, l)} rotulo={`Copiar ${tituloDe(id).toLowerCase()}`} /></span>;   // endereço: botão para copiar o endereço completo
   };
 
   // ---- ordem das colunas (arrastando o título) e seleção em massa
