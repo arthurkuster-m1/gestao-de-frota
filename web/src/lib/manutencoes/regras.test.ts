@@ -29,7 +29,7 @@ describe("status de uso com manutenção", () => {
 describe("agenda com manutenção", () => {
   const nome = () => "Convenção";
   it("a manutenção aparece primeiro, com fim ou desde", () => {
-    expect(agendaTexto([res()], nome, "2026-11-05", [man({ data_fim: "2026-11-08" })])).toBe("EM MANUTENÇÃO - BATIDA 03/11 ATÉ 08/11 + RESERVADO - EVENTO CONVENÇÃO 10/11 ATÉ 20/11");
+    expect(agendaTexto([res()], nome, "2026-11-05", [man({ data_fim: "2026-11-08" })])).toBe("EM MANUTENÇÃO - BATIDA 03/11 ATÉ 08/11 + RESERVADO - CONVENÇÃO 10/11 ATÉ 20/11");
     expect(agendaTexto([], nome, "2026-11-05", [man()])).toBe("EM MANUTENÇÃO - BATIDA DESDE 03/11");
   });
   it("manutenção pronta sai da agenda", () => {

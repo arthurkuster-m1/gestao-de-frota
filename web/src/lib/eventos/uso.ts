@@ -62,7 +62,7 @@ const dm = (iso: string, anoAtual: string) => (iso.startsWith("9999") ? "tempo i
 
 /**
  * A agenda do carro em uma linha, acumulando tudo:
- * "EM USO - EVENTO TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - EVENTO X 07/11 ATÉ 12/11 + RESERVADO - EVENTO Y 20/11 ATÉ 22/11".
+ * "EM USO - TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - X 07/11 ATÉ 12/11 + RESERVADO - Y 20/11 ATÉ 22/11".
  * Datas em dd/mm (com o ano só quando não é o ano de `hoje`). Vazio quando não há reserva aberta.
  */
 export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string, manutencoes: readonly Manutencao[] = []): string {
@@ -71,7 +71,7 @@ export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoI
     .map((m) => `EM MANUTENÇÃO - ${m.nome.toUpperCase()} ${m.data_fim ? `${dm(m.data_inicio, ano)} ATÉ ${dm(m.data_fim, ano)}` : `DESDE ${dm(m.data_inicio, ano)}`}`);
   const eventos = reservas.filter(estaAberta)
     .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
-    .map((r) => `${ROTULO_DA_AGENDA[r.estado]} - EVENTO ${nomeDoEvento(r.evento_id).toUpperCase()} ${dm(r.reserva_inicio, ano)} ATÉ ${dm(r.reserva_fim, ano)}`)
+    .map((r) => `${ROTULO_DA_AGENDA[r.estado]} - ${nomeDoEvento(r.evento_id).toUpperCase()} ${dm(r.reserva_inicio, ano)} ATÉ ${dm(r.reserva_fim, ano)}`)
   ;
   return [...oficina, ...eventos].join(" + ");
 }
@@ -79,14 +79,14 @@ export function agendaTexto(reservas: readonly Reserva[], nomeDoEvento: (eventoI
 export type ItemDaAgenda = { uso: StatusDeUso; texto: string; /** Para onde a tag leva: o evento da reserva ou a manutenção. */ href: string };
 const ROTULO_ITEM: Record<string, string> = { reservado: "Reservado", em_uso: "Em uso", em_retorno: "Em retorno" };
 
-/** A agenda do carro item a item (um por reserva/manutenção abertas), na mesma ordem de `agendaTexto`: "Em uso - Evento XYZ 05/11 até 07/11". `uso` dá a cor da tag. */
+/** A agenda do carro item a item (um por reserva/manutenção abertas), na mesma ordem de `agendaTexto`: "Em uso - XYZ 05/11 até 07/11". `uso` dá a cor da tag. */
 export function agendaItens(reservas: readonly Reserva[], nomeDoEvento: (eventoId: string) => string, hoje: string, manutencoes: readonly Manutencao[] = []): ItemDaAgenda[] {
   const ano = hoje.slice(0, 4);
   const oficina = manutencoes.filter(estaEmAberto).sort((a, b) => a.data_inicio.localeCompare(b.data_inicio))
     .map((m): ItemDaAgenda => ({ uso: "manutencao", href: `/manutencoes/${m.id}`, texto: `Em manutenção - ${m.nome} ${m.data_fim ? `${dm(m.data_inicio, ano)} até ${dm(m.data_fim, ano)}` : `desde ${dm(m.data_inicio, ano)}`}` }));
   const eventos = reservas.filter(estaAberta)
     .sort((a, b) => (PRIORIDADE[a.estado]! - PRIORIDADE[b.estado]!) || a.reserva_inicio.localeCompare(b.reserva_inicio) || a.reserva_fim.localeCompare(b.reserva_fim))
-    .map((r): ItemDaAgenda => ({ uso: r.estado as StatusDeUso, href: `/eventos/${r.evento_id}`, texto: `${ROTULO_ITEM[r.estado]} - Evento ${nomeDoEvento(r.evento_id)} ${dm(r.reserva_inicio, ano)} até ${dm(r.reserva_fim, ano)}` }));
+    .map((r): ItemDaAgenda => ({ uso: r.estado as StatusDeUso, href: `/eventos/${r.evento_id}`, texto: `${ROTULO_ITEM[r.estado]} - ${nomeDoEvento(r.evento_id)} ${dm(r.reserva_inicio, ano)} até ${dm(r.reserva_fim, ano)}` }));
   return [...oficina, ...eventos];
 }
 

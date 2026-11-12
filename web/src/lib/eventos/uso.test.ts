@@ -22,14 +22,14 @@ describe("statusDeUso", () => {
 describe("agendaTexto", () => {
   it("é vazia sem reserva aberta", () => { expect(agendaTexto([], nome, hoje)).toBe(""); expect(agendaTexto([R("1", "e1", "2026-10-01", "2026-10-02", "concluido")], nome, hoje)).toBe(""); });
   it("uma reserva no formato pedido pelo Arthur", () => {
-    expect(agendaTexto([R("1", "e2", "2026-11-07", "2026-11-12", "reservado")], nome, hoje)).toBe("RESERVADO - EVENTO FEIRA DO CAMPO 07/11 ATÉ 12/11");
+    expect(agendaTexto([R("1", "e2", "2026-11-07", "2026-11-12", "reservado")], nome, hoje)).toBe("RESERVADO - FEIRA DO CAMPO 07/11 ATÉ 12/11");
   });
   it("acumula: em uso primeiro, depois as reservas por data, ligadas por ' + '", () => {
     const r = [R("a", "e3", "2026-12-20", "2026-12-22", "reservado"), R("b", "e2", "2026-11-07", "2026-11-12", "reservado"), R("c", "e1", "2026-11-04", "2026-11-05", "em_uso")];
-    expect(agendaTexto(r, nome, hoje)).toBe("EM USO - EVENTO TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - EVENTO FEIRA DO CAMPO 07/11 ATÉ 12/11 + RESERVADO - EVENTO GRAVAÇÃO VERÃO 20/12 ATÉ 22/12");
+    expect(agendaTexto(r, nome, hoje)).toBe("EM USO - TESOURARIA 04/11 ATÉ 05/11 + RESERVADO - FEIRA DO CAMPO 07/11 ATÉ 12/11 + RESERVADO - GRAVAÇÃO VERÃO 20/12 ATÉ 22/12");
   });
   it("mostra o ano só quando não é o ano corrente", () => {
-    expect(agendaTexto([R("1", "e1", "2026-12-28", "2027-01-03", "reservado")], nome, hoje)).toBe("RESERVADO - EVENTO TESOURARIA 28/12 ATÉ 03/01/27");
+    expect(agendaTexto([R("1", "e1", "2026-12-28", "2027-01-03", "reservado")], nome, hoje)).toBe("RESERVADO - TESOURARIA 28/12 ATÉ 03/01/27");
   });
 });
 
