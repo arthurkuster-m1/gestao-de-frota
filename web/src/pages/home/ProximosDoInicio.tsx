@@ -17,7 +17,7 @@ export function ProximosDoInicio() {
   const d = useDadosDeEventos();
   const hoje = hojeLocal();
   const { envios, retornos } = useMemo(() => {
-    const fatos = fatosDosEventos({ reservas: [...d.reservas, ...d.reservasSemData], vinculos: d.tr.vinculos, checklists: d.ck.checklists });
+    const fatos = fatosDosEventos({ reservas: [...d.reservas, ...d.reservasSemData], vinculos: d.tr.vinculos, transportes: d.tr.transportes, checklists: d.ck.checklists });
     const envios: Item[] = [], retornos: Item[] = [];
     for (const e of d.eventos ?? []) {
       const f = fatos.get(e.id), et = etapa(e.status), carros = f?.carros ?? 0;

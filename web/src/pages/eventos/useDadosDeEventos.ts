@@ -56,7 +56,7 @@ export function useDadosDeEventos() {
   const hoje = hojeLocal();
   useEffect(() => {
     if (eventos === null || !tr.carregado || !ck.carregado || !semDataOk) return;
-    const fatos = fatosDosEventos({ reservas: [...reservas, ...reservasSemData], vinculos: tr.vinculos, checklists: ck.checklists });
+    const fatos = fatosDosEventos({ reservas: [...reservas, ...reservasSemData], vinculos: tr.vinculos, transportes: tr.transportes, checklists: ck.checklists });
     for (const e of eventos) {
       const novo = statusAutomatico(e, fatos.get(e.id) ?? { carros: 0, comTransporteIda: 0, comTransporteVolta: 0, comChecklistSaida: 0, comChecklistRetorno: 0 }, hoje, { semRetorno: semRetornoRef.current(e.tipo) });
       const chave = `${e.id}:${novo}`;
@@ -64,7 +64,7 @@ export function useDadosDeEventos() {
       jaAutomatizados.add(chave);   // uma tentativa por mudança (se o banco recusar, não fica tentando em loop)
       void atualizarEvento(e.id, { status: novo }).then((a) => { setEventos((l) => (l ?? []).map((x) => (x.id === a.id ? a : x))); toast(`${a.nome}: agora em “${rotuloStatusEvento(novo)}”`); }, () => undefined);
     }
-  }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, ck.carregado, ck.checklists, semDataOk, hoje, tiposDeEvento.tipos]);   // eslint-disable-line react-hooks/exhaustive-deps
+  }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, tr.transportes, ck.carregado, ck.checklists, semDataOk, hoje, tiposDeEvento.tipos]);   // eslint-disable-line react-hooks/exhaustive-deps
 
   const pedidosPorEvento = useMemo(() => { const m = new Map<string, ModeloDesejado[]>(); for (const p of desejados) { const l = m.get(p.evento_id); if (l) l.push(p); else m.set(p.evento_id, [p]); } return m; }, [desejados]);
   const ctx = useMemo<ContextoDeEventos>(() => {

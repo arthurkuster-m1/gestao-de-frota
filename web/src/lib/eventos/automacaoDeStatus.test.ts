@@ -20,6 +20,14 @@ describe("automação do status do evento", () => {
     expect(statusAutomatico(ev("solicitar_transporte"), f({ comTransporteIda: 1 }), HOJE)).toBe("solicitar_transporte");
     expect(statusAutomatico(ev("solicitar_transporte"), f({ comTransporteIda: 2 }), HOJE)).toBe("envio_agendado");
   });
+  it("Envio agendado não muda por modalidade, transportadora ou valor: só pelo transporte de ida com código", () => {
+    const r = (id: string) => ({ id, evento_id: "e", estado: "reservado" }) as ReservaDoEvento;
+    const rascunhos = fatosDosEventos({ reservas: [r("a"), r("b")], vinculos: [{ id: "a", transporte_ida_id: "t1", transporte_volta_id: null }, { id: "b", transporte_ida_id: "t2", transporte_volta_id: null }], transportes: [{ id: "t1", referencia: null }, { id: "t2", referencia: "" }], checklists: [] }).get("e")!;
+    expect(rascunhos.comTransporteIda).toBe(0);
+    expect(statusAutomatico(ev("solicitar_transporte"), rascunhos, HOJE)).toBe("solicitar_transporte");
+    const comCodigo = fatosDosEventos({ reservas: [r("a"), r("b")], vinculos: [{ id: "a", transporte_ida_id: "t1", transporte_volta_id: null }, { id: "b", transporte_ida_id: "t1", transporte_volta_id: null }], transportes: [{ id: "t1", referencia: "PTAS1" }], checklists: [] }).get("e")!;
+    expect(statusAutomatico(ev("solicitar_transporte"), comCodigo, HOJE)).toBe("envio_agendado");
+  });
   it("Em uso: todos com checklist de saída", () => {
     expect(statusAutomatico(ev("envio_agendado"), f({ comChecklistSaida: 1 }), HOJE)).toBe("envio_agendado");
     expect(statusAutomatico(ev("envio_agendado"), f({ comChecklistSaida: 2 }), HOJE)).toBe("em_uso");
@@ -47,7 +55,8 @@ describe("fatos do evento", () => {
     const r = (id: string, estado: ReservaDoEvento["estado"]) => ({ id, evento_id: "e", estado }) as ReservaDoEvento;
     const m = fatosDosEventos({
       reservas: [r("a", "reservado"), r("b", "concluido"), r("c", "cancelado")],
-      vinculos: [{ id: "a", transporte_ida_id: "t", transporte_volta_id: null }],
+      vinculos: [{ id: "a", transporte_ida_id: "t", transporte_volta_id: null }, { id: "b", transporte_ida_id: "rascunho", transporte_volta_id: null }],
+      transportes: [{ id: "t", referencia: "PTAS1" }, { id: "rascunho", referencia: null }],
       checklists: [{ reserva_id: "a", momento: "saida" } as never],
     });
     expect(m.get("e")).toEqual({ carros: 2, comTransporteIda: 1, comTransporteVolta: 0, comChecklistSaida: 2, comChecklistRetorno: 1 });

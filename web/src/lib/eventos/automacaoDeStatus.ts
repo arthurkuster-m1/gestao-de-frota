@@ -1,5 +1,5 @@
 import type { Checklist } from "../checklists/tipos";
-import type { VinculoDaReserva } from "../transportes/tipos";
+import type { Transporte, VinculoDaReserva } from "../transportes/tipos";
 import { STATUS_EVENTO, type Evento, type ReservaDoEvento, type StatusEvento } from "./tipos";
 
 /** Quantos dias antes da data de envio / retirada o aviso de transporte entra. */
@@ -17,7 +17,7 @@ export function diasAte(data: string | null | undefined, hoje: string): number |
 /**
  * O status que o evento deve ter agora. Regras (só anda PARA A FRENTE; Recebido e Planejado são manuais):
  *  - Solicitar transporte: faltam 7 dias (ou menos) para a Data de Envio
- *  - Envio agendado: todos os carros têm transporte de ida
+ *  - Envio agendado: todos os carros têm o transporte de ida PREENCHIDO (o código da coluna Transporte Ida; modalidade, transportadora, valor e km não contam)
  *  - Em uso: todos os carros têm checklist de saída
  *  - Solicitar retorno: em uso e faltam 7 dias (ou menos) para a Data de Retirada
  *  - Retorno solicitado: o mesmo, e todos os carros já têm transporte de volta
@@ -47,9 +47,10 @@ export function statusAutomatico(evento: Pick<Evento, "status" | "envio_previsto
   return atual;
 }
 
-/** Os fatos de cada evento (carros ativos, quantos têm transporte e checklist). */
-export function fatosDosEventos(p: { reservas: readonly ReservaDoEvento[]; vinculos: readonly VinculoDaReserva[]; checklists: readonly Checklist[] }): Map<string, FatosDoEvento> {
+/** Os fatos de cada evento (carros ativos, quantos têm transporte e checklist). Transporte só conta com o código preenchido: o rascunho (só modalidade, transportadora ou valor) não conta. */
+export function fatosDosEventos(p: { reservas: readonly ReservaDoEvento[]; vinculos: readonly VinculoDaReserva[]; transportes: readonly Pick<Transporte, "id" | "referencia">[]; checklists: readonly Checklist[] }): Map<string, FatosDoEvento> {
   const vin = new Map(p.vinculos.map((v) => [v.id, v]));
+  const comCodigo = new Set(p.transportes.filter((t) => !!t.referencia?.trim()).map((t) => t.id));
   const ck = new Map<string, Set<string>>();
   for (const c of p.checklists) { const s = ck.get(c.reserva_id) ?? new Set<string>(); s.add(c.momento); ck.set(c.reserva_id, s); }
   const m = new Map<string, FatosDoEvento>();
@@ -58,8 +59,8 @@ export function fatosDosEventos(p: { reservas: readonly ReservaDoEvento[]; vincu
     const f = m.get(r.evento_id) ?? { carros: 0, comTransporteIda: 0, comTransporteVolta: 0, comChecklistSaida: 0, comChecklistRetorno: 0 };
     const v = vin.get(r.id), c = ck.get(r.id);
     f.carros++;
-    if (v?.transporte_ida_id) f.comTransporteIda++;
-    if (v?.transporte_volta_id) f.comTransporteVolta++;
+    if (v?.transporte_ida_id && comCodigo.has(v.transporte_ida_id)) f.comTransporteIda++;
+    if (v?.transporte_volta_id && comCodigo.has(v.transporte_volta_id)) f.comTransporteVolta++;
     if (c?.has("saida") || r.estado === "em_uso" || r.estado === "em_retorno" || r.estado === "concluido") f.comChecklistSaida++;
     if (c?.has("retorno") || r.estado === "concluido") f.comChecklistRetorno++;
     m.set(r.evento_id, f);
