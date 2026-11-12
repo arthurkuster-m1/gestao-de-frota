@@ -1,0 +1,45 @@
+/* Anotações: lateral com a árvore + a página. */
+.an-tela { display: grid; grid-template-columns: minmax(0, 1fr); gap: 20px; align-items: start; }
+@media (min-width: 900px) { .an-tela { grid-template-columns: 290px minmax(0, 1fr); } }
+.an-lateral { display: grid; gap: 10px; align-content: start; max-height: calc(100dvh - 120px); overflow-y: auto; padding-right: 4px; position: sticky; top: 8px; }
+@media (max-width: 899px) { .an-lateral { position: static; max-height: 46dvh; } }
+.an-busca { display: flex; align-items: center; gap: 6px; padding-left: 8px; color: var(--color-text-subtle); }
+.an-busca .ds-input, .an-busca input { flex: 1; min-width: 0; }
+.an-secao { display: grid; gap: 2px; }
+.an-secao__titulo { font-size: 12px; font-weight: 600; color: var(--color-text-subtle); padding: 6px 8px 2px; }
+.an-grupo { list-style: none; margin: 0; padding: 0; display: grid; gap: 1px; }
+.an-no { display: flex; align-items: center; gap: 2px; min-height: 32px; padding-right: 4px; border-radius: 6px; cursor: grab; }
+.an-no:hover { background: var(--nt-hover, var(--color-surface-elevated)); }
+.an-no.is-ativa, .an-atalho.is-ativa { background: color-mix(in srgb, var(--color-accent) 12%, var(--color-bg)); font-weight: 600; }
+.an-no__seta { display: grid; place-items: center; width: 20px; height: 24px; border: 0; background: none; color: var(--color-text-subtle); cursor: pointer; flex: none; }
+.an-no__nome, .an-atalho { display: flex; align-items: center; gap: 6px; min-width: 0; flex: 1; border: 0; background: none; font: inherit; color: inherit; text-align: left; cursor: pointer; padding: 0; }
+.an-atalho { padding: 6px 8px; border-radius: 6px; width: 100%; }
+.an-atalho:hover { background: var(--nt-hover, var(--color-surface-elevated)); }
+.an-no__icone { width: 20px; display: inline-grid; place-items: center; flex: none; }
+.an-no__titulo { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 14px; }
+.an-no__acoes { display: none; gap: 0; flex: none; }
+.an-no:hover .an-no__acoes, .an-no:focus-within .an-no__acoes { display: inline-flex; }
+.an-mini { display: grid; place-items: center; width: 24px; height: 24px; border: 0; border-radius: 4px; background: none; color: var(--color-text-subtle); cursor: pointer; }
+.an-mini:hover { background: var(--color-surface-elevated); color: var(--color-text); }
+.an-resultado { display: grid; gap: 2px; text-align: left; border: 0; background: none; font: inherit; color: inherit; padding: 8px; border-radius: 6px; cursor: pointer; }
+.an-resultado:hover { background: var(--nt-hover, var(--color-surface-elevated)); }
+.an-principal { min-width: 0; }
+.an-vazio { display: grid; justify-items: center; gap: 8px; padding: 80px 16px; text-align: center; color: var(--color-text-subtle); }
+.an-pagina { max-width: 860px; margin: 0 auto; display: grid; gap: 8px; }
+.an-migalhas { display: flex; flex-wrap: wrap; gap: 6px; font-size: 13px; }
+.an-migalhas button { border: 0; background: none; padding: 2px 4px; border-radius: 4px; color: var(--color-text-subtle); font: inherit; cursor: pointer; }
+.an-migalhas button:hover { background: var(--color-surface-elevated); }
+.an-migalhas button + button::before { content: "/"; margin-right: 6px; color: var(--color-text-subtle); }
+.an-icone { display: inline-grid; place-items: center; border: 0; border-radius: 8px; background: none; cursor: pointer; line-height: 1; color: var(--color-text-subtle); }
+.an-icone:hover { background: var(--color-surface-elevated); }
+.an-icone--grade { width: 36px; height: 36px; font-size: 22px; }
+.an-icones { display: grid; grid-template-columns: repeat(6, 1fr); gap: 2px; padding: 8px; }
+.an-icone-limpar { border: 0; border-top: 1px solid var(--color-border); background: none; padding: 8px; width: 100%; font: inherit; font-size: 13px; color: var(--color-text-subtle); cursor: pointer; }
+.an-titulo { width: 100%; border: 0; outline: none; background: none; font: inherit; font-size: 34px; font-weight: 600; padding: 4px 0; color: var(--color-text); }
+.an-titulo::placeholder { color: var(--color-text-subtle); opacity: .6; }
+.an-estado { min-height: 18px; margin: 0; }
+.an-corpo { min-height: 220px; padding: 8px 0 24px; }
+.an-filhas { display: grid; gap: 10px; border-top: 1px solid var(--color-border); padding-top: 16px; }
+.an-cartoes { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 8px; }
+.an-cartao { display: flex; align-items: center; gap: 8px; padding: 12px; border: 1px solid var(--color-border); border-radius: 8px; background: var(--color-surface); font: inherit; color: inherit; text-align: left; cursor: pointer; }
+.an-cartao:hover { background: var(--nt-hover, var(--color-surface-elevated)); }

@@ -19,6 +19,7 @@ import { Manutencoes } from "./pages/manutencoes/Manutencoes";
 import { ChecklistsPagina } from "./pages/checklists/ChecklistsPagina";
 import { Lancamentos } from "./pages/lancamentos/Lancamentos";
 import { Configuracoes } from "./pages/configuracoes/Configuracoes";
+import { Anotacoes } from "./pages/anotacoes/Anotacoes";
 import { Planejamento } from "./pages/planejamento/Planejamento";
 import { Clientes } from "./pages/clientes/Clientes";
 import { FormCliente } from "./pages/clientes/FormCliente";
@@ -52,6 +53,7 @@ function Autenticado() {
           <Route path="lancamentos" element={<Lancamentos />} />
           <Route path="checklists" element={<ChecklistsPagina />} />
           <Route path="configuracoes" element={<Configuracoes />} />
+          <Route path="anotacoes" element={<Anotacoes />} />
           <Route path="eventos/massa" element={<MassaEventos />} />
           <Route path="eventos/:id?" element={<Eventos />} />
           <Route path="manutencoes/:id?" element={<Manutencoes />} />
@@ -60,7 +62,7 @@ function Autenticado() {
           <Route path="clientes" element={<Clientes />} />
           <Route path="clientes/novo" element={<FormCliente />} />
           <Route path="clientes/:id" element={<FormCliente />} />
-          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento" && d.path !== "/lancamentos" && d.path !== "/checklists" && d.path !== "/configuracoes").map((d) => (
+          {DESTINOS.filter((d) => d.path !== "/" && d.path !== "/veiculos" && d.path !== "/clientes" && d.path !== "/eventos" && d.path !== "/manutencoes" && d.path !== "/transportes" && d.path !== "/contratos" && d.path !== "/planejamento" && d.path !== "/lancamentos" && d.path !== "/checklists" && d.path !== "/configuracoes" && d.path !== "/anotacoes").map((d) => (
             <Route key={d.path} path={d.path.slice(1)} element={<EmBreve destino={d} />} />
           ))}
           <Route path="*" element={<Navigate to="/" replace />} />

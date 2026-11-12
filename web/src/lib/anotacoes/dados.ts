@@ -39,10 +39,8 @@ export async function criarNota(n: { parent_id: string | null; title?: string; p
 export async function editarNota(id: string, patch: { title?: string; icon?: string | null; blocks?: Documento; parent_id?: string | null; position?: number }, atual?: { title: string; blocks: Documento }): Promise<ResumoDaNota> {
   const corpo: Record<string, unknown> = { ...patch };
   if (patch.title !== undefined) corpo.title = patch.title.trim();
-  if (patch.title !== undefined || patch.blocks !== undefined) {
-    const titulo = (patch.title ?? atual?.title ?? "").trim(), blocos = patch.blocks ?? atual?.blocks ?? [];
-    Object.assign(corpo, camposDeBusca(titulo, blocos));
-  }
+  if (patch.blocks !== undefined) Object.assign(corpo, camposDeBusca((patch.title ?? atual?.title ?? "").trim(), patch.blocks));   // conteúdo novo: refaz a busca inteira
+  else if (patch.title !== undefined) corpo.title_fold = camposDeBusca(patch.title.trim(), []).title_fold;                   // só o título: o texto da busca não se mexe
   const { data, error } = await supabase.from("notes_pages").update(corpo as never).eq("id", id).select(COLUNAS_DO_RESUMO).single();
   if (error) throw traduzir(error);
   return { ...comoResumo(data), position: Number((data as { position: unknown }).position) };

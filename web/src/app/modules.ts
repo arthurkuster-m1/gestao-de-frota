@@ -1,5 +1,5 @@
 import type { Icon } from "@phosphor-icons/react";
-import { ListPlus, ClipboardText, House, CalendarBlank, Car, CalendarCheck, Users, FileText, Truck, Wrench, Warning, ArrowUUpLeft, ChartLineUp, GearSix } from "@phosphor-icons/react";
+import { ListPlus, ClipboardText, House, CalendarBlank, Car, CalendarCheck, Users, FileText, Truck, Wrench, Warning, ArrowUUpLeft, ChartLineUp, GearSix, Note } from "@phosphor-icons/react";
 
 export type Destino = {
   path: string; label: string; Icon: Icon;
@@ -26,6 +26,7 @@ export const DESTINOS: Destino[] = [
   { path: "/multas", label: "Multas", Icon: Warning, desc: "AIT, quem estava com o carro e a cobrança", itens: ["Evento descoberto pela data e hora da infração", "Notificação recebida, pagamento, boleto e cobrança do cliente"] },
   { path: "/devolucoes", label: "Devoluções", Icon: ArrowUUpLeft, desc: "Planejar quais carros saem da frota", itens: ["Sugestões: mais velhos, parados, sem uso", "Devolver ou manter, com data", "Trocas planejadas e meta de 200 carros"] },
   { path: "/financeiro", label: "Dashboard financeiro", Icon: ChartLineUp, desc: "Custos por veículo, evento e mês", itens: ["Transporte, manutenções, multas e seguro", "Por transportadora e por mês"] },
+  { path: "/anotacoes", label: "Anotações", Icon: Note, pronto: true, desc: "Bloco de notas em páginas e subpáginas", itens: [] },
   { path: "/configuracoes", label: "Configurações", Icon: GearSix, desc: "Conta, aparência e backup", itens: ["Aparência", "Backup", "Segurança da conta"] },
 ];
 
