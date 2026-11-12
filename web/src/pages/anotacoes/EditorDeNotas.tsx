@@ -7,6 +7,7 @@ import { BlockNoteView } from "@blocknote/mantine";
 import { createContext, useContext, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import { FileText } from "@phosphor-icons/react";
 import { ajustarCartoes, cartoesDoDocumento, type Documento } from "../../lib/anotacoes/documento";
+import { ITENS_DOS_BLOCOS_VISUAIS, blocosVisuais } from "./blocos-visuais";
 import type { ResumoDaNota } from "../../lib/anotacoes/paginas";
 
 /** O que o cartão de subpágina precisa saber da árvore (o título e o ícone mudam fora do editor). */
@@ -32,7 +33,7 @@ const criarSubpagina = createReactBlockSpec(
 
 // Sem imagem, vídeo, áudio nem arquivo: o app não guarda arquivos de anotações.
 const { image: _i, video: _v, audio: _a, file: _f, ...blocosPermitidos } = defaultBlockSpecs;
-const esquema = BlockNoteSchema.create({ blockSpecs: { ...blocosPermitidos, subpagina: criarSubpagina() } });
+const esquema = BlockNoteSchema.create({ blockSpecs: { ...blocosPermitidos, subpagina: criarSubpagina(), ...blocosVisuais } });
 const SEM_ARQUIVOS = ["image", "video", "audio", "file"];
 
 export interface PropsDoEditorDeNotas {
@@ -101,6 +102,10 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
               insertOrUpdateBlockForSlashMenu(editor, { type: "table", content: { type: "tableContent", headerRows: 1, rows: [linha(), linha(), linha()] } } as never);
             } }
           : i),
+      ...ITENS_DOS_BLOCOS_VISUAIS.map((b) => ({
+        key: b.tipo, title: b.titulo, subtext: b.descricao, aliases: b.aliases, group: "Blocos visuais", icon: <FileText size={18} aria-hidden />,
+        onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: b.tipo } as never); },
+      })),
       {
         key: "subpagina", title: "Subpágina", subtext: "Uma página dentro desta, como um cartão.", aliases: ["subpagina", "pagina", "page", "nova"], group: "Páginas",
         icon: <FileText size={18} aria-hidden />,
