@@ -402,3 +402,7 @@
 .mt-com-copia { display: flex; align-items: center; gap: 4px; min-width: 0; }
 .mt-com-copia > :first-child { flex: 1; min-width: 0; }
 .mt-copiar { flex: none; }
+
+/* link do contrato na tabela: texto cortado + botão de abrir */
+.mt-link-contrato { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
+.mt-link-contrato > a:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }

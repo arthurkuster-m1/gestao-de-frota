@@ -1,3 +1,4 @@
+import { ArrowSquareOut } from "@phosphor-icons/react";
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { divergenciasDoEvento } from "../../lib/contratos/regras";
 import { STATUS_ADITIVO, STATUS_CONTRATO, TIPOS_ADITIVO, rotuloTipoAditivo, type Aditivo, type AditivoVeiculo, type Contrato, type ContratoVeiculo } from "../../lib/contratos/tipos";
@@ -8,6 +9,8 @@ const op = (l: readonly { value: string; label: string; tom: OpcaoDoCampo["tom"]
 export const OPCOES_STATUS_CONTRATO = op(STATUS_CONTRATO);
 export const OPCOES_STATUS_ADITIVO = op(STATUS_ADITIVO);
 export const OPCOES_TIPO_ADITIVO = op(TIPOS_ADITIVO);
+/** Endereço http(s) completo (a plataforma de assinatura abre numa página). */
+export const linkValido = (t: string) => { try { const u = new URL(t.trim()); return u.protocol === "https:" || u.protocol === "http:"; } catch { return false; } };
 export const codigoDoCarro = (v: Veiculo | undefined) => (v ? (v.codigo ?? v.modelo.toUpperCase()) : "?");
 
 export type EmVigor = { vigencia: { inicio: string | null; fim: string | null }; carros: Set<string>; aditivos: Aditivo[] };
@@ -40,6 +43,14 @@ export const camposDoContrato = (ctx: ContextoDeContratos): CampoDaTela<Contrato
       <button type="button" className="mt-btn" onClick={() => d.baixarContrato(c)} title="Baixar o contrato em DOCX" data-testid="tabela-baixar-contrato">⬇ Contrato</button>
       {ads.map((a, n) => <button key={a.id} type="button" className="mt-btn" onClick={() => d.baixarAditivo(c, a, n + 1)} title={a.titulo ?? `Aditivo ${n + 1}`} data-testid="tabela-baixar-aditivo">⬇ Aditivo {n + 1}</button>)}
     </span>; } },
+  { id: "link", titulo: "Link (assinatura)", tipo: "texto", valorDe: (c) => c.link ?? null, largura: 300,
+    edicao: { coluna: "link", maxLength: 2000, placeholder: "Cole o link do contrato na plataforma de assinatura", normalizar: (t) => (/^https?:\/\//i.test(t.trim()) || !t.trim() ? t.trim() : `https://${t.trim()}`), validar: (t) => (linkValido(t) ? null : "Link inválido: cole o endereço completo (https://…).") },
+    celula: (c) => c.link
+      ? <span className="mt-link-contrato" onClick={(e) => e.stopPropagation()}>
+          <a href={c.link} target="_blank" rel="noopener noreferrer" title={c.link} data-testid="link-do-contrato">{c.link.replace(/^https?:\/\//i, "")}</a>
+          <a className="mt-btn mt-btn--icone" href={c.link} target="_blank" rel="noopener noreferrer" aria-label="Abrir o contrato na plataforma de assinatura" title="Abrir o contrato na plataforma de assinatura" data-testid="abrir-link-do-contrato"><ArrowSquareOut size={16} /></a>
+        </span>
+      : <span className="mt-vazio">Clique para colar o link</span> },
   { id: "emailParte", titulo: "E-mail da parte", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.email || null, largura: 240 },
   { id: "testemunha", titulo: "Testemunha", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.testemunha || null, largura: 200 },
   { id: "emailTestemunha", titulo: "E-mail da testemunha", tipo: "texto", valorDe: (c) => ctx.contatos.get(c.cliente_id)?.testemunhaEmail || null, largura: 240 },
