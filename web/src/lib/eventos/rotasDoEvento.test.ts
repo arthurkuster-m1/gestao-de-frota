@@ -28,4 +28,16 @@ describe("datas de envio e retorno", () => {
     expect(r.avisos.join(" ")).toMatch(/data de chegada/);
     expect(r.avisos.join(" ")).toMatch(/Faltou origem/);
   });
+  it("o mapa não achou a distância: usa o km digitado à mão no evento", async () => {
+    const r = await calcularDatasDoEvento({ evento: { ...ev, distancia_ida_km: 1000, distancia_volta_km: 1500 } as Evento, reservas: [carro("a")], locais: [local], distancia: dist({}) });
+    expect(r.kmIda).toBe(1000);
+    expect(r.envio).toBe("2026-11-08");     // 2 dias antes de 10/11
+    expect(r.retorno).toBe("2026-11-17");   // 3 dias depois de 14/11
+    expect(r.avisos.join(" ")).toMatch(/km digitado/);
+    expect(r.avisos.join(" ")).not.toMatch(/Faltou origem/);
+  });
+  it("o mapa achou: o km medido vale mais que o digitado", async () => {
+    const r = await calcularDatasDoEvento({ evento: { ...ev, distancia_ida_km: 1000, distancia_volta_km: 1000 } as Evento, reservas: [carro("a")], locais: [local], distancia: dist({ "ORIGEM→LOCAL": 400, "LOCAL→ORIGEM": 400 }) });
+    expect(r.kmIda).toBe(400);
+  });
 });

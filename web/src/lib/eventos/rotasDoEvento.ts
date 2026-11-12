@@ -32,10 +32,13 @@ export async function calcularDatasDoEvento(p: {
   const alvos: (ReservaDoEvento | undefined)[] = abertas.length ? abertas : [undefined];
   const porCarro: DatasDoCarro[] = [];
   let envio: string | null = null, retorno: string | null = null, kmIda: number | null = null, kmVolta: number | null = null;
-  let semChegada = false, semRetirada = false, semRota = false;
+  let semChegada = false, semRetirada = false, semRota = false, usouManual = false;
   for (const r of alvos) {
     const ef = valoresEfetivos({ reserva: r } as never, evento, locais);
-    const ki = await km(ef.origem.valor, ef.enderecoChegada.valor), kv = await km(ef.enderecoChegada.valor, ef.enderecoRetorno.valor);
+    const medidoIda = await km(ef.origem.valor, ef.enderecoChegada.valor), medidoVolta = await km(ef.enderecoChegada.valor, ef.enderecoRetorno.valor);
+    // o mapa não achou a distância: vale o km digitado à mão no evento
+    const ki = medidoIda ?? evento.distancia_ida_km ?? null, kv = medidoVolta ?? evento.distancia_volta_km ?? null;
+    if (medidoIda === null && ki !== null || medidoVolta === null && kv !== null) usouManual = true;
     if (ki === null || kv === null) semRota = true;
     const dIda = diasDeViagem(ki, "pta"), dVolta = diasDeViagem(kv, "pta");
     const e = ef.chegada.valor ? somaDias(ef.chegada.valor, -dIda) : null, t = ef.retirada.valor ? somaDias(ef.retirada.valor, dVolta) : null;
@@ -44,7 +47,8 @@ export async function calcularDatasDoEvento(p: {
     if (e && (!envio || e < envio)) envio = e; if (t && (!retorno || t > retorno)) retorno = t;
     if (ki !== null && (kmIda === null || ki > kmIda)) kmIda = ki; if (kv !== null && (kmVolta === null || kv > kmVolta)) kmVolta = kv;
   }
-  if (semRota) avisos.push("Faltou origem, endereço de chegada ou de retorno (ou não consegui medir a distância) em alguma rota: o km dela ficou de fora.");
+  if (usouManual) avisos.push("Não consegui medir alguma rota: usei o km digitado à mão.");
+  if (semRota) avisos.push("Faltou origem, endereço de chegada ou de retorno (ou não consegui medir a distância e não há km digitado) em alguma rota: o km dela ficou de fora.");
   if (semChegada) avisos.push("Preencha a data de chegada para gerar o envio.");
   if (semRetirada) avisos.push("Preencha a data de retirada para gerar o retorno.");
   return { envio, retorno, kmIda, kmVolta, porCarro, avisos };

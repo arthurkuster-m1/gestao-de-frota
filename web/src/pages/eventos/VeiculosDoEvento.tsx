@@ -171,13 +171,12 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   const ed = useEdicao<LinhaDoEvento>((l) => l.key, async (l, campo, valor) => {
     if (!l.reserva) throw new Error("Defina o veículo desta linha primeiro.");
     const coluna = campo.edicao!.coluna;
-    if (!individual && coluna === "comentarios") {   // chave da edição individual desligada: o comentário vale para TODOS os carros do evento
+    if (!individual) {   // chave da edição individual desligada: o que se preenche vale para TODOS os carros do evento
       const ids = linhas.filter((x) => x.reserva).map((x) => x.reserva!.id);
-      await Promise.all(ids.map((id) => onSalvarReserva(id, { comentarios: valor } as never)));
-      toast(`Comentário aplicado a ${ids.length} carro${ids.length === 1 ? "" : "s"}`);
+      await Promise.all(ids.map((id) => onSalvarReserva(id, { [coluna]: valor } as never)));
+      toast(`Aplicado a ${ids.length} carro${ids.length === 1 ? "" : "s"}`);
       return;
     }
-    if (!individual) throw new Error("Ligue a Edição individual para editar só este carro.");
     await onSalvarReserva(l.reserva.id, { [coluna]: valor } as never);
   });
 
@@ -225,7 +224,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [campos, evento, tr.transportes, tr.vinculos]);
   /** Grava o valor de uma célula de bloco de transporte. Datas valem para TODOS os carros do mesmo transporte; endereços são de cada carro. */
-  const gravarNoBloco = async (l: LinhaDoEvento, cp: CampoDaTela<LinhaDoEvento>, bruto: string | number | boolean | null) => {
+  const gravarUm = async (l: LinhaDoEvento, cp: CampoDaTela<LinhaDoEvento>, bruto: string | number | boolean | null) => {
     const r = reservaDe(l); if (!r) throw new Error("Defina o veículo desta linha primeiro.");
     const col = cp.edicao!.coluna; const valor = typeof bruto === "boolean" ? null : bruto;
     const sentido: Sentido = cp.id.endsWith("Volta") || col === "retirada" || col === "retorno" || cp.id === "enderecoEventoVolta" || cp.id === "enderecoRetorno" ? "volta" : "ida";
@@ -244,7 +243,13 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
     }
     await onSalvarReserva(r.id, { [col]: valor } as never);
   };
-  const edT = useEdicao<LinhaDoEvento>((l) => l.key, async (l, cp, valor) => { await gravarNoBloco(l, cp, valor as string | number | null); });
+  /** Chave da edição individual desligada: o valor vai para TODOS os carros do evento (um de cada vez, na ordem da tabela); ligada: só para o carro editado. */
+  const edT = useEdicao<LinhaDoEvento>((l) => l.key, async (l, cp, valor) => {
+    if (individual) { await gravarUm(l, cp, valor as string | number | null); return; }
+    const alvos = [l, ...linhas.filter((x) => x.reserva && x.key !== l.key)].filter((x) => x.reserva);
+    for (const x of alvos) await gravarUm(x, cp, valor as string | number | null);
+    if (alvos.length > 1) toast(`Aplicado a ${alvos.length} carros`);
+  });
   const idsDoBloco = ordenadas.filter((c) => c in camposDoBloco);
 
   /** KM do carro: o do transporte dele (ida ou volta); sem transporte, o do evento. */
@@ -328,7 +333,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
           const prep = prepararEdicao(cp.tipo, cp.edicao!, bruto);
           if (!prep.ok) { pulados++; erro ??= `${cp.titulo}: ${prep.erro}`; continue; }
           const reservaId = l.reserva.id;
-          tarefas.push({ chave: reservaId, executar: async () => { try { if (noBloco) await gravarNoBloco(l, cp, prep.valor); else await onSalvarReserva(reservaId, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
+          tarefas.push({ chave: reservaId, executar: async () => { try { if (noBloco) await gravarUm(l, cp, prep.valor); else await onSalvarReserva(reservaId, { [cp.edicao!.coluna]: prep.valor } as never); ok++; } catch (x) { pulados++; erro ??= `${cp.titulo}: ${(x as Error).message}`; } } });
         }
       }
       // tudo de uma vez: grava as linhas em paralelo, com a ordem congelada até o fim
@@ -345,7 +350,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
         for (let c = f.c0; c <= f.c1; c++) {
           const colId = cs[c]; if (!colId) continue;
           const noBloco = camposDoBloco[colId];
-          if (noBloco) { const valor = noBloco.valorDe(origem); for (const l of destinos) { await gravarNoBloco(l, noBloco, (valor ?? null) as string | number | null); n++; } }
+          if (noBloco) { const valor = noBloco.valorDe(origem); for (const l of destinos) { await gravarUm(l, noBloco, (valor ?? null) as string | number | null); n++; } }
           else if ((CAMPOS_EDITAVEIS as string[]).includes(colId)) {
             const cp = campos[colId as keyof typeof campos]; const valor = cp.valorDe(origem);
             for (const l of destinos) { await onSalvarReserva(l.reserva!.id, { [cp.edicao!.coluna]: (valor ?? null) } as never); n++; }
@@ -406,8 +411,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
   const editavel = (l: LinhaDoEvento, id: keyof typeof campos): ReactNode => {
     const c = campos[id];
     if (!l.reserva) return <span className="mt-valor">{c.celula?.(l)}</span>;
-    if (individual || id === "comentarios") return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;   // comentário: com a chave desligada vale para todos os carros
-    return <button type="button" className="mt-valor mt-valor--edita" title="Clique para editar este carro (liga a Edição individual)" onClick={() => { setIndividual(true); setPendente({ l, id }); toast("Edição individual ligada"); }}>{c.celula?.(l)}</button>;
+    return <CampoEditavel linha={l} campo={c} ed={ed} navegaveis={navegaveis} />;   // chave desligada: vale para todos os carros; ligada: só para este
   };
   /** Célula de um bloco de transporte: sempre editável direto (não depende da Edição individual). */
   const editavelNoBloco = (l: LinhaDoEvento, id: string): ReactNode => {
@@ -450,7 +454,7 @@ export function VeiculosDoEvento({ semRetorno = false, evento, veiculos, reserva
       <div className="mt-vde__barra">
         <div className="mt-vde__titulo"><h3 className="t-h3">Carros</h3><span className="mt-vde__contagem" title="Carros já escolhidos / pedidos ainda sem carro">{definidos} definido{definidos === 1 ? "" : "s"}{linhas.length - definidos > 0 ? ` · ${linhas.length - definidos} a definir` : ""}</span></div>
         <div className="mt-vde__ferramentas">
-          <span title="Liga a edição de status, transporte, origem, datas e endereço de cada carro"><Switch checked={individual} onChange={setIndividual} label="Edição individual" /></span>
+          <span title="Desligada: o que você preencher vale para todos os carros do evento. Ligada: cada carro é editado sozinho."><Switch checked={individual} onChange={setIndividual} label="Edição individual" /></span>
           <Painel rotulo="Colunas" icone={<Columns size={18} />} contagem={prefs.colunas.length} largura={280} testid="colunas-do-evento">
             <div className="mt-painel__corpo">
               <p className="t-body-sm t-muted">Dados do veículo</p>
