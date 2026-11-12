@@ -36,7 +36,8 @@ export function GerarContrato({ aberto, onFechar, evento, clientes, reservas, ve
     try {
       if (cliente !== (evento.cliente_id ?? "")) await onEscolherCliente(cliente);   // contrato e evento ficam com o MESMO cliente
       const c = await k.criarDoEvento({ evento: { ...evento, cliente_id: cliente }, clienteId: cliente, reservas: doEvento, veiculos: new Map(veiculos.map((v) => [v.id, v])), locais });
-      baixarArquivo(await gerarContratoDocx(c.snapshot as unknown as SnapshotDoContrato), nomeDoArquivoDoContrato(evento.nome));
+      const snap = c.snapshot as unknown as SnapshotDoContrato;
+      baixarArquivo(await gerarContratoDocx(snap), nomeDoArquivoDoContrato(evento.nome, snap.dataInicio, snap.dataFim));
       toast("Contrato gerado: o DOCX foi baixado");
       onFechar(); onGerado?.(c);
     } catch (e) { setFalha((e as Error).message); } finally { setEnviando(false); }
