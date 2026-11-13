@@ -26,60 +26,27 @@ export function termoDeBusca(bruto: string): string {
 
 export const TETO_DO_TEXTO_DE_BUSCA = 200_000;
 
-function textoDoInline(item: unknown, saida: string[]): void {
-  if (typeof item === "string") {
-    saida.push(item);
-    return;
-  }
-  if (Array.isArray(item)) {
-    for (const filho of item) textoDoInline(filho, saida);
-    return;
-  }
-  if (typeof item !== "object" || item === null) return;
-  const i = item as { text?: unknown; content?: unknown };
-  if (typeof i.text === "string") saida.push(i.text);
-  if (Array.isArray(i.content)) for (const filho of i.content) textoDoInline(filho, saida);
-}
-
-function textoDosDados(bruto: unknown, saida: string[]): void {
-  if (typeof bruto !== "string") return;
-  try {
-    const valor: unknown = JSON.parse(bruto);
-    const anda = (v: unknown): void => {
-      if (typeof v === "string") saida.push(v);
-      else if (Array.isArray(v)) v.forEach(anda);
-      else if (typeof v === "object" && v !== null) Object.values(v).forEach(anda);
-    };
-    anda(valor);
-  } catch {
-    // dado ruim não entra na busca
-  }
-}
-
-/** O texto corrido do documento: parágrafos, títulos, listas, células de tabela e blocos visuais. */
+/** O texto corrido do documento (nós do Tiptap): cada bloco numa linha; texto de células, listas e toggles entram. */
 export function textoDoDocumento(documento: readonly unknown[]): string {
   const partes: string[] = [];
-  const anda = (blocos: readonly unknown[]) => {
-    for (const b of blocos) {
-      if (typeof b !== "object" || b === null) continue;
-      const bloco = b as { content?: unknown; props?: { dados?: unknown }; children?: unknown };
-      const linha: string[] = [];
-      const c = bloco.content;
-      if (Array.isArray(c)) {
-        for (const item of c) textoDoInline(item, linha);
-      } else if (typeof c === "object" && c !== null) {
-        // Tabela: { type: "tableContent", rows: [{ cells: [ [inline] | { content: [inline] } ] }] }
-        const linhas = (c as { rows?: unknown }).rows;
-        if (Array.isArray(linhas)) {
-          for (const l of linhas) {
-            const celulas = (l as { cells?: unknown }).cells;
-            if (Array.isArray(celulas)) for (const cel of celulas) textoDoInline(cel, linha);
-          }
-        }
-      }
-      textoDosDados(bloco.props?.dados, linha);
-      if (linha.length) partes.push(linha.join(" "));
-      if (Array.isArray(bloco.children)) anda(bloco.children);
+  const BLOCOS_DE_TEXTO = new Set(["paragraph", "heading", "codeBlock", "detailsSummary"]);
+  const juntar = (n: unknown, saida: string[]): void => {
+    if (typeof n !== "object" || n === null) return;
+    const no = n as { type?: unknown; text?: unknown; content?: unknown };
+    if (typeof no.text === "string") saida.push(no.text);
+    else if (no.type === "hardBreak") saida.push(" ");
+    if (Array.isArray(no.content)) for (const f of no.content) juntar(f, saida);
+  };
+  const anda = (nos: readonly unknown[]) => {
+    for (const n of nos) {
+      if (typeof n !== "object" || n === null) continue;
+      const no = n as { type?: unknown; content?: unknown };
+      if (typeof no.type === "string" && BLOCOS_DE_TEXTO.has(no.type)) {
+        const linha: string[] = [];
+        juntar(no, linha);
+        const t = linha.join("");
+        if (t.trim()) partes.push(t);
+      } else if (Array.isArray(no.content)) anda(no.content);
     }
   };
   anda(documento);
