@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
-import { Button, Combobox, DateField, Field, Input, Select, Sheet, Switch, Textarea } from "../../ds";
+import { Button, Combobox, DateField, Field, Input, Select, Sheet, Switch, Textarea, ValorInput } from "../../ds";
 import { hojeLocal } from "../../lib/motor/datas";
 import { STATUS_MANUTENCAO, TIPOS_MANUTENCAO, type Manutencao, type ManutencaoNova, type StatusManutencao } from "../../lib/manutencoes/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 import "../veiculos/veiculos.css";
 
-type Estado = { veiculo: string; nome: string; tipo: string; status: StatusManutencao; inicio: string; ocorrencia: string; da: string; bloqueia: boolean; descricao: string };
-const vazio = (veiculo: string, inicio?: string | null): Estado => ({ veiculo, nome: "", tipo: "", status: "solicitar_da", inicio: inicio || hojeLocal(), ocorrencia: "", da: "", bloqueia: true, descricao: "" });
+type Estado = { veiculo: string; nome: string; tipo: string; status: StatusManutencao; inicio: string; ocorrencia: string; da: string; bloqueia: boolean; valor: number; descricao: string };
+const vazio = (veiculo: string, inicio?: string | null): Estado => ({ veiculo, nome: "", tipo: "", status: "solicitar_da", inicio: inicio || hojeLocal(), ocorrencia: "", da: "", bloqueia: true, valor: 0, descricao: "" });
 
 /** Nova manutenção (ou sinistro): escolhe o carro, dá o nome e as datas. "Bloqueia o uso" diz se o carro pode ir a evento enquanto está na oficina. */
 export function NovaManutencao({ aberto, onFechar, veiculos, veiculoInicial, dataInicial, onCriar, onCriada }: {
@@ -25,7 +25,7 @@ export function NovaManutencao({ aberto, onFechar, veiculos, veiculoInicial, dat
     setFalha(null); setEnviando(true);
     try {
       const m = await onCriar({ veiculo_id: f.veiculo, nome: f.nome, tipo: f.tipo || null, status: f.status, data_inicio: f.inicio || hojeLocal(),
-        data_ocorrencia: f.ocorrencia || null, data_da_solicitada: f.da || null, bloqueia_uso: f.bloqueia, descricao: f.descricao.trim() || null });
+        data_ocorrencia: f.ocorrencia || null, data_da_solicitada: f.da || null, bloqueia_uso: f.bloqueia, valor: f.valor / 100, descricao: f.descricao.trim() || null });
       onFechar(); onCriada?.(m);
     } catch (e) { setFalha((e as Error).message); } finally { setEnviando(false); }
   }
@@ -45,7 +45,7 @@ export function NovaManutencao({ aberto, onFechar, veiculos, veiculoInicial, dat
         </div>
         <div className="vei-form__linha">
           <Field label="DA solicitada em"><DateField value={f.da} onChange={(e) => set("da", e.target.value)} /></Field>
-          <div />
+          <Field label="Valor (R$)"><ValorInput value={f.valor} onChange={(c) => set("valor", c)} aria-label="Valor da manutenção em reais" data-testid="valor-manutencao" /></Field>
         </div>
         <div className="ds-row" style={{ justifyContent: "space-between" }}><span className="t-body" style={{ fontWeight: 600 }}>Bloqueia o uso do carro</span><Switch checked={f.bloqueia} onChange={(v) => set("bloqueia", v)} label="Bloqueia o uso do carro" /></div>
         <Field label="Descrição do acidente"><Textarea rows={4} value={f.descricao} onChange={(e) => set("descricao", e.target.value)} /></Field>

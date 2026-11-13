@@ -4,12 +4,12 @@ import type { Manutencao, ManutencaoNova } from "./tipos";
 export class ErroManutencao extends Error {}
 function traduzir(e: { code?: string; message: string }): ErroManutencao {
   if (/manutencoes/.test(e.message) && /schema cache|does not exist/.test(e.message)) return new ErroManutencao("As manutenções ainda não foram ativadas no banco (falta aplicar a migration 0008).");
-  if (e.code === "23514") return new ErroManutencao(/_nome_check/.test(e.message) ? "O nome não pode ficar vazio." : /_status_check/.test(e.message) ? "O status é inválido." : /manutencoes_check|data_fim/.test(e.message) ? "O fim não pode ser antes do início." : "Algum campo está inválido.");
+  if (e.code === "23514") return new ErroManutencao(/_nome_check/.test(e.message) ? "O nome não pode ficar vazio." : /_status_check/.test(e.message) ? "O status é inválido." : /manutencoes_check|data_fim/.test(e.message) ? "O fim não pode ser antes do início." : /valor/.test(e.message) ? "O valor não pode ser negativo." : "Algum campo está inválido.");
   if (e.code === "23503") return new ErroManutencao("O veículo não existe mais.");
   if (e.code === "42501") return new ErroManutencao("Sem permissão. Entre de novo na conta.");
   return new ErroManutencao(e.message);
 }
-const COLUNAS = "id, veiculo_id, nome, tipo, status, data_ocorrencia, data_da_solicitada, data_inicio, data_fim, bloqueia_uso, descricao, comentarios, created_at";
+const COLUNAS = "id, veiculo_id, nome, tipo, status, data_ocorrencia, data_da_solicitada, data_inicio, data_fim, bloqueia_uso, valor, descricao, comentarios, created_at";
 
 export async function listarManutencoes(): Promise<Manutencao[]> {
   const { data, error } = await supabase.from("manutencoes").select(COLUNAS).order("data_inicio", { ascending: false }).order("id", { ascending: true }).limit(5000);

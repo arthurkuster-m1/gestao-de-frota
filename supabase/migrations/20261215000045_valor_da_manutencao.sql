@@ -1,0 +1,2 @@
+-- manifest: valor (R$) da manutenção. Reparos feitos na concessionária são pagos à parte; os da oficina própria custam 0,00 (por isso 0 é válido). NULL = ainda não informado. O app conta o valor como PAGO só quando a manutenção está "Pronto" (a data de liberação, data_fim, é a data do pagamento); antes disso é só previsto. Idempotente. NÃO aplicar sem o aval do Arthur.
+alter table public.manutencoes add column if not exists valor numeric(12, 2) check (valor is null or valor >= 0);

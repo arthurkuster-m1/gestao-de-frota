@@ -1,6 +1,7 @@
 import type { CampoDaTela, OpcaoDoCampo } from "../../components/motor/tipos";
 import { STATUS_MANUTENCAO, TIPOS_MANUTENCAO, type Manutencao } from "../../lib/manutencoes/tipos";
 import { eventoResponsavel } from "../../lib/manutencoes/regras";
+import { reais } from "../../lib/transportes/regras";
 import type { Reserva } from "../../lib/eventos/tipos";
 import type { Veiculo } from "../../lib/veiculos/tipos";
 
@@ -19,6 +20,7 @@ export const camposDaManutencao = (ctx: ContextoDeManutencoes): CampoDaTela<Manu
   { id: "bloqueia", titulo: "Bloqueia o uso", tipo: "caixa", valorDe: (m) => m.bloqueia_uso, largura: 140, edicao: { coluna: "bloqueia_uso" } },
   { id: "inicio", titulo: "Início", tipo: "data", valorDe: (m) => m.data_inicio, largura: 150, edicao: { coluna: "data_inicio", obrigatorio: true } },
   { id: "fim", titulo: "Fim", tipo: "data", valorDe: (m) => m.data_fim, largura: 150, edicao: { coluna: "data_fim" } },
+  { id: "valor", titulo: "Valor (R$)", tipo: "numero", valorDe: (m) => m.valor, celula: (m) => (m.valor === null ? "—" : reais(m.valor)), largura: 150, edicao: { coluna: "valor", placeholder: "0,00" } },
   { id: "evento", titulo: "Evento responsável", tipo: "texto", valorDe: (m) => { if (!ctx.carregado) return null; const e = eventoResponsavel(m, ctx.reservasDoCarro.get(m.veiculo_id) ?? []); return e ? ctx.nomeDoEvento(e) : null; }, largura: 240 },
   { id: "ocorrencia", titulo: "Data do acidente", tipo: "data", valorDe: (m) => m.data_ocorrencia, largura: 170, padrao: false, edicao: { coluna: "data_ocorrencia" } },
   { id: "da", titulo: "DA solicitada em", tipo: "data", valorDe: (m) => m.data_da_solicitada, largura: 170, padrao: false, edicao: { coluna: "data_da_solicitada" } },

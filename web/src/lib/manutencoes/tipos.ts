@@ -15,9 +15,9 @@ export const TIPOS_MANUTENCAO = ["Sinistro", "Mecânica", "Funilaria e pintura",
 export type Manutencao = {
   id: string; veiculo_id: string; nome: string; tipo: string | null; status: StatusManutencao;
   data_ocorrencia: string | null; data_da_solicitada: string | null; data_inicio: string; data_fim: string | null;
-  bloqueia_uso: boolean; descricao: string | null; comentarios: string | null; created_at: string;
+  bloqueia_uso: boolean; valor: number | null; descricao: string | null; comentarios: string | null; created_at: string;
 };
 export type ManutencaoNova = {
   veiculo_id: string; nome: string; tipo?: string | null; status?: StatusManutencao; data_ocorrencia?: string | null; data_da_solicitada?: string | null;
-  data_inicio?: string; data_fim?: string | null; bloqueia_uso?: boolean; descricao?: string | null; comentarios?: string | null;
+  data_inicio?: string; data_fim?: string | null; bloqueia_uso?: boolean; valor?: number | null; descricao?: string | null; comentarios?: string | null;
 };

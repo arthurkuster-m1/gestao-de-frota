@@ -2,10 +2,10 @@ import { describe, expect, it } from "vitest";
 import { agendaTexto, statusDeUso } from "../eventos/uso";
 import type { Reserva } from "../eventos/tipos";
 import { barrasDeManutencao } from "./barras";
-import { eventoResponsavel, manutencoesQueBloqueiam, reajustarManutencao } from "./regras";
+import { custoDaManutencao, eventoResponsavel, manutencoesQueBloqueiam, reajustarManutencao } from "./regras";
 import type { Manutencao } from "./tipos";
 
-const man = (p: Partial<Manutencao> = {}): Manutencao => ({ id: "m1", veiculo_id: "v1", nome: "Batida", tipo: "Sinistro", status: "solicitar_da", data_ocorrencia: null, data_da_solicitada: null, data_inicio: "2026-11-03", data_fim: null, bloqueia_uso: true, descricao: null, comentarios: null, created_at: "2026-11-03T10:00:00Z", ...p });
+const man = (p: Partial<Manutencao> = {}): Manutencao => ({ id: "m1", veiculo_id: "v1", nome: "Batida", tipo: "Sinistro", status: "solicitar_da", data_ocorrencia: null, data_da_solicitada: null, data_inicio: "2026-11-03", data_fim: null, bloqueia_uso: true, valor: null, descricao: null, comentarios: null, created_at: "2026-11-03T10:00:00Z", ...p });
 const res = (p: Partial<Reserva> = {}): Reserva => ({ id: "r1", evento_id: "e1", veiculo_id: "v1", reserva_inicio: "2026-11-10", reserva_fim: "2026-11-20", chegada: null, retirada: null, estado: "reservado", comentarios: null, ...p });
 
 describe("status de uso com manutenção", () => {
@@ -84,5 +84,16 @@ describe("barras", () => {
     expect([a!.tom, b!.tom, c!.tom]).toEqual(["warning", "info", "success"]);
     expect(a!.fim).toBe("2026-11-05");
     expect(c!.fim).toBe("2026-11-04");
+  });
+});
+
+describe("custoDaManutencao", () => {
+  it("só conta como pago quando está pronta, na data de liberação", () => {
+    expect(custoDaManutencao(man({ valor: 1500, status: "pronto", data_fim: "2026-11-10" }))).toEqual({ pago: 1500, previsto: 0, dataDoPagamento: "2026-11-10" });
+    expect(custoDaManutencao(man({ valor: 1500, status: "em_reparo" }))).toEqual({ pago: 0, previsto: 1500, dataDoPagamento: null });
+  });
+  it("aceita 0,00 (oficina própria) e valor vazio", () => {
+    expect(custoDaManutencao(man({ valor: 0, status: "pronto", data_fim: "2026-11-10" })).pago).toBe(0);
+    expect(custoDaManutencao(man({ valor: null })).previsto).toBe(0);
   });
 });

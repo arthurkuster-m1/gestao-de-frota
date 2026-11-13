@@ -52,3 +52,13 @@ export function reajustarManutencao(m: DatasDaManutencao, modo: ModoDeArrasto, d
   const base = fimDaBarra(m, hoje); const novo = somarDias(base, delta);
   return { data_inicio: m.data_inicio, data_fim: novo < m.data_inicio ? m.data_inicio : novo };
 }
+
+/**
+ * Custo da manutenção para gráficos e dashboards. Só conta como PAGO quando ela está "Pronto": a data de liberação (data_fim) é a data do pagamento.
+ * Antes disso o valor é só PREVISTO (sem data de pagamento ainda). Valor vazio conta como 0.
+ */
+export function custoDaManutencao(m: Pick<Manutencao, "status" | "valor" | "data_fim" | "data_inicio">): { pago: number; previsto: number; dataDoPagamento: string | null } {
+  const valor = m.valor ?? 0;
+  if (m.status === "pronto") return { pago: valor, previsto: 0, dataDoPagamento: m.data_fim ?? m.data_inicio };
+  return { pago: 0, previsto: valor, dataDoPagamento: null };
+}

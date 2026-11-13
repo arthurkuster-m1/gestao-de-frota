@@ -7,7 +7,7 @@ const d = {
   veiculos: [{ id: "v1", codigo: "ONIX RS 1111", placa: "ABC1D23", vin: "11111111111111111", modelo: "Onix", status_ciclo: "disponivel_sem_faturamento", pedido: "P1", blindado: false }],
   eventos: [{ id: "e1", nome: "Feira", status: "planejado", tipo: null, solicitante: null, contato: null }],
   reservas: [],
-  manutencoes: [{ id: "m1", veiculo_id: "v1", nome: "Batida", status: "solicitar_da", data_inicio: "2026-11-01", data_fim: null, bloqueia_uso: true }],
+  manutencoes: [{ id: "m1", veiculo_id: "v1", nome: "Batida", status: "solicitar_da", data_inicio: "2026-11-01", data_fim: null, bloqueia_uso: true, valor: null }],
 } as unknown as Dados;
 
 describe("lançamentos: registro", () => {
