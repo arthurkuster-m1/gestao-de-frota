@@ -18,10 +18,10 @@ const estado = { nota: { blocks: [] }, salvando: false, erro: null, mudar: vi.fn
 describe("Página de anotação", () => {
   it("Enter no título leva o cursor para a primeira linha do texto", async () => {
     render(<PaginaDeNota nota={nota} todas={[nota]} estado={estado} onSelecionar={() => undefined} onTitulo={() => undefined} onIcone={() => undefined} onCriarSubpagina={async () => null} onRemoverSubpagina={() => undefined} onReordenarSubpaginas={() => undefined} />);
-    await waitFor(() => expect(document.querySelector(".bn-editor[contenteditable='true']")).toBeTruthy());
+    await waitFor(() => expect(document.querySelector(".ProseMirror[contenteditable='true']")).toBeTruthy());
     const titulo = screen.getByTestId("titulo-da-pagina"); titulo.focus();
     fireEvent.keyDown(titulo, { key: "Enter" });
-    await waitFor(() => expect(document.activeElement?.closest(".bn-editor")).toBeTruthy());
+    await waitFor(() => expect(document.activeElement?.closest(".ProseMirror")).toBeTruthy());
     expect(document.activeElement).not.toBe(titulo);
   });
 });

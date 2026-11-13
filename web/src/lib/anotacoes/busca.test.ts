@@ -19,60 +19,24 @@ describe("anotações — busca", () => {
     expect(termoDeBusca("a".repeat(200))).toHaveLength(80);
   });
 
-  it("extrai o texto de parágrafos, links, tabelas, blocos visuais e filhos", () => {
+  it("extrai o texto de parágrafos, links, listas, tabelas, toggles e quebras", () => {
+    const tx = (text: string, marks?: unknown[]) => ({ type: "text", text, ...(marks ? { marks } : {}) });
     const doc = [
-      {
-        id: "1",
-        type: "paragraph",
-        content: [{ type: "text", text: "Briefing do cliente" }],
-        children: [
-          {
-            id: "2",
-            type: "paragraph",
-            content: [
-              { type: "link", href: "x", content: [{ type: "text", text: "site oficial" }] },
-            ],
-          },
-        ],
-      },
-      {
-        id: "3",
-        type: "table",
-        content: {
-          type: "tableContent",
-          rows: [
-            {
-              cells: [
-                [{ type: "text", text: "Canal" }],
-                { content: [{ type: "text", text: "Instagram" }] },
-              ],
-            },
-          ],
-        },
-      },
-      {
-        id: "4",
-        type: "fluxo",
-        props: { dados: JSON.stringify([{ titulo: "Captar", texto: "anúncios" }]) },
-      },
-      { id: "5", type: "matriz", props: { dados: "{não é json" } },
+      { type: "paragraph", content: [tx("Briefing do cliente")] },
+      { type: "paragraph", content: [tx("site oficial", [{ type: "link", attrs: { href: "https://x.com" } }])] },
+      { type: "bulletList", content: [{ type: "listItem", content: [{ type: "paragraph", content: [tx("item da lista")] }] }] },
+      { type: "table", content: [{ type: "tableRow", content: [{ type: "tableHeader", content: [{ type: "paragraph", content: [tx("Canal")] }] }, { type: "tableCell", content: [{ type: "paragraph", content: [tx("Instagram")] }] }] }] },
+      { type: "details", content: [{ type: "detailsSummary", content: [tx("Resumo")] }, { type: "detailsContent", content: [{ type: "paragraph", content: [tx("escondido")] }] }] },
+      { type: "subpagina", attrs: { pageId: "x" } },
     ];
     const texto = textoDoDocumento(doc);
-    for (const parte of [
-      "Briefing do cliente",
-      "site oficial",
-      "Canal",
-      "Instagram",
-      "Captar",
-      "anúncios",
-    ]) {
-      expect(texto).toContain(parte);
-    }
+    for (const parte of ["Briefing do cliente", "site oficial", "item da lista", "Canal", "Instagram", "Resumo", "escondido"]) expect(texto).toContain(parte);
+    expect(texto.split("\n").length).toBe(7);
   });
 
   it("monta os três campos de busca", () => {
     const c = camposDeBusca("Reunião", [
-      { id: "1", type: "paragraph", content: [{ type: "text", text: "Orçamento aprovado" }] },
+      { type: "paragraph", content: [{ type: "text", text: "Orçamento aprovado" }] },
     ]);
     expect(c.title_fold).toBe("reuniao");
     expect(c.search_text).toBe("Orçamento aprovado");

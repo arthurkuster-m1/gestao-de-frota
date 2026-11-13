@@ -21,7 +21,7 @@ export function PaginaDeNota({ nota, todas, estado, onSelecionar, onTitulo, onIc
   /** Clicar no branco da página (fora de título, ícone, migalhas e do próprio texto) já leva o cursor para escrever: acima do texto na primeira linha, abaixo no fim. */
   function clicouNoBranco(e: React.MouseEvent<HTMLDivElement>) {
     const alvo = e.target as HTMLElement;
-    if (alvo.classList.contains("an-editor") || alvo.closest("button, input, a, nav, .bn-container, [role='menu'], [role='dialog']")) return;   // o próprio editor trata o clique nele
+    if (alvo.classList.contains("an-editor") || alvo.closest("button, input, a, nav, .an-editor, .an-slash, .an-barra, [role='menu'], [role='dialog']")) return;   // o próprio editor trata o clique nele
     const corpo = e.currentTarget.querySelector(".an-corpo")?.getBoundingClientRect();
     if (corpo && e.clientY < corpo.top) cursor.current?.inicio(); else cursor.current?.fim();
   }

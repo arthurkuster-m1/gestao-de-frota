@@ -1,40 +1,18 @@
-import "@blocknote/mantine/style.css";
 import "./editor-de-notas.css";
-import { BlockNoteSchema, defaultBlockSpecs, filterSuggestionItems, getDefaultSlashMenuItems, insertOrUpdateBlockForSlashMenu } from "@blocknote/core";
-import * as locales from "@blocknote/core/locales";
-import { SuggestionMenuController, createReactBlockSpec, useCreateBlockNote } from "@blocknote/react";
-import { BlockNoteView } from "@blocknote/mantine";
-import { createContext, useContext, useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
-import { FileText } from "@phosphor-icons/react";
-import { ajustarCartoes, cartoesDoDocumento, type Documento } from "../../lib/anotacoes/documento";
-import { ITENS_DOS_BLOCOS_VISUAIS, blocosVisuais } from "./blocos-visuais";
+import StarterKit from "@tiptap/starter-kit";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
+import { TableKit } from "@tiptap/extension-table";
+import { Details, DetailsContent, DetailsSummary } from "@tiptap/extension-details";
+import { Placeholder } from "@tiptap/extensions";
+import { EditorContent, useEditor, type Editor } from "@tiptap/react";
+import { BubbleMenu } from "@tiptap/react/menus";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { ajustarCartoes, cartoesDoDocumento, terminarComParagrafo, type Documento } from "../../lib/anotacoes/documento";
+import { linkSeguro } from "../../lib/anotacoes/sanear";
 import type { ResumoDaNota } from "../../lib/anotacoes/paginas";
-
-/** O que o cartão de subpágina precisa saber da árvore (o título e o ícone mudam fora do editor). */
-interface ContextoDasSubpaginas { paginas: readonly ResumoDaNota[]; abrir: (id: string) => void }
-const Contexto = createContext<ContextoDasSubpaginas>({ paginas: [], abrir: () => undefined });
-
-function CartaoDeSubpagina({ pageId }: { pageId: string }) {
-  const { paginas, abrir } = useContext(Contexto);
-  const pagina = paginas.find((p) => p.id === pageId && !p.deleted_at);
-  if (!pagina) return null;
-  return (
-    <button type="button" contentEditable={false} className="an-subpagina" onClick={() => abrir(pageId)}>
-      {pagina.icon ? <span style={{ fontSize: 18, lineHeight: 1 }}>{pagina.icon}</span> : <FileText size={18} aria-hidden />}
-      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{pagina.title || "Sem título"}</span>
-    </button>
-  );
-}
-
-const criarSubpagina = createReactBlockSpec(
-  { type: "subpagina", propSchema: { pageId: { default: "" } }, content: "none" },
-  { render: (props) => <CartaoDeSubpagina pageId={props.block.props.pageId} /> },
-);
-
-// Sem imagem, vídeo, áudio nem arquivo: o app não guarda arquivos de anotações.
-const { image: _i, video: _v, audio: _a, file: _f, ...blocosPermitidos } = defaultBlockSpecs;
-const esquema = BlockNoteSchema.create({ blockSpecs: { ...blocosPermitidos, subpagina: criarSubpagina(), ...blocosVisuais } });
-const SEM_ARQUIVOS = ["image", "video", "audio", "file"];
+import { AlcaDeArrastar } from "./AlcaDeArrastar";
+import { criarMenuSlash, type ItemDoMenu } from "./MenuSlash";
+import { ContextoSubpaginas, Subpagina } from "./SubpaginaNo";
 
 export interface PropsDoEditorDeNotas {
   /** O conteúdo salvo. Lido UMA vez, ao abrir (use `key={id}` para trocar de página). */
@@ -55,176 +33,192 @@ export interface PropsDoEditorDeNotas {
   aoPronto?: (cursor: { inicio: () => void; fim: () => void }) => void;
 }
 
-function temaAtual(): "light" | "dark" { return document.documentElement.getAttribute("data-theme") === "dark" ? "dark" : "light"; }
+/** Os blocos do menu "/". */
+function itensDoMenu(criarSubpagina: () => Promise<string | null>): ItemDoMenu[] {
+  const bloco = (titulo: string, descricao: string, apelidos: string[], rodar: (c: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>): ItemDoMenu => ({
+    titulo, descricao, apelidos, executar: (editor, intervalo) => { rodar(editor.chain().focus().deleteRange(intervalo)).run(); },
+  });
+  return [
+    bloco("Texto", "Um parágrafo simples.", ["texto", "paragrafo", "p"], (c) => c.setParagraph()),
+    bloco("Título 1", "Título grande.", ["titulo", "h1", "cabecalho"], (c) => c.setHeading({ level: 1 })),
+    bloco("Título 2", "Título médio.", ["titulo", "h2", "cabecalho"], (c) => c.setHeading({ level: 2 })),
+    bloco("Título 3", "Título pequeno.", ["titulo", "h3", "cabecalho"], (c) => c.setHeading({ level: 3 })),
+    bloco("Lista de tarefas", "Itens com caixinha de marcar.", ["tarefa", "todo", "checkbox", "checklist"], (c) => c.toggleTaskList()),
+    bloco("Lista com marcadores", "Uma lista com bolinhas.", ["marcadores", "bullet", "lista"], (c) => c.toggleBulletList()),
+    bloco("Lista numerada", "Uma lista com números.", ["numerada", "numeros", "lista"], (c) => c.toggleOrderedList()),
+    {
+      titulo: "Toggle", descricao: "Um título que abre e fecha o conteúdo.", apelidos: ["toggle", "recolher", "detalhes", "sanfona"],
+      // Nasce aberto, com o cursor no título.
+      executar: (editor, intervalo) => { editor.chain().focus().deleteRange(intervalo).setDetails().updateAttributes("details", { open: true }).run(); },
+    },
+    bloco("Tabela", "Linhas e colunas, com cabeçalho.", ["tabela", "table", "grade"], (c) => c.insertTable({ rows: 3, cols: 3, withHeaderRow: true })),
+    bloco("Citação", "Um trecho em destaque.", ["citacao", "quote", "aspas"], (c) => c.toggleBlockquote()),
+    bloco("Código", "Um bloco de código.", ["codigo", "code", "programacao"], (c) => c.toggleCodeBlock()),
+    bloco("Divisor", "Uma linha separando partes.", ["divisor", "linha", "separador", "hr"], (c) => c.setHorizontalRule()),
+    {
+      titulo: "Subpágina", descricao: "Uma página dentro desta, como um cartão.", apelidos: ["subpagina", "pagina", "page", "nova"],
+      executar: async (editor, intervalo) => {
+        editor.chain().focus().deleteRange(intervalo).run();
+        const id = await criarSubpagina();
+        if (!id) return;
+        editor.chain().focus().insertContent({ type: "subpagina", attrs: { pageId: id } }).run();
+        // O cursor vai para a linha depois do cartão (sempre há uma: o documento termina em parágrafo vazio).
+        editor.commands.setTextSelection(editor.state.selection.to);
+      },
+    },
+  ];
+}
+
+const BOTAO = (ativo: boolean) => `an-barra__botao${ativo ? " is-ativo" : ""}`;
+
+function BarraDeFormatacao({ editor }: { editor: Editor }) {
+  const [, forcar] = useState(0);
+  useEffect(() => { const f = () => forcar((n) => n + 1); editor.on("transaction", f); return () => { editor.off("transaction", f); }; }, [editor]);
+  const ligar = () => {
+    const atual = (editor.getAttributes("link").href as string | undefined) ?? "";
+    const dado = window.prompt("Endereço do link (http, https, mailto ou tel). Deixe vazio para tirar o link:", atual);
+    if (dado === null) return;
+    const limpo = dado.trim();
+    if (!limpo) { editor.chain().focus().extendMarkRange("link").unsetLink().run(); return; }
+    const url = /^[a-z][a-z0-9+.-]*:/i.test(limpo) ? limpo : `https://${limpo}`;
+    if (!linkSeguro(url)) { window.alert("Esse endereço não é aceito. Use http, https, mailto ou tel."); return; }
+    editor.chain().focus().extendMarkRange("link").setLink({ href: url }).run();
+  };
+  const b = (rotulo: string, marca: string, rodar: () => void, texto: React.ReactNode) => (
+    <button type="button" aria-label={rotulo} title={rotulo} aria-pressed={editor.isActive(marca)} className={BOTAO(editor.isActive(marca))} onMouseDown={(e) => e.preventDefault()} onClick={rodar}>{texto}</button>
+  );
+  return (
+    <div className="an-barra" role="toolbar" aria-label="Formatação do texto">
+      {b("Negrito", "bold", () => editor.chain().focus().toggleBold().run(), <strong>N</strong>)}
+      {b("Itálico", "italic", () => editor.chain().focus().toggleItalic().run(), <em>I</em>)}
+      {b("Sublinhado", "underline", () => editor.chain().focus().toggleUnderline().run(), <u>S</u>)}
+      {b("Riscado", "strike", () => editor.chain().focus().toggleStrike().run(), <s>R</s>)}
+      {b("Código", "code", () => editor.chain().focus().toggleCode().run(), <code>{"</>"}</code>)}
+      {b("Link", "link", ligar, "Link")}
+    </div>
+  );
+}
+
+function BarraDaTabela({ editor }: { editor: Editor }) {
+  const a = (rotulo: string, rodar: () => void) => <button key={rotulo} type="button" className="an-barra__botao" onMouseDown={(e) => e.preventDefault()} onClick={rodar}>{rotulo}</button>;
+  return (
+    <div className="an-barra" role="toolbar" aria-label="Tabela">
+      {a("+ Linha", () => editor.chain().focus().addRowAfter().run())}
+      {a("+ Coluna", () => editor.chain().focus().addColumnAfter().run())}
+      {a("− Linha", () => editor.chain().focus().deleteRow().run())}
+      {a("− Coluna", () => editor.chain().focus().deleteColumn().run())}
+      {a("Apagar tabela", () => editor.chain().focus().deleteTable().run())}
+    </div>
+  );
+}
 
 /**
- * O EDITOR DE ANOTAÇÕES, no estilo Notion: clique e escreva; "/" abre o menu de blocos; a alça arrasta blocos.
- * As SUBPÁGINAS são cartões dentro do texto, na ordem que você arrastar. O documento é guardado como o editor entrega.
+ * O EDITOR DE ANOTAÇÕES (Tiptap), no estilo Notion: clique e escreva; "/" abre o menu de blocos;
+ * a alça à esquerda arrasta blocos; ao selecionar texto aparece a barra de formatação.
+ * As SUBPÁGINAS são cartões dentro do texto, na ordem que você arrastar.
+ * É carregado só quando alguém abre uma página (ver `EditorCarregavel`).
  */
-export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto }: PropsDoEditorDeNotas) {
-  const [tema, setTema] = useState(temaAtual);
-  useEffect(() => {
-    const o = new MutationObserver(() => setTema(temaAtual()));
-    o.observe(document.documentElement, { attributes: true, attributeFilter: ["data-theme"] });
-    return () => o.disconnect();
-  }, []);
-
+export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto }: PropsDeEditor) {
   // As filhas vivas desta página, na ordem da árvore: o documento é ajustado a elas ao abrir.
   const conteudo = useMemo(() => {
     const filhas = paginas.filter((p) => p.parent_id === paginaId && !p.deleted_at).sort((a, b) => a.position - b.position).map((p) => p.id);
-    return ajustarCartoes(inicial, filhas);
+    return terminarComParagrafo(ajustarCartoes(inicial, filhas));
     // Só ao abrir: depois, quem manda no documento é quem está digitando.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const editor = useCreateBlockNote({ schema: esquema, dictionary: locales.pt, initialContent: conteudo.length ? (conteudo as never) : undefined }, []);
-
   const anteriores = useRef<string[]>(cartoesDoDocumento(conteudo));
   const ordemAplicada = useRef<string>(JSON.stringify(anteriores.current));
+  const [bloqueado, setBloqueado] = useState(false);
+  // Os avisos do editor sempre usam a versão mais nova das funções da tela.
+  const ref = useRef({ aoMudar, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas });
+  ref.current = { aoMudar, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas };
 
-  function aoAlterar() {
-    const documento = editor.document as unknown as Documento;
-    aoMudar(documento);
-    const atuais = cartoesDoDocumento(documento);
-    // Cartão que sumiu do texto = subpágina para a lixeira (arrastar só muda de lugar, não some).
-    for (const id of anteriores.current) if (!atuais.includes(id)) aoRemoverSubpagina(id);
-    anteriores.current = atuais;
-    const ordem = JSON.stringify(atuais);
-    if (ordem !== ordemAplicada.current) { ordemAplicada.current = ordem; aoReordenarSubpaginas(atuais); }
-  }
+  const extensoes = useMemo(() => [
+    StarterKit.configure({
+      heading: { levels: [1, 2, 3] },
+      link: { openOnClick: false, autolink: true, isAllowedUri: (url: string) => linkSeguro(url) },
+    }),
+    TaskList,
+    TaskItem.configure({ nested: true, a11y: { checkboxLabel: (node, marcado) => `${marcado ? "Feita" : "A fazer"}: ${node.textContent || "tarefa vazia"}` } }),
+    TableKit.configure({ table: { resizable: false } }),
+    Details.configure({ persist: true, renderToggleButton: ({ element, isOpen }) => { element.setAttribute("aria-label", isOpen ? "Recolher" : "Expandir"); element.setAttribute("aria-expanded", String(isOpen)); } }),
+    DetailsSummary,
+    DetailsContent,
+    Placeholder.configure({
+      showOnlyCurrent: true, includeChildren: true,
+      placeholder: ({ node }) => node.type.name === "heading" ? `Título ${node.attrs.level as number}` : node.type.name === "detailsSummary" ? "Título do toggle" : "Escreva ou digite “/” para ver os blocos…",
+    }),
+    Subpagina,
+    criarMenuSlash(() => itensDoMenu(() => ref.current.aoCriarSubpagina())),
+  ], []);
 
-  function itensDoMenu(consulta: string) {
-    const itens = [
-      ...getDefaultSlashMenuItems(editor)
-        .filter((i) => !SEM_ARQUIVOS.includes(i.key))
-        // A tabela já nasce com a primeira linha como cabeçalho destacado.
-        .map((i) => i.key === "table"
-          ? { ...i, onItemClick: () => {
-              const linha = () => ({ cells: ["", "", ""] });
-              insertOrUpdateBlockForSlashMenu(editor, { type: "table", content: { type: "tableContent", headerRows: 1, rows: [linha(), linha(), linha()] } } as never);
-            } }
-          : i),
-      ...ITENS_DOS_BLOCOS_VISUAIS.map((b) => ({
-        key: b.tipo, title: b.titulo, subtext: b.descricao, aliases: b.aliases, group: "Blocos visuais", icon: <FileText size={18} aria-hidden />,
-        onItemClick: () => { insertOrUpdateBlockForSlashMenu(editor, { type: b.tipo } as never); },
-      })),
-      {
-        key: "subpagina", title: "Subpágina", subtext: "Uma página dentro desta, como um cartão.", aliases: ["subpagina", "pagina", "page", "nova"], group: "Páginas",
-        icon: <FileText size={18} aria-hidden />,
-        onItemClick: async () => {
-          const atual = editor.getTextCursorPosition().block;
-          const id = await aoCriarSubpagina();
-          if (!id) return;
-          const vazio = atual.type === "paragraph" && Array.isArray(atual.content) && atual.content.length === 0;
-          const cartao = [{ type: "subpagina" as const, props: { pageId: id } }];
-          if (vazio) editor.replaceBlocks([atual], cartao as never); else editor.insertBlocks(cartao as never, atual, "after");
-        },
+  const editor = useEditor({
+    extensions: extensoes,
+    content: { type: "doc", content: conteudo },
+    editable: editavel,
+    // Conteúdo que o editor não entende: abre só para leitura (nunca grava por cima).
+    enableContentCheck: true,
+    onContentError: () => setBloqueado(true),
+    shouldRerenderOnTransaction: false,
+    editorProps: {
+      attributes: { class: "an-prosa", "aria-label": "Texto da página", spellcheck: "true" },
+      handleClick: (view, _pos, evento) => {
+        const link = (evento.target as HTMLElement | null)?.closest?.("a");
+        if (!link) return false;
+        // Em página só de leitura, ou com Ctrl/⌘, o clique abre o link.
+        if (!view.editable || evento.ctrlKey || evento.metaKey) {
+          const href = link.getAttribute("href");
+          if (href && linkSeguro(href)) window.open(href, "_blank", "noopener,noreferrer");
+          return true;
+        }
+        return false;
       },
-    ];
-    return filterSuggestionItems(itens, consulta);
-  }
+    },
+    onUpdate: ({ editor: e }) => {
+      const documento = (e.getJSON().content ?? []) as Documento;
+      ref.current.aoMudar(documento);
+      const atuais = cartoesDoDocumento(documento);
+      // Cartão que sumiu do texto = subpágina para a lixeira (arrastar só muda de lugar, não some).
+      for (const id of anteriores.current) if (!atuais.includes(id)) ref.current.aoRemoverSubpagina(id);
+      anteriores.current = atuais;
+      const ordem = JSON.stringify(atuais);
+      if (ordem !== ordemAplicada.current) { ordemAplicada.current = ordem; ref.current.aoReordenarSubpaginas(atuais); }
+    },
+  });
 
-  // ── Seleção de várias linhas: retângulo no espaço em branco; os blocos tocados ficam pintados ──
-  const papel = useRef<HTMLDivElement | null>(null);
-  const [selecionados, setSelecionados] = useState<string[]>([]);
-  const [retangulo, setRetangulo] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
-  const arrastou = useRef(false);
+  useEffect(() => { editor?.setEditable(editavel && !bloqueado); }, [editor, editavel, bloqueado]);
 
-  useEffect(() => editor.onSelectionChange(() => {
-    const ids = editor.getSelection()?.blocks.map((b) => b.id) ?? [];
-    setSelecionados((atual) => ids.length > 1 ? (JSON.stringify(atual) === JSON.stringify(ids) ? atual : ids) : atual.length ? [] : atual);
-  }), [editor]);
+  useEffect(() => {
+    if (!editor) return;
+    aoPronto?.({
+      inicio: () => { if (editor.isEditable) editor.chain().focus("start").run(); },
+      fim: () => {
+        if (!editor.isEditable) return;
+        const ultimo = editor.state.doc.lastChild;
+        // Se o último bloco já tem conteúdo, abre uma linha nova logo abaixo.
+        if (ultimo && !(ultimo.type.name === "paragraph" && ultimo.content.size === 0)) editor.chain().focus("end").insertContentAt(editor.state.doc.content.size, { type: "paragraph" }).focus("end").run();
+        else editor.chain().focus("end").run();
+      },
+    });
+  }, [editor, aoPronto]);
 
-  /** O "papel" em branco (fora do texto dos blocos): só aí o arrasto desenha o retângulo. Em qualquer outro ponto o clique é do editor (foco e cursor). */
-  const ehPapelEmBranco = (alvo: HTMLElement) => alvo === papel.current || alvo.classList.contains("bn-container") || alvo.classList.contains("bn-editor");
-  /** O elemento que rola (a página da anotação), para rolar sozinho quando o arrasto chega na borda. */
-  const quemRola = (el: HTMLElement | null): HTMLElement => { for (let x = el; x; x = x.parentElement) { const o = getComputedStyle(x).overflowY; if ((o === "auto" || o === "scroll") && x.scrollHeight > x.clientHeight) return x; } return (document.scrollingElement as HTMLElement) ?? document.documentElement; };
-
-  function comecouArrasto(e: MouseEvent<HTMLDivElement>) {
-    const caixa = papel.current;
-    if (!editavel || !caixa || e.button !== 0) return;
-    // Clique no texto, no marcador de lista, na tabela, num botão ou menu: é do editor (foco, cursor e seleção de texto normais).
-    if (!ehPapelEmBranco(e.target as HTMLElement)) return;
-    e.preventDefault();
-    const rolagem = quemRola(caixa), ehJanela = rolagem === document.scrollingElement || rolagem === document.documentElement;
-    const topoRolado = () => (ehJanela ? window.scrollY : rolagem.scrollTop);
-    const x0 = e.clientX, yConteudo0 = e.clientY + topoRolado();   // o ponto de partida acompanha o conteúdo quando a página rola
-    let mx = e.clientX, my = e.clientY, ultimoIntervalo = "";
-    arrastou.current = false;
-    const atualizar = () => {
-      const y0 = yConteudo0 - topoRolado();
-      if (!arrastou.current && Math.hypot(mx - x0, my - y0) < 4) return;
-      arrastou.current = true;
-      const base = caixa.getBoundingClientRect();
-      const esquerda = Math.min(x0, mx), topo = Math.min(y0, my), largura = Math.abs(mx - x0), altura = Math.abs(my - y0);
-      setRetangulo({ x: esquerda - base.left, y: topo - base.top, w: largura, h: altura });
-      const dentro = [...caixa.querySelectorAll<HTMLElement>(".bn-block-outer[data-id]")].filter((el) => {
-        const r = el.getBoundingClientRect();
-        return r.right > esquerda && r.left < esquerda + largura && r.bottom > topo && r.top < topo + altura;
-      });
-      // Só os blocos mais externos tocados: o filho vai junto com o pai.
-      const raizes = dentro.filter((el) => !dentro.some((o) => o !== el && o.contains(el)));
-      const ids = raizes.map((el) => el.dataset.id!).filter(Boolean);
-      const intervalo = ids.length > 1 ? `${ids[0]}→${ids[ids.length - 1]}` : "";
-      if (intervalo === ultimoIntervalo) return;   // a seleção só é refeita quando muda de fato (arrastar fica leve)
-      ultimoIntervalo = intervalo;
-      setSelecionados(ids.length > 1 ? ids : []);
-      if (ids.length > 1) editor.setSelection(ids[0]!, ids[ids.length - 1]!);
-    };
-    const mover = (ev: globalThis.MouseEvent) => { mx = ev.clientX; my = ev.clientY; atualizar(); };
-    // chegou perto da borda de cima ou de baixo: a página rola sozinha para dar para selecionar blocos fora da tela
-    const relogio = window.setInterval(() => {
-      if (!arrastou.current) return;
-      const area = ehJanela ? { top: 0, bottom: window.innerHeight } : rolagem.getBoundingClientRect();
-      const passo = my < area.top + 48 ? -Math.ceil((area.top + 48 - my) / 4) : my > area.bottom - 48 ? Math.ceil((my - (area.bottom - 48)) / 4) : 0;
-      if (passo) { if (ehJanela) window.scrollBy(0, passo); else rolagem.scrollTop += passo; atualizar(); }
-    }, 16);
-    const soltar = () => {
-      window.removeEventListener("mousemove", mover); window.removeEventListener("mouseup", soltar); window.clearInterval(relogio);
-      setRetangulo(null);
-      if (arrastou.current) editor.focus();   // com o foco no editor, Delete/Backspace, copiar, recortar e arrastar a alça já valem para todos os blocos selecionados
-    };
-    window.addEventListener("mousemove", mover);
-    window.addEventListener("mouseup", soltar);
-  }
-
-  /** Cursor na primeira linha (Enter no título). */
-  const cursorNoInicio = () => { const primeiro = editor.document[0]; if (primeiro) editor.setTextCursorPosition(primeiro, "start"); editor.focus(); };
-  /** Cursor no fim: no último bloco se estiver vazio; senão numa linha nova logo abaixo. */
-  const cursorNoFim = () => {
-    const blocos = editor.document;
-    const ultimo = blocos[blocos.length - 1];
-    if (!ultimo) return;
-    const vazio = ultimo.type === "paragraph" && Array.isArray(ultimo.content) && ultimo.content.length === 0;
-    if (vazio) editor.setTextCursorPosition(ultimo, "end");
-    else { const [novo] = editor.insertBlocks([{ type: "paragraph" }], ultimo, "after"); if (novo) editor.setTextCursorPosition(novo, "end"); }
-    editor.focus();
-  };
-  const cursorRef = useRef({ inicio: cursorNoInicio, fim: cursorNoFim }); cursorRef.current = { inicio: cursorNoInicio, fim: cursorNoFim };
-  useEffect(() => { aoPronto?.({ inicio: () => cursorRef.current.inicio(), fim: () => cursorRef.current.fim() }); }, [aoPronto]);
-
-  // Clicar no "papel" abaixo do último bloco coloca o cursor no fim, num parágrafo vazio.
-  function clicouNoPapel(e: MouseEvent<HTMLDivElement>) {
-    if (!editavel || !ehPapelEmBranco(e.target as HTMLElement)) return;
-    if (arrastou.current) { arrastou.current = false; return; }
-    // só vale no branco ABAIXO do último bloco (nas margens de cima/lados o clique não cria parágrafo)
-    const blocosNaTela = papel.current?.querySelectorAll<HTMLElement>(".bn-block-outer[data-id]");
-    const fimDoTexto = blocosNaTela?.length ? Math.max(...[...blocosNaTela].map((b) => b.getBoundingClientRect().bottom)) : 0;
-    if (e.target !== papel.current && e.clientY <= fimDoTexto) return;
-    cursorNoFim();
-  }
-
+  const caixa = useRef<HTMLDivElement | null>(null);
+  if (!editor) return null;
   return (
-    <Contexto.Provider value={{ paginas, abrir: aoAbrir }}>
-      <div ref={papel} className={`an-editor ${selecionados.length > 1 ? "notas-varios-selecionados" : ""}`} style={{ position: "relative", minHeight: "40vh", cursor: "text", paddingBottom: 96 }} onClick={clicouNoPapel} onMouseDown={comecouArrasto}>
-        {selecionados.length > 1 ? (
-          <style>{selecionados.filter((id) => /^[\w-]+$/.test(id)).map((id) => `.bn-block-outer[data-id="${id}"]>.bn-block{background:rgb(100 160 255 / .18);border-radius:4px}`).join("")}</style>
-        ) : null}
-        {retangulo ? <div className="notas-retangulo" style={{ left: retangulo.x, top: retangulo.y, width: retangulo.w, height: retangulo.h }} /> : null}
-        <BlockNoteView editor={editor} editable={editavel} theme={tema} slashMenu={false} onChange={aoAlterar}>
-          <SuggestionMenuController triggerCharacter="/" getItems={async (consulta) => itensDoMenu(consulta)} />
-        </BlockNoteView>
+    <ContextoSubpaginas.Provider value={{ paginas, abrir: aoAbrir }}>
+      {bloqueado ? <p className="an-aviso-editor" role="alert">Esta página tem um conteúdo que o editor não entende. Ela foi aberta só para leitura, e nada será gravado por cima.</p> : null}
+      <div ref={caixa} className="an-editor" data-testid="editor-de-notas">
+        <AlcaDeArrastar editor={editor} caixa={caixa} />
+        <EditorContent editor={editor} />
+        <BubbleMenu editor={editor} shouldShow={({ editor: e, state }) => e.isEditable && !state.selection.empty && !e.isActive("subpagina") && state.selection.constructor.name !== "NodeSelection" && !e.isActive("codeBlock")}>
+          <BarraDeFormatacao editor={editor} />
+        </BubbleMenu>
+        <BubbleMenu editor={editor} options={{ placement: "top" }} shouldShow={({ editor: e, state }) => e.isEditable && state.selection.empty && e.isActive("table")}>
+          <BarraDaTabela editor={editor} />
+        </BubbleMenu>
       </div>
-    </Contexto.Provider>
+    </ContextoSubpaginas.Provider>
   );
 }
+type PropsDeEditor = PropsDoEditorDeNotas;

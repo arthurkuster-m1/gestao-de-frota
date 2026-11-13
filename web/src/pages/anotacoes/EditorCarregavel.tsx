@@ -2,7 +2,8 @@ import { lazy, Suspense } from "react";
 import { Spinner } from "../../ds";
 import type { PropsDoEditorDeNotas } from "./EditorDeNotas";
 
-// O editor é pesado: só baixa quando alguém abre uma página.
+// O editor (Tiptap + ProseMirror) fica num pacote à parte: só é baixado quando alguém abre uma página
+// de Anotações. Quem usa o resto do app nunca paga esse peso.
 const Editor = lazy(() => import("./EditorDeNotas"));
 
 export function EditorCarregavel(props: PropsDoEditorDeNotas) {
