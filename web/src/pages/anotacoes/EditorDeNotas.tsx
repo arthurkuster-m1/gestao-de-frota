@@ -30,15 +30,17 @@ export interface PropsDoEditorDeNotas {
   /** A ordem dos cartões mudou: a barra lateral segue a mesma ordem. */
   aoReordenarSubpaginas: (ids: string[]) => void;
   /** Entrega ao dono da página os atalhos do cursor: `inicio` (primeira linha) e `fim` (último bloco; cria uma linha nova se o último tem conteúdo). */
+  /** Sem subpáginas (ex.: anotações do evento): tira o item do menu "/". */
+  semSubpaginas?: boolean;
   aoPronto?: (cursor: { inicio: () => void; fim: () => void }) => void;
 }
 
 /** Os blocos do menu "/". */
-function itensDoMenu(criarSubpagina: () => Promise<string | null>): ItemDoMenu[] {
+function itensDoMenu(criarSubpagina: () => Promise<string | null>, semSubpaginas?: boolean): ItemDoMenu[] {
   const bloco = (titulo: string, descricao: string, apelidos: string[], rodar: (c: ReturnType<Editor["chain"]>) => ReturnType<Editor["chain"]>): ItemDoMenu => ({
     titulo, descricao, apelidos, executar: (editor, intervalo) => { rodar(editor.chain().focus().deleteRange(intervalo)).run(); },
   });
-  return [
+  const itens: ItemDoMenu[] = [
     bloco("Texto", "Um parágrafo simples.", ["texto", "paragrafo", "p"], (c) => c.setParagraph()),
     bloco("Título 1", "Título grande.", ["titulo", "h1", "cabecalho"], (c) => c.setHeading({ level: 1 })),
     bloco("Título 2", "Título médio.", ["titulo", "h2", "cabecalho"], (c) => c.setHeading({ level: 2 })),
@@ -67,6 +69,7 @@ function itensDoMenu(criarSubpagina: () => Promise<string | null>): ItemDoMenu[]
       },
     },
   ];
+  return semSubpaginas ? itens.filter((i) => i.titulo !== "Subpágina") : itens;
 }
 
 const BOTAO = (ativo: boolean) => `an-barra__botao${ativo ? " is-ativo" : ""}`;
@@ -118,7 +121,7 @@ function BarraDaTabela({ editor }: { editor: Editor }) {
  * As SUBPÁGINAS são cartões dentro do texto, na ordem que você arrastar.
  * É carregado só quando alguém abre uma página (ver `EditorCarregavel`).
  */
-export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto }: PropsDeEditor) {
+export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto, semSubpaginas }: PropsDeEditor) {
   // As filhas vivas desta página, na ordem da árvore: o documento é ajustado a elas ao abrir.
   const conteudo = useMemo(() => {
     const filhas = paginas.filter((p) => p.parent_id === paginaId && !p.deleted_at).sort((a, b) => a.position - b.position).map((p) => p.id);
@@ -131,6 +134,7 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
   const ordemAplicada = useRef<string>(JSON.stringify(anteriores.current));
   const [bloqueado, setBloqueado] = useState(false);
   // Os avisos do editor sempre usam a versão mais nova das funções da tela.
+  const semSubpaginasRef = useRef(semSubpaginas);
   const ref = useRef({ aoMudar, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas });
   ref.current = { aoMudar, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas };
 
@@ -150,7 +154,7 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
       placeholder: ({ node }) => node.type.name === "heading" ? `Título ${node.attrs.level as number}` : node.type.name === "detailsSummary" ? "Título do toggle" : "Escreva ou digite “/” para ver os blocos…",
     }),
     Subpagina,
-    criarMenuSlash(() => itensDoMenu(() => ref.current.aoCriarSubpagina())),
+    criarMenuSlash(() => itensDoMenu(() => ref.current.aoCriarSubpagina(), semSubpaginasRef.current)),
   ], []);
 
   const editor = useEditor({

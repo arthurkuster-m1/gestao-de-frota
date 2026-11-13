@@ -24,7 +24,7 @@ export function Eventos() {
   const [criando, setCriando] = useState(false);
   const [gerenciandoTipos, setGerenciandoTipos] = useState(false);
   const [busca, setBusca] = useSearchParams();
-  const aba: AbaDoEvento = (["dados", "veiculos", "transportes", "contratos"] as const).find((x) => x === busca.get("aba")) ?? "dados";
+  const aba: AbaDoEvento = (["dados", "veiculos", "transportes", "contratos", "anotacoes"] as const).find((x) => x === busca.get("aba")) ?? "dados";
 
   const toast = useToast();
   /** Copia (para o Outlook) a tabela dos carros dos eventos selecionados: Código, Placa, VIN, Modelo, Cor, MY. */

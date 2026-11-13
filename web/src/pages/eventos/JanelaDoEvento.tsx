@@ -42,10 +42,11 @@ import { ModelosDesejadosForm, pedidoVazio, type PedidoDeCarro } from "./Modelos
 import { TabelaDePedidos } from "./TabelaDePedidos";
 import { atendimentoDosPedidos } from "../../lib/eventos/desejados";
 import { VeiculosDoEvento } from "./VeiculosDoEvento";
+import { AnotacoesDoEvento } from "./AnotacoesDoEvento";
 import "../veiculos/veiculos.css";
 
-export type AbaDoEvento = "dados" | "veiculos" | "transportes" | "contratos";
-const ABAS: { id: AbaDoEvento; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "transportes", rotulo: "Transportes" }, { id: "contratos", rotulo: "Contratos" }];
+export type AbaDoEvento = "dados" | "veiculos" | "transportes" | "contratos" | "anotacoes";
+const ABAS: { id: AbaDoEvento; rotulo: string }[] = [{ id: "dados", rotulo: "Dados" }, { id: "veiculos", rotulo: "Veículos" }, { id: "transportes", rotulo: "Transportes" }, { id: "contratos", rotulo: "Contratos" }, { id: "anotacoes", rotulo: "Anotações" }];
 
 type Props = {
   /** Aba aberta (a tela escolhe onde guardá-la: no endereço ou na memória). */ aba: AbaDoEvento; onAba: (a: AbaDoEvento) => void;
@@ -63,7 +64,7 @@ type Props = {
 };
 
 /**
- * A página inteira de um evento, com as subpáginas Dados, Veículos, Transportes e Contratos. Local e comentários moram em Dados
+ * A página inteira de um evento, com as subpáginas Dados, Veículos, Transportes, Contratos e Anotações (planejamento só do evento). Local e comentários moram em Dados
  * (como o cliente, logo abaixo do nome). O evento manda: transportes e contratos são os dele.
  */
 export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: () => void; onFechar: () => void }) {
@@ -300,6 +301,8 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
             rotuloDoTotal={(n) => `${n} transporte${n === 1 ? "" : "s"} deste evento`} placeholderDaBusca="Buscar transporte…"
             vazio={<EmptyState icon={<Truck size={30} />} title="Nenhum transporte neste evento">Na aba Veículos, ligue “Transporte de ida/volta” em Colunas e cadastre a PTA direto na linha do carro.</EmptyState>} />
         )}
+
+        {aba === "anotacoes" && <AnotacoesDoEvento eventoId={evento.id} />}
 
         {aba === "contratos" && (
           <TelaDoMotor<Contrato> tela="evento-contratos" titulo="Contratos" subtitulo="" compacta
