@@ -4,6 +4,7 @@ import { Card } from "../../ds";
 import { LinkNoLugar } from "../../app/noLugar";
 import { DIAS_DE_ANTECEDENCIA, diasAte, fatosDosEventos } from "../../lib/eventos/automacaoDeStatus";
 import { STATUS_EVENTO, type Evento } from "../../lib/eventos/tipos";
+import { corDaOpcao, useCores } from "../../lib/motor/cores";
 import { hojeLocal } from "../../lib/motor/datas";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 
@@ -16,6 +17,9 @@ type Item = { e: Evento; data: string; dias: number; feitos: number; carros: num
 export function ProximosDoInicio() {
   const d = useDadosDeEventos();
   const hoje = hojeLocal();
+  const cores = useCores();
+  /** A cor do bloco é a do STATUS do evento (a mesma da tag de status; segue a cor que a pessoa escolheu para ele). */
+  const corDoStatus = (status: string) => corDaOpcao(cores, "status", status, STATUS_EVENTO.find((s) => s.value === status)?.tom);
   const { envios, retornos } = useMemo(() => {
     const fatos = fatosDosEventos({ reservas: [...d.reservas, ...d.reservasSemData], vinculos: d.tr.vinculos, transportes: d.tr.transportes, checklists: d.ck.checklists });
     const envios: Item[] = [], retornos: Item[] = [];
@@ -41,7 +45,7 @@ export function ProximosDoInicio() {
       {itens.length === 0 ? <p className="t-body-sm t-muted">{vazio}</p> : (
         <ul className="mt-proximos" role="list" data-testid={testid}>
           {itens.map((i) => (
-            <li key={i.e.id} className={i.alerta ? "is-alerta" : undefined}>
+            <li key={i.e.id} className={`mt-proximos__status ds-badge--cor-${corDoStatus(i.e.status)}`} data-status={i.e.status}>
               <LinkNoLugar to={`/eventos/${i.e.id}`} className="mt-reserva__evento">{i.e.nome}</LinkNoLugar>
               <span className="t-body-sm">{rotuloData} <b>{dm(i.data)}</b> · {quando(i.dias)}</span>
               <span className="t-body-sm t-muted">{rotuloTransporte}: {i.feitos}/{i.carros} carro{i.carros === 1 ? "" : "s"} · {STATUS_EVENTO.find((s) => s.value === i.e.status)?.label}</span>

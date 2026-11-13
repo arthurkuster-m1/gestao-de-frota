@@ -1,3 +1,5 @@
+import { MARCOS_PREVISTOS, barrasDePrevisao, ehBarraDePrevisao } from "../../lib/veiculos/previsoes";
+import { formatarDiaBr } from "../../lib/motor/datas";
 import { prazosDaPlaca } from "../../lib/veiculos/prazos";
 import { GerenciarDepartamentos } from "./GerenciarDepartamentos";
 import { departamentosAtuais, useDepartamentos } from "../../lib/veiculos/departamentos";
@@ -74,6 +76,16 @@ export const camposDoVeiculo = (ctx: ContextoDeUso): CampoDaTela<Veiculo>[] => [
   { id: "diasParaSolicitar", titulo: "Dias para solicitar a placa", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).paraSolicitar, largura: 210, padrao: false },
   { id: "diasParaEmplacar", titulo: "Dias para emplacar", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).paraEmplacar, largura: 170, padrao: false },
   { id: "diasTotalPlaca", titulo: "Dias da chegada ao emplacamento", tipo: "numero", valorDe: (v) => prazosDaPlaca(v).total, largura: 240, padrao: false },
+  // previsões: datas que ainda vão acontecer. O ciclo só avança quando a data REAL é preenchida (ou quando a previsão é confirmada como realizada).
+  ...MARCOS_PREVISTOS.map((m): CampoDaTela<Veiculo> => ({
+    id: `${m.id}Previsto`, titulo: `Previsão de ${m.rotulo}`, tipo: "data", valorDe: (v) => v[m.previsto] ?? null, largura: 220, padrao: false, edicao: { coluna: m.previsto },
+    celula: (v) => {
+      const d = v[m.previsto]; if (!d) return <span className="mt-vazio">—</span>;
+      if (v[m.real]) return <span>{formatarDiaBr(d)}</span>;
+      const chegou = !!ctx.hoje && d <= ctx.hoje;
+      return <span style={{ display: "inline-flex", gap: 6, alignItems: "center", flexWrap: "wrap" }}>{formatarDiaBr(d)}<Tag opcao={{ value: "previsto", label: chegou ? "Chegou a data: confirmar" : "Previsto", tom: chegou ? "warning" : "info" }} /></span>;
+    },
+  })),
   { id: "devolvidoEm", titulo: "Devolvido em", tipo: "data", valorDe: (v) => v.data_devolucao, largura: 170, padrao: false, edicao: { coluna: "data_devolucao" } },
   { id: "comentarios", titulo: "Comentários", tipo: "texto", valorDe: (v) => v.comentarios, largura: 280, multilinha: true, padrao: false, edicao: { coluna: "comentarios" } },
   { id: "cadastradoEm", titulo: "Cadastrado em", tipo: "data", valorDe: (v) => dia(v.created_at), largura: 170, padrao: false },
@@ -136,6 +148,7 @@ export function Veiculos() {
   };
   /** Arrastar uma barra de reserva na linha do tempo muda as datas da reserva (mover leva chegada e retirada junto). */
   const alterarReserva = async (_v: Veiculo, barra: Barra, modo: ModoDeArrasto, delta: number) => {
+    if (ehBarraDePrevisao(barra)) return;
     if (ehBarraDeManutencao(barra)) { await man.mover(barra.id, modo, delta); return; }
     if (ehBarraDeAnotacao(barra)) { const n = aplicarArrasto({ inicio: barra.inicio, fim: barra.fim }, modo, delta); await d.moverNota(barra.id, n.inicio, n.fim); return; }
     const r = reservas?.find((x) => x.id === barra.id); if (!r) return;
@@ -153,11 +166,11 @@ export function Veiculos() {
       acoes={<><Button variant="secondary" onClick={() => setGerenciandoDeptos(true)} data-testid="gerenciar-departamentos">Departamentos</Button><NovoMenu aoNovo={() => setNovo(true)} /></>}
       avisos={erroUso && <Card><p className="t-body-sm" role="alert" data-testid="aviso-uso">Status de uso e Agenda ainda não funcionam: {erroUso}</p></Card>}
       linhas={lista} erro={erro} campos={campos} idDe={(x) => x.id} onEditar={editar} onAbrir={(x) => navigate(`/veiculos/${x.id}`)}
-      linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? [])], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
-        onAbrirBarra: (_v, b) => { if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } abrirNoLugar(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
+      linhaDoTempo={{ barrasDe: (v) => [...barrasDoVeiculo(ctx.reservas.get(v.id) ?? [], ctx.nomeDoEvento), ...barrasDeManutencao(man.doCarro.get(v.id) ?? [], ctx.hoje || hojeLocal()), ...barrasDeAnotacao(notasPorCarro.get(v.id) ?? []), ...barrasDePrevisao(v, ctx.hoje || hojeLocal())], onAlterarBarra: alterarReserva, onCriarNaData: (v, data) => criacao.abrirNoDia(v.id, data),
+        onAbrirBarra: (v, b) => { if (ehBarraDePrevisao(b)) { navigate(`/veiculos/${v.id}`); return; } if (ehBarraDeAnotacao(b)) { criacao.editarNota(b.id); return; } abrirNoLugar(ehBarraDeManutencao(b) ? `/manutencoes/${b.id}` : `/eventos/${(b.dados as { eventoId: string }).eventoId}`); } }}
       rotuloDoTotal={(n) => `${n} veículo${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar placa, VIN, modelo…"
       vazio={<EmptyState icon={<Car size={30} />} title="Nenhum veículo ainda" action={<Button icon={<Plus size={20} />} onClick={() => setNovo(true)}>Cadastrar o primeiro</Button>}>Cadastre um por um ou cole a tabela do Excel em <Link to="/veiculos/massa">Importar em massa</Link>.</EmptyState>}
-      filhos={<JanelaDoVeiculo reservasSemData={aberto ? d.reservasSemData.filter((r) => r.veiculo_id === aberto.id) : []} clientes={clientesPorId} locais={d.locais} veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
+      filhos={<JanelaDoVeiculo onSalvarReserva={d.salvarReserva} reservasSemData={aberto ? d.reservasSemData.filter((r) => r.veiculo_id === aberto.id) : []} clientes={clientesPorId} locais={d.locais} veiculo={aberto} campos={campos} onEditar={editar} onFechar={() => navigate("/veiculos")} reservas={aberto ? (ctx.reservas.get(aberto.id) ?? []) : []} eventos={eventos} usoCarregado={ctx.carregado} manutencoes={aberto ? (man.doCarro.get(aberto.id) ?? []) : []} manutencoesErro={man.erro} onCriarManutencao={man.criar} />} />
     {criacao.dialogos}
     <Sheet open={gerenciandoDeptos} onClose={() => setGerenciandoDeptos(false)} title="Departamentos" wide><GerenciarDepartamentos /></Sheet>
     <NovoVeiculo aberto={novo} onFechar={() => setNovo(false)} onCriado={(v) => setLista((l) => [v, ...(l ?? [])])} />

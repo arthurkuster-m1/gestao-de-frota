@@ -83,7 +83,14 @@ export function baixarArquivo(blob: Blob, nome: string) {
   a.href = url; a.download = nome; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(url), 2000);
 }
 const nomeSeguro = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").replace(/[^a-zA-Z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "documento";
-export const nomeDoArquivoDoContrato = (evento: string) => `Contrato-de-comodato-${nomeSeguro(evento)}.docx`;
+/** "COMODATO | EXPOINTER TD - ANDREIA OLIVEIRA [16/11/26 ATÉ 30/11/26]": o título do contrato (nome do evento, início e retirada). */
+export function tituloDoContrato(evento: string, inicio: string | null, fim: string | null): string {
+  const curta = (d: string | null) => (d ? `${d.slice(8, 10)}/${d.slice(5, 7)}/${d.slice(2, 4)}` : "—");
+  const periodo = inicio || fim ? ` [${curta(inicio)} ATÉ ${curta(fim)}]` : "";
+  return `COMODATO | ${evento.trim().toUpperCase()}${periodo}`;
+}
+/** O mesmo título como nome de arquivo: "/" e "|" não podem existir em nome de arquivo (Windows/Mac), então viram "-". */
+export const nomeDoArquivoDoContrato = (evento: string, inicio: string | null = null, fim: string | null = null) => `${tituloDoContrato(evento, inicio, fim).replace(/\s*\|\s*/g, " - ").replace(/[\\/:*?"<>]+/g, "-").replace(/\s+/g, " ").trim()}.docx`;
 export const nomeDoArquivoDoAditivo = (evento: string, titulo: string) => `${nomeSeguro(titulo)}-${nomeSeguro(evento)}.docx`;
 
 export async function gerarContratoDocx(s: SnapshotDoContrato): Promise<Blob> { const { valores, listas } = valoresDoContrato(s); return gerarDocx(await carregarModelo("contrato_comodato"), valores, listas); }

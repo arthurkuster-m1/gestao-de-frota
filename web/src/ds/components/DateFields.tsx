@@ -51,6 +51,13 @@ export function DateField({ value, onChange, id, disabled, className, ...aria }:
     const iso = completarData(texto);
     if (iso) { if (iso !== value) onChange(evento(iso)); setTexto(isoParaBR(iso)); } else setTexto(isoParaBR(value));
   }
+  /** Enter: "12/10" ou "12/10/26" valem na hora (sem precisar sair do campo); se o campo está num formulário, ele é enviado já com a data completa. */
+  function aoApertarEnter(e: React.KeyboardEvent<HTMLInputElement>) {
+    const iso = completarData(texto);
+    if (!iso || iso === value) return;
+    e.preventDefault(); onChange(evento(iso)); setTexto(isoParaBR(iso));
+    const form = e.currentTarget.form; if (form) window.setTimeout(() => form.requestSubmit(), 0);
+  }
   function aoDigitar(bruto: string) {
     const t = /^\d{4}-\d{2}-\d{2}$/.test(bruto.trim()) ? isoParaBR(bruto.trim()) : mascaraData(bruto);
     setTexto(t);
@@ -80,7 +87,7 @@ export function DateField({ value, onChange, id, disabled, className, ...aria }:
           value={texto} aria-label={aria["aria-label"]} aria-describedby={aria["aria-describedby"]} aria-invalid={aria["aria-invalid"]}
           onFocus={() => { focado.current = true; }} onBlur={() => { focado.current = false; confirmarDigitado(); }}
           onChange={(e) => aoDigitar(e.target.value)}
-          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); abrir(); } }}
+          onKeyDown={(e) => { if (e.key === "ArrowDown" && e.altKey) { e.preventDefault(); abrir(); } else if (e.key === "Enter") aoApertarEnter(e); }}
         />
         <button type="button" className="ds-datefield__btn" aria-label="Abrir calendário" aria-haspopup="dialog" aria-expanded={aberto} disabled={disabled} onClick={() => (aberto ? fechar(false) : abrir())}>
           <CalendarBlank size={20} />

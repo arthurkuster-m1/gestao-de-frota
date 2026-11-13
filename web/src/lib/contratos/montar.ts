@@ -20,8 +20,9 @@ export const carroDoDocumento = (v: Veiculo | undefined): CarroDoDocumento => ({
 export type EntradaDoSnapshot = { evento: Evento; clienteId: string; veiculos: ReadonlyMap<string, Veiculo>; carroIds: readonly string[]; reservas: readonly Reserva[]; locais: readonly EventoLocal[]; vigencia: { inicio: string | null; fim: string | null } };
 export async function montarSnapshotDoContrato(e: EntradaDoSnapshot): Promise<SnapshotDoContrato> {
   const cliente = await buscarCliente(e.clienteId); if (!cliente) throw new Error("Cliente não encontrado.");
-  const principal = e.reservas.find((r) => r.estado !== "cancelado");
-  const local = valoresEfetivos({ reserva: principal } as never, e.evento, e.locais).enderecoChegada.valor ?? "";
+  // só as reservas e os locais DESTE evento (quem chama pode passar a lista de todos os eventos: pegar o primeiro local dela traria o endereço de outro evento)
+  const principal = e.reservas.find((r) => r.evento_id === e.evento.id && r.estado !== "cancelado");
+  const local = valoresEfetivos({ reserva: principal } as never, e.evento, e.locais.filter((l) => l.evento_id === e.evento.id)).enderecoChegada.valor ?? "";
   return {
     evento: e.evento.nome, cliente: dadosDoCliente(cliente), dataInicio: e.vigencia.inicio, dataFim: e.vigencia.fim, objetivo: `uso no evento ${e.evento.nome}`, localEndereco: local,
     carros: e.carroIds.map((id) => carroDoDocumento(e.veiculos.get(id))),

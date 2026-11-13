@@ -3,6 +3,7 @@ import { useVersaoDosDados } from "../../lib/sincronia";
 import { Fragment, useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowsIn, ArrowsOut, Copy, FileText, MapPin, Plus, Trash, Truck, X } from "@phosphor-icons/react";
+import { FormCliente } from "../clientes/FormCliente";
 import { Button, EmptyState, Sheet, Textarea, cx, useToast } from "../../ds";
 import { CampoEditavel, clicarNaLinha } from "../../components/motor/CampoEditavel";
 import { formatar } from "../../components/motor/formatar";
@@ -53,6 +54,7 @@ type Props = {
   onSalvarChecklist?: (reservaId: string, momento: Momento, existente: Checklist | null, dados: Omit<ChecklistNovo, "reserva_id" | "momento">) => Promise<void>;
   onEditarLocal: OnEditar<EventoLocal>; onAdicionarLocais: (eventoId: string, locais: EventoLocalNovo[]) => Promise<void>; onRemoverLocal: (l: EventoLocal) => Promise<void>;
   onEditarEvento: OnEditar<Evento>; onSalvarReserva: (id: string, patch: Partial<Pick<Reserva, "chegada" | "retirada" | "origem" | "endereco_chegada" | "endereco_retorno" | "envio" | "retorno" | "comentarios" | "status_individual" | "reserva_inicio" | "reserva_fim">>) => Promise<void>;
+  onChecklistRetornoEmMassa?: (reservaIds: string[], dados: import("../checklists/ChecklistEmMassaSheet").DadosEmMassa) => Promise<void>;
   onChecklistEmMassa?: (reservaIds: string[], dados: import("../checklists/ChecklistEmMassaSheet").DadosEmMassa) => Promise<void>;
   reservasSemData?: ReservaDoEvento[]; onReservarSemData?: (eventoId: string, veiculoIds: string[], pedidoId?: string) => Promise<void>;
   onReservar: (eventoId: string, veiculoIds: string[], inicio: string, fim: string, janela: { chegada: string; retirada: string }, pedidoId?: string) => Promise<void>;
@@ -65,7 +67,9 @@ type Props = {
  * (como o cliente, logo abaixo do nome). O evento manda: transportes e contratos são os dele.
  */
 export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: () => void; onFechar: () => void }) {
-  const { evento, campos, tr, cheia, aoAlternarCheia, onFechar } = p;
+  const { evento, tr, cheia, aoAlternarCheia, onFechar } = p;
+  const [criandoCliente, setCriandoCliente] = useState<string | null>(null);   // nome digitado: abre o cadastro completo do cliente por cima da ficha
+  const campos = useMemo(() => p.campos.map((c) => (c.id === "cliente" && c.edicao ? { ...c, edicao: { ...c.edicao, criarNovo: { rotulo: "Criar novo cliente", aoCriar: (t: string) => setCriandoCliente(t) } } } : c)), [p.campos]);
   const navigate = useNavigate();
   const toast = useToast();
   const { aba, onAba } = p;
@@ -285,7 +289,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
               <div className="ds-row" style={{ justifyContent: "space-between", flexWrap: "wrap" }}><h3 className="t-h3">Modelos solicitados</h3><Button variant="secondary" size="sm" icon={<Plus size={16} />} onClick={() => setNovoPedido([pedidoVazio()])} data-testid="novo-pedido">Pedir mais modelos</Button></div>
               <TabelaDePedidos recolherReservados pedidos={pedidosDoEvento} atendidos={atendidos} codigoDoCarro={(id) => { const v = p.veiculos.find((x) => x.id === id); return v ? (v.codigo ?? v.modelo.toUpperCase()) : "?"; }} onNaoAtendido={p.onNaoAtendido} onRemover={p.onRemoverDesejado} onNota={p.onNotaDoPedido} onErro={setFalha} />
             </div>
-            <VeiculosDoEvento semRetorno={tiposDeEvento.semRetorno(evento.tipo)} onChecklistEmMassa={p.onChecklistEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
+            <VeiculosDoEvento semRetorno={tiposDeEvento.semRetorno(evento.tipo)} onChecklistEmMassa={p.onChecklistEmMassa} onChecklistRetornoEmMassa={p.onChecklistRetornoEmMassa} evento={evento} veiculos={p.veiculos} reservas={p.reservas} reservasSemData={p.reservasSemData} onReservarSemData={p.onReservarSemData} eventos={p.eventos} locais={p.locais} desejados={p.desejados} manutencoes={p.manutencoes} tr={tr}
               checklists={p.checklists} onSalvarChecklist={p.onSalvarChecklist} onSalvarReserva={p.onSalvarReserva} onReservar={p.onReservar} onRemoverReserva={p.onRemoverReserva} onNaoAtendido={p.onNaoAtendido} onErro={setFalha} />
           </div>
         )}
@@ -310,6 +314,9 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
       <JanelaDoContrato contrato={contratoAberto} campos={camposC} ctx={ctxCDocs} veiculos={p.veiculos} carrosDoContrato={contratoAberto ? k.carros.filter((c) => c.contrato_id === contratoAberto.id) : []} itens={k.itens} reservasDoEvento={contratoAberto ? (ctxC.reservasDoEvento.get(contratoAberto.evento_id) ?? []) : []}
         onEditar={k.editar} onEditarAditivo={k.editarAditivo} onIncluirCarro={k.incluirCarro} onTirarCarro={k.tirarCarro} onNovoAditivo={k.novoAditivo} onTirarAditivo={k.tirarAditivo}
         onExcluir={async (c) => { await k.excluir(c); setIdContrato(null); }} onFechar={() => setIdContrato(null)} />
+      <Sheet open={criandoCliente !== null} onClose={() => setCriandoCliente(null)} title="Novo cliente" wide>
+        {criandoCliente !== null && <FormCliente embutido={{ nomeInicial: criandoCliente, onSalvo: (c) => { const campo = campos.find((x) => x.id === "cliente"); setCriandoCliente(null); if (campo) void p.onEditarEvento(evento, campo, c.id).catch((e: Error) => setFalha(e.message)); } }} />}
+      </Sheet>
       <Sheet open={!!novoPedido} onClose={() => setNovoPedido(null)} title="Pedir mais modelos" wide>
         <form className="ds-stack" onSubmit={(e) => { e.preventDefault(); if (!novoPedido) return; void p.onAdicionarDesejados(evento.id, novoPedido.filter((x) => x.modelo.trim())).then(() => setNovoPedido(null)).catch((x: Error) => setFalha(x.message)); }}>
           <ModelosDesejadosForm pedidos={novoPedido ?? []} onChange={setNovoPedido} />

@@ -6,9 +6,10 @@ import { removerDesejado, listarReservasSemData, reservarSemData, atualizarEvent
 import { nomeAutomatico, nomeUnico } from "../../lib/eventos/nome";
 import { useTiposDeEvento } from "../../lib/eventos/tiposDeEvento";
 import { fatosDosEventos, statusAutomatico } from "../../lib/eventos/automacaoDeStatus";
+import { datasPelasReservas, patchDeDatas } from "../../lib/eventos/sincronizarDatas";
 import { hojeLocal } from "../../lib/motor/datas";
 import { reservasSemChecklist } from "../../lib/checklists/regras";
-import { pedidoQueAtende } from "../../lib/eventos/desejados";
+import { atendimentoDosPedidos, pedidoQueAtende } from "../../lib/eventos/desejados";
 import { reajustarReserva } from "../../lib/linhaDoTempo/arrasto";
 import { useManutencoes } from "../manutencoes/useManutencoes";
 import { useTransportes } from "../transportes/useTransportes";
@@ -33,6 +34,8 @@ export function useDadosDeEventos() {
   const [clientes, setClientes] = useState<ClienteResumo[]>([]);
   const [reservasSemData, setReservasSemData] = useState<ReservaDoEvento[]>([]);
   const [desejados, setDesejados] = useState<ModeloDesejado[]>([]);
+  const reservasRef = useRef<Reserva[]>([]);
+  const [desejadosOk, setDesejadosOk] = useState(false);
   const [anotacoes, setAnotacoes] = useState<AnotacaoDoCarro[]>([]);
   const man = useManutencoes();
   const tr = useTransportes();
@@ -45,7 +48,7 @@ export function useDadosDeEventos() {
     Promise.all([listarEventos(), listarReservas(), listarVeiculos()]).then(([e, r, v]) => { setEventos(e); setReservas(r); setVeiculos(v); }, (e: Error) => setErro(e.message));
     listarReservasSemData().then((l) => { setReservasSemData(l); setSemDataOk(true); }, () => { setReservasSemData([]); setSemDataOk(true); });
     listarClientes().then(setClientes, () => setClientes([]));
-    listarDesejados().then(setDesejados, () => setDesejados([]));
+    listarDesejados().then((d) => { setDesejados(d); setDesejadosOk(true); }, () => setDesejados([]));
     listarAnotacoes().then(setAnotacoes, () => setAnotacoes([]));
     listarLocais().then(setLocais, () => setLocais([]));   // sem a migration 0007 a lista de locais fica vazia; o resto funciona
   }, [versao]);
@@ -66,6 +69,51 @@ export function useDadosDeEventos() {
     }
   }, [eventos, reservas, reservasSemData, tr.carregado, tr.vinculos, tr.transportes, ck.carregado, ck.checklists, semDataOk, hoje, tiposDeEvento.tipos]);   // eslint-disable-line react-hooks/exhaustive-deps
 
+  reservasRef.current = reservas;
+  // Datas do evento = datas dos carros (chegada mais cedo, retirada mais tarde): mudou a reserva por qualquer caminho (tabela, ficha do carro, linha do tempo), o evento acompanha.
+  const tentadas = useRef(new Map<string, string>());
+  useEffect(() => {
+    if (eventos === null) return;
+    for (const e of eventos) {
+      const d = datasPelasReservas(reservas.filter((r) => r.evento_id === e.id));
+      if (!d) continue;
+      const patch: Partial<Evento> = {};
+      if (d.chegada !== e.chegada_prevista) patch.chegada_prevista = d.chegada;
+      if (d.retirada && d.retirada !== e.retirada_prevista) patch.retirada_prevista = d.retirada;
+      if (Object.keys(patch).length === 0) { tentadas.current.delete(e.id); continue; }
+      const chave = `${patch.chegada_prevista ?? ""}|${patch.retirada_prevista ?? ""}`;
+      if (tentadas.current.get(e.id) === chave) continue;   // uma tentativa por valor (se o banco recusar, não fica em loop)
+      tentadas.current.set(e.id, chave);
+      void atualizarEvento(e.id, patch).then((a) => setEventos((l) => (l ?? []).map((x) => (x.id === a.id ? a : x))), () => undefined);
+    }
+  }, [eventos, reservas]);
+
+  // Todo carro reservado tem de estar ligado a um modelo solicitado: pedido que um carro já atende ganha o vínculo; carro sem pedido ganha um pedido novo.
+  const curados = useRef(new Set<string>());
+  useEffect(() => {
+    if (!desejadosOk || !semDataOk || eventos === null || veiculos.length === 0) return;
+    const todas = [...reservas, ...reservasSemData].filter((r) => r.estado !== "cancelado");
+    const mapa = new Map(veiculos.map((v) => [v.id, v]));
+    for (const e of eventos) {
+      const ativas = todas.filter((r) => r.evento_id === e.id); if (ativas.length === 0) continue;
+      const pedidos = desejados.filter((d) => d.evento_id === e.id);
+      const atende = atendimentoDosPedidos(pedidos, ativas, mapa);
+      const comPedido = new Set(atende.values());
+      for (const [pid, vid] of atende) {
+        const ped = pedidos.find((x) => x.id === pid), r = ativas.find((x) => x.veiculo_id === vid);
+        if (!ped || ped.reserva_id || !r || curados.current.has(`l:${pid}`)) continue;
+        curados.current.add(`l:${pid}`);
+        void atualizarDesejado(pid, { reserva_id: r.id }).then((s) => setDesejados((l) => l.map((x) => (x.id === s.id ? s : x))), () => undefined);
+      }
+      for (const r of ativas) {
+        const v = mapa.get(r.veiculo_id);
+        if (!v || comPedido.has(r.veiculo_id) || curados.current.has(`c:${r.id}`)) continue;
+        curados.current.add(`c:${r.id}`);   // uma tentativa por carro (evita criar pedidos em loop)
+        void criarPedidoDoCarro(e.id, r.id, v);
+      }
+    }
+  }, [desejadosOk, semDataOk, eventos, reservas, reservasSemData, desejados, veiculos]);   // eslint-disable-line react-hooks/exhaustive-deps
+
   const pedidosPorEvento = useMemo(() => { const m = new Map<string, ModeloDesejado[]>(); for (const p of desejados) { const l = m.get(p.evento_id); if (l) l.push(p); else m.set(p.evento_id, [p]); } return m; }, [desejados]);
   const ctx = useMemo<ContextoDeEventos>(() => {
     const m = new Map<string, Reserva[]>();
@@ -81,8 +129,18 @@ export function useDadosDeEventos() {
   /** Evento colocado em uso à mão: se há carros sem checklist de envio, o app oferece fazer o de todos. */
   const [pendenciaDeChecklist, setPendenciaDeChecklist] = useState<string | null>(null);
   const editarEvento: OnEditar<Evento> = async (linha, campo, valor) => {
-    // as datas do evento SÃO as das reservas dos carros: com carros reservados, mudam arrastando na linha do tempo ou na aba Veículos
-    if ((campo.id === "inicio" || campo.id === "fim") && reservas.some((r) => r.evento_id === linha.id && r.estado !== "cancelado")) throw new Error("As datas seguem as reservas dos carros: ajuste na aba Veículos ou arraste a barra na linha do tempo.");
+    // as datas do evento e as das reservas andam juntas: mudar a chegada/retirada do evento muda a de todos os carros dele (a logística vai junto)
+    if (campo.id === "inicio" || campo.id === "fim") {
+      const ativas = reservasRef.current.filter((r) => r.evento_id === linha.id && r.estado !== "cancelado");
+      if (ativas.length > 0) {
+        if (typeof valor !== "string" || !valor) throw new Error("A data do evento segue as reservas dos carros: informe uma data (ou ajuste a reserva de cada carro).");
+        const nova = campo.id === "inicio" ? { chegada: valor } : { retirada: valor };
+        const planos = ativas.map((r) => ({ r, patch: patchDeDatas(r, nova) })).filter((x) => Object.keys(x.patch).length > 0);   // erro de data aparece antes de gravar qualquer coisa
+        const salvas: Reserva[] = [];
+        for (const x of planos) salvas.push(await atualizarReserva(x.r.id, x.patch));
+        if (salvas.length) setReservas((l) => l.map((x) => salvas.find((s) => s.id === x.id) ?? x));
+      }
+    }
     const atualizado = await atualizarEvento(linha.id, { [campo.edicao!.coluna]: valor } as Partial<Evento>);
     setEventos((l) => (l ?? []).map((x) => (x.id === linha.id ? atualizado : x)));
     if (campo.id === "status" && valor === "em_uso") {
@@ -99,6 +157,9 @@ export function useDadosDeEventos() {
     // carro sem data que ganha chegada E retirada passa a ter data (o período da reserva = chegada..retirada)
     const sem = reservasSemData.find((x) => x.id === id);
     let corpo = patch;
+    // chegada/retirada mudada: a janela da reserva (logística) anda junto, senão o banco recusa a data fora da janela
+    const datada = reservasRef.current.find((x) => x.id === id);
+    if (datada && (patch.chegada || patch.retirada) && patch.reserva_inicio === undefined && patch.reserva_fim === undefined) corpo = { ...patch, ...patchDeDatas(datada, { chegada: patch.chegada, retirada: patch.retirada }) };
     if (sem && patch.reserva_inicio === undefined) {
       const c = patch.chegada ?? sem.chegada, t = patch.retirada ?? sem.retirada;
       if (c && t) corpo = { ...patch, reserva_inicio: c, reserva_fim: t };
@@ -108,13 +169,22 @@ export function useDadosDeEventos() {
     setReservas((l) => (comData ? (l.some((x) => x.id === id) ? l.map((x) => (x.id === id ? (salva as Reserva) : x)) : [...l, salva as Reserva]) : l.filter((x) => x.id !== id)));
     setReservasSemData((l) => (comData ? l.filter((x) => x.id !== id) : (l.some((x) => x.id === id) ? l.map((x) => (x.id === id ? salva : x)) : [...l, salva])));
   };
+  /** Carro reservado sem modelo solicitado: cria o modelo solicitado dele (modelo, cor, MY e blindagem do próprio carro) já ligado à reserva. */
+  const criarPedidoDoCarro = async (eventoId: string, reservaId: string, v: Veiculo) => {
+    try {
+      const [novo] = await criarDesejados(eventoId, [{ modelo: v.modelo, cor: v.cor, my: v.my, blindado: v.blindado ?? null }], desejados.filter((d) => d.evento_id === eventoId).length);
+      if (!novo) return;
+      const salvo = await atualizarDesejado(novo.id, { reserva_id: reservaId });
+      setDesejados((l) => [...l.filter((x) => x.id !== salvo.id), salvo]);
+    } catch { /* o carro foi reservado; o vínculo é refeito na próxima abertura */ }
+  };
   /** Liga cada carro novo ao pedido (modelo desejado) que ele atende; carro de outro modelo entra como substituição, sem pedido. */
   const ligarAosPedidos = async (eventoId: string, novas: { id: string; veiculo_id: string }[], pedidoId?: string) => {
     let abertos = desejados.filter((p) => p.evento_id === eventoId);
     for (const [i, r] of novas.entries()) {
       const v = veiculos.find((x) => x.id === r.veiculo_id);
       const alvo = i === 0 && pedidoId ? abertos.find((x) => x.id === pedidoId && !x.reserva_id) : undefined;   // veio da linha de um pedido: liga a ela
-      const p = alvo ?? (v && pedidoQueAtende(v, abertos)); if (!p) continue;
+      const p = alvo ?? (v && pedidoQueAtende(v, abertos)); if (!p) { if (v) await criarPedidoDoCarro(eventoId, r.id, v); continue; }
       abertos = abertos.map((x) => (x.id === p.id ? { ...x, reserva_id: r.id } : x));
       try { const salvo = await atualizarDesejado(p.id, { reserva_id: r.id }); setDesejados((l) => l.map((x) => (x.id === salvo.id ? salvo : x))); } catch { /* o carro foi reservado; o vínculo com o pedido pode ser refeito */ }
     }

@@ -29,6 +29,8 @@ export interface PropsDoEditorDeNotas {
   aoRemoverSubpagina: (id: string) => void;
   /** A ordem dos cartões mudou: a barra lateral segue a mesma ordem. */
   aoReordenarSubpaginas: (ids: string[]) => void;
+  /** Entrega ao dono da página os atalhos do cursor: `inicio` (primeira linha) e `fim` (último bloco; cria uma linha nova se o último tem conteúdo). */
+  aoPronto?: (cursor: { inicio: () => void; fim: () => void }) => void;
 }
 
 /** Os blocos do menu "/". */
@@ -116,7 +118,7 @@ function BarraDaTabela({ editor }: { editor: Editor }) {
  * As SUBPÁGINAS são cartões dentro do texto, na ordem que você arrastar.
  * É carregado só quando alguém abre uma página (ver `EditorCarregavel`).
  */
-export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas }: PropsDeEditor) {
+export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, aoMudar, aoAbrir, aoCriarSubpagina, aoRemoverSubpagina, aoReordenarSubpaginas, aoPronto }: PropsDeEditor) {
   // As filhas vivas desta página, na ordem da árvore: o documento é ajustado a elas ao abrir.
   const conteudo = useMemo(() => {
     const filhas = paginas.filter((p) => p.parent_id === paginaId && !p.deleted_at).sort((a, b) => a.position - b.position).map((p) => p.id);
@@ -186,6 +188,20 @@ export default function EditorDeNotas({ inicial, editavel, paginas, paginaId, ao
   });
 
   useEffect(() => { editor?.setEditable(editavel && !bloqueado); }, [editor, editavel, bloqueado]);
+
+  useEffect(() => {
+    if (!editor) return;
+    aoPronto?.({
+      inicio: () => { if (editor.isEditable) editor.chain().focus("start").run(); },
+      fim: () => {
+        if (!editor.isEditable) return;
+        const ultimo = editor.state.doc.lastChild;
+        // Se o último bloco já tem conteúdo, abre uma linha nova logo abaixo.
+        if (ultimo && !(ultimo.type.name === "paragraph" && ultimo.content.size === 0)) editor.chain().focus("end").insertContentAt(editor.state.doc.content.size, { type: "paragraph" }).focus("end").run();
+        else editor.chain().focus("end").run();
+      },
+    });
+  }, [editor, aoPronto]);
 
   const caixa = useRef<HTMLDivElement | null>(null);
   if (!editor) return null;

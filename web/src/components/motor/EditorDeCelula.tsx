@@ -1,3 +1,4 @@
+import { completarData } from "../../ds/calendario";
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Check, X } from "@phosphor-icons/react";
 import { DateField, cx } from "../../ds";
@@ -21,7 +22,7 @@ type Props = {
 /** O controle de edição no lugar: o MESMO para a célula da tabela, o campo do card e a barra da linha do tempo. */
 export function EditorDeCelula({ campoId, tipo, valor, opcoes, obrigatorio, edicao, rotulo, invalido, validar, onConfirmar, onCancelar, filtroInicial }: Props) {
   if (edicao?.endereco) return <EditorDeEndereco sugestao={edicao.sugestaoDeEndereco} valor={typeof valor === "string" ? valor : null} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
-  if (tipo === "opcao" || tipo === "pessoa") return <EditorDeOpcao filtroInicial={filtroInicial} campoId={campoId} valor={typeof valor === "string" ? valor : null} opcoes={opcoes ?? []} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
+  if (tipo === "opcao" || tipo === "pessoa") return <EditorDeOpcao criarNovo={edicao?.criarNovo} filtroInicial={filtroInicial} campoId={campoId} valor={typeof valor === "string" ? valor : null} opcoes={opcoes ?? []} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   if (tipo === "data") return <EditorDeData valor={typeof valor === "string" ? valor : null} obrigatorio={obrigatorio} rotulo={rotulo} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
   return <EditorDeTexto tipo={tipo} valor={valor} edicao={edicao} rotulo={rotulo} invalido={invalido} validar={validar} onConfirmar={onConfirmar} onCancelar={onCancelar} />;
 }
@@ -60,7 +61,7 @@ function EditorDeData({ valor, obrigatorio, rotulo, onConfirmar, onCancelar }: P
   useEffect(() => {
     const campo = raiz.current?.querySelector("input"); campo?.focus(); campo?.select(); // seleciona tudo: digitar substitui a data atual
     // clicar fora (e fora do calendário, que fica na camada de cima do navegador) cancela
-    const fora = (e: PointerEvent) => { const el = e.target as HTMLElement; if (raiz.current?.contains(el) || el.closest(".ds-pop, .ds-cal")) return; if (!feito.current) { feito.current = true; onCancelar(); } };
+    const fora = (e: PointerEvent) => { const el = e.target as HTMLElement; if (raiz.current?.contains(el) || el.closest(".ds-pop, .ds-cal")) return; if (feito.current) return; const digitado = completarData(raiz.current?.querySelector("input")?.value ?? ""); if (digitado) { fim(digitado); return; } feito.current = true; onCancelar(); };   // clicou fora com "12/10" digitado: vale (completa o ano)
     document.addEventListener("pointerdown", fora, true);
     return () => document.removeEventListener("pointerdown", fora, true);
   }, [onCancelar]);
@@ -72,7 +73,7 @@ function EditorDeData({ valor, obrigatorio, rotulo, onConfirmar, onCancelar }: P
   );
 }
 
-function EditorDeOpcao({ campoId, valor, opcoes, obrigatorio, rotulo, onConfirmar, onCancelar, filtroInicial }: Pick<Props, "opcoes" | "obrigatorio" | "rotulo" | "onConfirmar" | "onCancelar" | "campoId" | "filtroInicial"> & { valor: string | null }) {
+function EditorDeOpcao({ campoId, valor, opcoes, obrigatorio, rotulo, onConfirmar, onCancelar, filtroInicial, criarNovo }: Pick<Props, "opcoes" | "obrigatorio" | "rotulo" | "onConfirmar" | "onCancelar" | "campoId" | "filtroInicial"> & { valor: string | null; criarNovo?: { rotulo: string; aoCriar: (t: string) => void } }) {
   const gatilho = useRef<HTMLButtonElement>(null);
   const { ref, aberto, setAberto } = usePopover(gatilho, { largura: 300, alturaMax: 420 });
   const abriu = useRef(false);
@@ -119,6 +120,7 @@ function EditorDeOpcao({ campoId, valor, opcoes, obrigatorio, rotulo, onConfirma
           onChange={(e) => { setQ(e.target.value); setMarcada(e.target.value.trim() ? 0 : -1); }} onKeyDown={aoTeclar} />
         {semValorVisivel && <button type="button" role="option" aria-selected={valor === null} className={cx("mt-lista__item", marcada === 0 && "is-marcada")} onClick={() => escolher(null)}><span className="mt-lista__sem">Sem valor</span></button>}
         {filtradas.length === 0 && <p className="t-body-sm t-muted" style={{ padding: "6px 10px", margin: 0 }}>Nenhuma opção com “{q}”.</p>}
+        {criarNovo && <button type="button" className="mt-lista__item" data-testid="criar-novo-na-lista" onClick={() => { feito.current = true; setAberto(false); onCancelar(); criarNovo.aoCriar(q.trim()); }}><span style={{ fontWeight: 600 }}>+ {q.trim() ? `${criarNovo.rotulo} “${q.trim()}”` : criarNovo.rotulo}</span></button>}
         {filtradas.map((o, k) => (
           <div key={o.value} className={cx("mt-lista__item", o.value === valor && "is-atual", marcada === k + (semValorVisivel ? 1 : 0) && "is-marcada")} role="presentation">
             <Tag opcao={o} campoId={campoId} selecionada={o.value === valor} comCheck comoOpcao onClick={() => escolher(o.value)} />

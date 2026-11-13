@@ -11,10 +11,12 @@ type Estado = {
 };
 const VAZIO: Estado = { modelo: "", cor: "", my: "", pedido: "", vin: "", placa: "", blindado: false, seguro: "pendente", ciclo: "pedido_recebido", departamento: DEPARTAMENTO_PADRAO, d_pedido: "", d_lib: "", d_fat: "", d_empl: "", d_dev: "", comentarios: "" };
 
-/** "ONIX RS 3456": a mesma conta do banco (modelo + 4 últimos do VIN), só para mostrar enquanto digita. */
-export const codigoPrevisto = (modelo: string, vin: string) => {
+/** "ONIX RS 3456": a mesma conta do banco (modelo + 4 últimos do VIN; sem VIN, o número do Pedido), só para mostrar enquanto digita. */
+export const codigoPrevisto = (modelo: string, vin: string, pedido = "") => {
   const v = normalizarVin(vin);
-  return v.length >= 4 && modelo.trim() ? `${modelo.trim().toUpperCase()} ${v.slice(-4)}` : "";
+  if (!modelo.trim()) return "";
+  if (v.length >= 4) return `${modelo.trim().toUpperCase()} ${v.slice(-4)}`;
+  return pedido.trim() ? `${modelo.trim().toUpperCase()} ${pedido.trim().toUpperCase()}` : "";
 };
 
 /** Cadastro de veículo em janela larga (como o de eventos). Ctrl + Enter cadastra. Só a importação em massa abre página inteira. */
@@ -34,7 +36,7 @@ export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; o
     placa: !placa || placaValida(placa) ? null : `A placa tem 7 caracteres (digitou ${placa.length}).`,
   }), [f.modelo, vin, placa]);
   const invalido = Object.values(erros).some(Boolean);
-  const codigo = codigoPrevisto(f.modelo, f.vin);
+  const codigo = codigoPrevisto(f.modelo, f.vin, f.pedido);
 
   const corpo = (): VeiculoNovo => ({
     modelo: f.modelo.trim(), cor: vazioParaNulo(f.cor), my: vazioParaNulo(f.my), pedido: vazioParaNulo(f.pedido),
@@ -85,7 +87,7 @@ export function NovoVeiculo({ aberto, onFechar, onCriado }: { aberto: boolean; o
         <Field label="Comentários"><Textarea rows={3} value={f.comentarios} onChange={(e) => set("comentarios", e.target.value)} /></Field>
         {erro && <p className="t-body" role="alert" style={{ color: "var(--color-error-fg)" }}>{erro}</p>}
         <div className="mt-evf__rodape">
-          <span className="t-body-sm t-muted" data-testid="codigo-previsto">{codigo ? `Código: ${codigo}` : "Código: aparece com o VIN"} · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> cadastra</span>
+          <span className="t-body-sm t-muted" data-testid="codigo-previsto">{codigo ? `Código: ${codigo}` : "Código: aparece com o VIN ou o pedido"} · <kbd>Ctrl</kbd> + <kbd>Enter</kbd> cadastra</span>
           <div className="ds-row" style={{ flexWrap: "wrap" }}>
             <Button type="button" size="lg" variant="secondary" loading={enviando} onClick={() => void salvar(true)}>Cadastrar e adicionar outro</Button>
             <Button type="submit" size="lg" loading={enviando}>Cadastrar</Button>

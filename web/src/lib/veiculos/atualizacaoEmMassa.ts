@@ -5,6 +5,7 @@
 import { CICLO, estaFaturado, normalizarPlaca, normalizarVin, placaValida, type Veiculo } from "./tipos";
 import { planoDoRegistro, type Plano } from "./registros";
 import { lerData } from "../eventos/importacao";
+import { disponivelAPartirDe } from "./previsoes";
 import { reservavelPeloCiclo, rotuloDoUso, usoDoCiclo } from "../eventos/uso";
 
 export type AcaoEmMassa = "liberacao" | "chegada" | "faturamento" | "placas" | "emplacamento" | "devolucaoCvo" | "devolucao" | "saida" | "retorno" | "reserva";
@@ -84,9 +85,10 @@ export function validarLista(acao: AcaoEmMassa, linhas: readonly LinhaDaLista[],
     if (acao === "reserva") {
       const ev = l.evento || ctx.eventoId;
       if (!ev) return { tom: "erro", texto: `${nome}: falta o evento` };
-      if (!reservavelPeloCiclo(v.status_ciclo)) return { tom: "erro", texto: `${nome} está ${rotuloDoUso(usoDoCiclo(v.status_ciclo)!)} e não recebe reservas` };
+      const liberaEm = disponivelAPartirDe(v);   // bloqueado pelo ciclo, mas com liberação prevista: reserva normal, com aviso
+      if (!reservavelPeloCiclo(v.status_ciclo) && !liberaEm) return { tom: "erro", texto: `${nome} está ${rotuloDoUso(usoDoCiclo(v.status_ciclo)!)} e não recebe reservas` };
       const ja = ctx.noEvento ? ctx.noEvento(ev, v.id) : ctx.jaNoEvento?.has(v.id);
-      return ja ? { tom: "dup", texto: `${nome} já está neste evento: será ignorado`, veiculo: v, eventoId: ev } : { tom: "ok", texto: `${nome}: será reservado${ctx.nomeDoEvento ? ` em ${ctx.nomeDoEvento(ev)}` : ""}`, veiculo: v, eventoId: ev };
+      return ja ? { tom: "dup", texto: `${nome} já está neste evento: será ignorado`, veiculo: v, eventoId: ev } : { tom: "ok", texto: `${nome}: será reservado${ctx.nomeDoEvento ? ` em ${ctx.nomeDoEvento(ev)}` : ""}${liberaEm ? ` (aviso: liberação prevista para ${liberaEm.split("-").reverse().join("/")})` : ""}`, veiculo: v, eventoId: ev };
     }
     if (acao === "liberacao") {
       if (v.data_liberacao) return { tom: "dup", texto: `${nome} já foi liberado em ${v.data_liberacao.split("-").reverse().join("/")}: será ignorado`, veiculo: v };

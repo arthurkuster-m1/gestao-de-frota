@@ -17,6 +17,8 @@ import { barrasDoVeiculo } from "../../lib/eventos/barras";
 import { barrasDeManutencao } from "../../lib/manutencoes/barras";
 import { AgendaDoCarro, type ItemDaAgenda } from "./AgendaDoCarro";
 import { AgendaEmTags } from "./AgendaEmTags";
+import { PrevisoesQueChegaram } from "./PrevisoesQueChegaram";
+import type { MarcoPrevisto } from "../../lib/veiculos/previsoes";
 import { EventosDoVeiculo } from "./EventosDoVeiculo";
 import { RegistrarAcoes } from "./RegistrarAcoes";
 import { hojeLocal, formatarDiaBr } from "../../lib/motor/datas";
@@ -39,6 +41,7 @@ const BLOCOS: { titulo: string; ids: string[] }[] = [
   { titulo: "Uso", ids: ["codigo", "statusUso", "agenda", "comentarios"] },
   { titulo: "Dados", ids: ["placa", "vin", "modelo", "cor", "my", "blindado", "faturado", "pedido", "ciclo", "departamento", "seguro"] },
   { titulo: "Datas", ids: ["pedidoEm", "liberadoEm", "chegouPlantaEm", "faturadoEm", "placasSolicitadasEm", "emplacadoEm", "devolvidoEm"] },
+  { titulo: "Previsões (datas que ainda vão acontecer)", ids: ["liberacaoPrevisto", "faturamentoPrevisto", "emplacamentoPrevisto"] },
   { titulo: "Prazos da placa", ids: ["diasParaSolicitar", "diasParaEmplacar", "diasTotalPlaca"] },
 ];
 
@@ -64,7 +67,7 @@ function ListaDeReservas({ reservas, nome, vazio }: { reservas: ReservaDoEvento[
   );
 }
 
-export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao }: { /** carros deste veículo em eventos ainda sem data */ reservasSemData?: ReservaDoEvento[]; /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
+export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<string, string>(), locais = [], veiculo, campos, onEditar, onFechar, reservas, eventos, usoCarregado, manutencoes = [], manutencoesErro = null, onCriarManutencao, onSalvarReserva }: { /** muda chegada/retirada de uma reserva do carro (o evento e os demais lugares acompanham) */ onSalvarReserva?: (id: string, patch: { chegada?: string; retirada?: string }) => Promise<void>; /** carros deste veículo em eventos ainda sem data */ reservasSemData?: ReservaDoEvento[]; /** nomes dos clientes (id → nome) e locais dos eventos, para a pesquisa na aba Eventos */ clientes?: ReadonlyMap<string, string>; locais?: readonly EventoLocal[]; veiculo: Veiculo | null; campos: readonly CampoDaTela<Veiculo>[]; onEditar: OnEditar<Veiculo>; onFechar: () => void; reservas: Reserva[]; eventos: Evento[]; usoCarregado: boolean; manutencoes?: Manutencao[]; manutencoesErro?: string | null; onCriarManutencao?: (m: ManutencaoNova) => Promise<Manutencao> }) {
   const ref = useRef<HTMLDialogElement>(null);
   const [aba, setAba] = useState<Aba>("dados");
   const [hist, setHist] = useState<Atividade[] | null>(null);
@@ -108,6 +111,9 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
           </div>
           <div className="mt-janela__conteudo">
             <AlertaDeDivergencia alertas={divergenciasDoCarro} comEvento />
+            {veiculo && <PrevisoesQueChegaram veiculo={veiculo} hoje={hoje}
+              aoConfirmar={async (m: MarcoPrevisto) => { const real = campos.find((c) => c.edicao?.coluna === m.real), prev = campos.find((c) => c.edicao?.coluna === m.previsto); if (!real || !prev) return; try { await onEditar(veiculo, real, veiculo[m.previsto] ?? null); await onEditar({ ...veiculo, [m.real]: veiculo[m.previsto] ?? null }, prev, null); } catch (e) { ed.setErro((e as Error).message); } }}
+              aoAdiar={async (m: MarcoPrevisto, nova: string) => { const prev = campos.find((c) => c.edicao?.coluna === m.previsto); if (prev) try { await onEditar(veiculo, prev, nova); } catch (e) { ed.setErro((e as Error).message); } }} />}
             {ed.erro && <p className="mt-erro" role="alert" data-testid="erro-edicao"><span>{ed.erro}</span><button type="button" aria-label="Fechar aviso" onClick={() => ed.setErro(null)}><X size={16} /></button></p>}
             {aba === "dados" && (
               <div className="ds-stack">
@@ -142,7 +148,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                 )}
               </div>
             ) : <EmBreve icone={<CalendarBlank size={32} />} titulo="Agenda do veículo">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
-            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo reservas={[...reservas, ...reservasSemData]} eventos={eventos} clientes={clientes} locais={locais} />
+            {aba === "eventos" && (usoCarregado ? <EventosDoVeiculo onSalvarReserva={onSalvarReserva} reservas={[...reservas, ...reservasSemData]} eventos={eventos} clientes={clientes} locais={locais} />
               : <EmBreve icone={<CalendarCheck size={32} />} titulo="Eventos">Os eventos e as reservas ainda não foram ativados no banco (falta aplicar a migration 0006).</EmBreve>)}
             {aba === "manutencoes" && (manutencoesErro ? <EmBreve icone={<Wrench size={32} />} titulo="Manutenções">{manutencoesErro}</EmBreve> : (
               <div className="mt-reservas-ed" data-testid="aba-manutencoes">
@@ -156,7 +162,7 @@ export function JanelaDoVeiculo({ reservasSemData = [], clientes = new Map<strin
                     const s = STATUS_MANUTENCAO.find((x) => x.value === m.status)!;
                     return (
                       <li key={m.id} className="mt-reserva">
-                        <div className="mt-reserva__topo"><Link to={`/manutencoes/${m.id}`} className="mt-reserva__evento">{m.nome}</Link><Tag opcao={{ value: s.value, label: s.label, tom: s.tom }} /></div>
+                        <div className="mt-reserva__topo"><LinkNoLugar to={`/manutencoes/${m.id}`} className="mt-reserva__evento">{m.nome}</LinkNoLugar><Tag opcao={{ value: s.value, label: s.label, tom: s.tom }} /></div>
                         <span className="t-body-sm t-muted">{[m.tipo, `${formatarDiaBr(m.data_inicio)} até ${m.data_fim ? formatarDiaBr(m.data_fim) : "em aberto"}`, m.bloqueia_uso ? "bloqueia o uso" : "não bloqueia o uso"].filter(Boolean).join(" · ")}</span>
                       </li>
                     );

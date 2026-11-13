@@ -305,7 +305,10 @@
 /* Início: próximos envios e retornos */
 .mt-proximos { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
 .mt-proximos li { display: grid; grid-template-columns: minmax(160px, 1.4fr) 1fr 1.4fr; gap: 4px 16px; align-items: center; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-border); }
-.mt-proximos li.is-alerta { border-color: var(--color-warning-fg, #b45309); background: var(--color-warning-bg, rgba(245, 158, 11, 0.12)); }
+/* o bloco tem a cor do status do evento (Envio agendado = azul, Solicitar transporte = amarelo…) */
+.mt-proximos li.mt-proximos__status { background: var(--tag-bg); border-color: var(--tag-dot); color: var(--tag-fg); }
+.mt-proximos li.mt-proximos__status .t-muted { color: var(--tag-fg); opacity: .8; }
+.mt-proximos li.mt-proximos__status .mt-reserva__evento { color: var(--tag-fg); }
 @media (max-width: 720px) { .mt-proximos li { grid-template-columns: 1fr; } }
 
 /* carros do evento: colunas de largura fixa (ajustável), texto longo com reticências */
@@ -394,3 +397,22 @@
 .mt-titulo-arrasta { position: relative; }
 .mt-titulo-alca { position: absolute; right: -4px; top: 0; bottom: 0; width: 9px; cursor: col-resize; z-index: 3; touch-action: none; }
 .mt-titulo-alca:hover, .mt-titulo-alca:active { background: color-mix(in srgb, var(--color-accent) 35%, transparent); }
+
+/* datas editáveis (chegada e retirada) na lista de eventos do carro */
+.mt-evv__datas-ed { display: grid; grid-template-columns: auto minmax(150px, 1fr); gap: 4px 8px; align-items: center; min-width: 280px; }
+
+/* botão de copiar ao lado do endereço */
+.mt-com-copia { display: flex; align-items: center; gap: 4px; min-width: 0; }
+.mt-com-copia > :first-child { flex: 1; min-width: 0; }
+.mt-copiar { flex: none; }
+
+/* link do contrato na tabela: texto cortado + botão de abrir */
+.mt-link-contrato { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; min-width: 0; }
+.mt-link-contrato > a:first-child { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+
+/* aviso: a data prevista chegou */
+.mt-previsoes { display: grid; gap: 8px; }
+.mt-previsao { display: flex; flex-wrap: wrap; gap: 8px 16px; align-items: center; justify-content: space-between; padding: 10px 12px; border-radius: var(--radius-md); border: 1px solid var(--color-warning-fg, #b45309); background: var(--color-warning-bg, rgba(245, 158, 11, 0.12)); }
+.mt-previsao__texto { display: inline-flex; gap: 6px; align-items: center; }
+.mt-previsao__acoes { display: inline-flex; flex-wrap: wrap; gap: 8px 12px; align-items: center; }
+.mt-previsao__adiar { display: inline-flex; gap: 6px; align-items: center; }

@@ -5,6 +5,7 @@ import { DESTINOS } from "../app/modules";
 import { Link } from "react-router-dom";
 import { Clock } from "@phosphor-icons/react";
 import { lerNotificacoes, URL_DO_PONTO } from "../lib/notificacoes/notificacoes";
+import { PrevisoesDoInicio } from "./home/PrevisoesDoInicio";
 import { ProximosDoInicio } from "./home/ProximosDoInicio";
 import { AlertaDeDivergencia } from "./contratos/AlertaDeDivergencia";
 import { useDivergenciasDeContratos } from "./contratos/useDivergencias";
@@ -33,6 +34,8 @@ export function Home() {
         </a>
 
         <AlertaDeDivergencia alertas={divergencias} comEvento />
+
+        <PrevisoesDoInicio />
 
         <ProximosDoInicio />
 
