@@ -22,6 +22,35 @@ export function valorPorEvento(transportes: readonly Transporte[]): Map<string, 
   return m;
 }
 
+/** Soma dos valores (planejado e real) de uma lista de transportes; vazio não conta. Serve para o rodapé da tabela. */
+export function somarValores(ts: readonly Pick<Transporte, "valor_planejado" | "valor_real">[]): { planejado: number; real: number } {
+  let planejado = 0, real = 0;
+  for (const t of ts) { planejado += t.valor_planejado ?? 0; real += t.valor_real ?? 0; }
+  return { planejado: Math.round(planejado * 100) / 100, real: Math.round(real * 100) / 100 };
+}
+/** Texto do rodapé: "14 transportes · planejado R$ 1.000,00 · real R$ 900,00". */
+export function rodapeDeTransportes(n: number, ts: readonly Pick<Transporte, "valor_planejado" | "valor_real">[], sufixo = ""): string {
+  const s = somarValores(ts);
+  return `${n} transporte${n === 1 ? "" : "s"}${sufixo} · planejado ${reais(s.planejado)} · real ${reais(s.real)}`;
+}
+
+/** Por evento e por sentido (ida / volta): soma planejada, soma real e a data do pagamento mais recente. Cada transporte paga no seu mês, por isso o evento mostra os dois lados separados. */
+export type ValoresDoSentido = { planejado: number | null; real: number | null; pagoEm: string | null };
+export type ValoresDoEvento = { ida: ValoresDoSentido; volta: ValoresDoSentido };
+export function valoresPorEventoESentido(transportes: readonly Transporte[]): Map<string, ValoresDoEvento> {
+  const vazio = (): ValoresDoSentido => ({ planejado: null, real: null, pagoEm: null });
+  const m = new Map<string, ValoresDoEvento>();
+  for (const t of transportes) {
+    const e = m.get(t.evento_id) ?? { ida: vazio(), volta: vazio() };
+    const lado = e[t.sentido];
+    if (t.valor_planejado !== null) lado.planejado = Math.round(((lado.planejado ?? 0) + t.valor_planejado) * 100) / 100;
+    if (t.valor_real !== null) lado.real = Math.round(((lado.real ?? 0) + t.valor_real) * 100) / 100;
+    if (t.data_pagamento && (!lado.pagoEm || t.data_pagamento > lado.pagoEm)) lado.pagoEm = t.data_pagamento;
+    m.set(t.evento_id, e);
+  }
+  return m;
+}
+
 /** As reservas (ids) que usam cada transporte, no sentido dele. */
 export function reservasDoTransporte(t: Pick<Transporte, "id" | "sentido">, vinculos: readonly VinculoDaReserva[]): string[] {
   return vinculos.filter((v) => (t.sentido === "ida" ? v.transporte_ida_id : v.transporte_volta_id) === t.id).map((v) => v.id);

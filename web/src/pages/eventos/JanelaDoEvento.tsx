@@ -32,7 +32,7 @@ import type { useTransportes } from "../transportes/useTransportes";
 import { camposDoLocal } from "./camposDoEvento";
 import { JanelaDeEndereco, type EnderecoConhecido } from "../../components/motor/EditorDeEndereco";
 import { LinhaDeEndereco } from "./LinhaDeEndereco";
-import { diasDeViagem, reais } from "../../lib/transportes/regras";
+import { diasDeViagem, rodapeDeTransportes, reais } from "../../lib/transportes/regras";
 import { ORIGEM_PADRAO } from "../../lib/enderecos";
 import { copiarTabela } from "../../lib/eventos/linhasDoEvento";
 import { textoDoEvento } from "../../lib/eventos/textoDoEvento";
@@ -298,7 +298,7 @@ export function ConteudoDoEvento(p: Props & { cheia: boolean; aoAlternarCheia: (
         {aba === "transportes" && (
           <TelaDoMotor<Transporte> tela="evento-transportes" titulo="Transportes" subtitulo="" compacta
             linhas={tr.carregado ? transportesDoEvento : null} erro={tr.erro} campos={camposT} idDe={(t) => t.id} onEditar={tr.editarTransporte} onAbrir={(t) => navigate(`/transportes/${t.id}`)}
-            rotuloDoTotal={(n) => `${n} transporte${n === 1 ? "" : "s"} deste evento`} placeholderDaBusca="Buscar transporte…"
+            rotuloDoTotal={(n, ls) => rodapeDeTransportes(n, ls, " deste evento")} placeholderDaBusca="Buscar transporte…"
             vazio={<EmptyState icon={<Truck size={30} />} title="Nenhum transporte neste evento">Na aba Veículos, ligue “Transporte de ida/volta” em Colunas e cadastre a PTA direto na linha do carro.</EmptyState>} />
         )}
 

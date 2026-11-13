@@ -31,7 +31,7 @@ type Props<T> = {
   selecaoInicial?: readonly string[];
   /** Canto superior direito do cabeçalho (ex.: o seletor de subpáginas de Eventos). */ cabecalhoDireita?: ReactNode;
   linhas: readonly T[] | null; erro: string | null; campos: readonly CampoDaTela<T>[]; idDe: (l: T) => string;
-  onEditar: OnEditar<T>; onAbrir: (l: T) => void; vazio: ReactNode; rotuloDoTotal: (n: number) => string; placeholderDaBusca: string;
+  onEditar: OnEditar<T>; onAbrir: (l: T) => void; vazio: ReactNode; rotuloDoTotal: (n: number, linhas: readonly T[]) => string; placeholderDaBusca: string;
   /** Janelas e outros elementos por cima da tela (ex.: a janela do veículo). */
   filhos?: ReactNode;
   /** Liga a visão Linha do tempo: como cada linha vira barras e o que acontece ao arrastá-las. */

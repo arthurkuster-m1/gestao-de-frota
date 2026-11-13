@@ -122,8 +122,8 @@ export function useDadosDeEventos() {
     for (const l of locais.filter((x) => x.tipo !== "origem").sort((a, b) => a.posicao - b.posicao)) { const x = lm.get(l.evento_id); if (x) x.push(l); else lm.set(l.evento_id, [l]); }
     const sd = new Map<string, ReservaDoEvento[]>();
     for (const r of reservasSemData) { const l = sd.get(r.evento_id); if (l) l.push(r); else sd.set(r.evento_id, [r]); }
-    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento, tiposDeEvento: tiposDeEvento.tipos, desejadosDoEvento: pedidosPorEvento };
-  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento, tiposDeEvento.tipos, pedidosPorEvento]);
+    return { semDataDoEvento: sd, clientes: new Map(clientes.map((c) => [c.id, c.nome])), reservasDoEvento: m, locaisDoEvento: lm, veiculos: new Map(veiculos.map((v) => [v.id, v])), carregado: true, valorDoEvento: tr.valorDoEvento, valoresDoEvento: tr.valoresDoEvento, tiposDeEvento: tiposDeEvento.tipos, desejadosDoEvento: pedidosPorEvento };
+  }, [reservas, reservasSemData, veiculos, locais, clientes, tr.valorDoEvento, tr.valoresDoEvento, tiposDeEvento.tipos, pedidosPorEvento]);
   const campos = useMemo(() => camposDoEvento(ctx), [ctx]);
 
   /** Evento colocado em uso à mão: se há carros sem checklist de envio, o app oferece fazer o de todos. */

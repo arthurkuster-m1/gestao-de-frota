@@ -11,7 +11,7 @@ import "./motor.css";
 
 type Props<T> = {
   linhas: readonly T[]; campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; idDe: (l: T) => string; onAbrir?: (l: T) => void;
-  vazio: ReactNode; rotuloDoTotal?: (n: number) => string; onEditar?: OnEditar<T>;
+  vazio: ReactNode; rotuloDoTotal?: (n: number, linhas: readonly T[]) => string; onEditar?: OnEditar<T>;
 };
 
 /** A visão em Cards: a mesma consulta, as mesmas propriedades visíveis (na ordem escolhida) e a mesma edição no lugar da tabela. */
@@ -57,7 +57,7 @@ export function CartoesDoMotor<T>({ linhas, campos, prefs, idDe, onAbrir, vazio,
           );
         })
         : <div className="mt-cards" data-testid="cards-motor">{resultado.linhas.map(card)}</div>}
-      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(resultado.linhas.length) : `${resultado.linhas.length} registros`}{resultado.linhas.length !== linhas.length ? ` de ${linhas.length}` : ""}</p>
+      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(resultado.linhas.length, resultado.linhas) : `${resultado.linhas.length} registros`}{resultado.linhas.length !== linhas.length ? ` de ${linhas.length}` : ""}</p>
     </div>
   );
 }

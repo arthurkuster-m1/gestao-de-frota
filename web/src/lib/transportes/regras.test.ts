@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { diasDeViagem, paraNumero, reservasDoTransporte, valorPorEvento } from "./regras";
+import { diasDeViagem, paraNumero, reservasDoTransporte, rodapeDeTransportes, somarValores, valorPorEvento, valoresPorEventoESentido } from "./regras";
 import { STATUS_DA_MODALIDADE, type Transporte } from "./tipos";
 
 describe("dias de viagem", () => {
@@ -51,5 +51,27 @@ describe("menos de 200 km: mesmo dia", () => {
     expect(diasDeViagem(199, "pta")).toBe(0);
     expect(diasDeViagem(200, "pta")).toBe(1);
     expect(diasDeViagem(501, "pta")).toBe(2);
+  });
+});
+
+describe("valores do transporte separados por sentido e somados no rodapé", () => {
+  const t = (id: string, ev: string, sentido: "ida" | "volta", plan: number | null, real: number | null, pago: string | null) =>
+    ({ id, evento_id: ev, sentido, valor_planejado: plan, valor_real: real, data_pagamento: pago }) as Transporte;
+  it("ida e volta ficam em colunas separadas, cada uma com a sua data de pagamento", () => {
+    const m = valoresPorEventoESentido([t("1", "e1", "ida", 1000, 900, "2026-10-28"), t("2", "e1", "volta", 1100, null, null), t("3", "e1", "ida", 50.5, 50.5, "2026-11-03")]);
+    expect(m.get("e1")!.ida).toEqual({ planejado: 1050.5, real: 950.5, pagoEm: "2026-11-03" });
+    expect(m.get("e1")!.volta).toEqual({ planejado: 1100, real: null, pagoEm: null });
+  });
+  it("evento sem transporte de um lado fica com esse lado vazio (null, não zero)", () => {
+    const m = valoresPorEventoESentido([t("1", "e2", "ida", null, null, null)]);
+    expect(m.get("e2")!.volta).toEqual({ planejado: null, real: null, pagoEm: null });
+    expect(m.get("e2")!.ida.planejado).toBeNull();
+  });
+  it("soma planejado e real (vazio não conta) e monta o texto do rodapé", () => {
+    const ls = [t("1", "e1", "ida", 1000, 900, null), t("2", "e1", "volta", 250.1, null, null), t("3", "e2", "ida", null, 0.2, null)];
+    expect(somarValores(ls)).toEqual({ planejado: 1250.1, real: 900.2 });
+    expect(somarValores([])).toEqual({ planejado: 0, real: 0 });
+    expect(rodapeDeTransportes(3, ls).replace(/\u00a0/g, " ")).toBe("3 transportes · planejado R$ 1.250,10 · real R$ 900,20");
+    expect(rodapeDeTransportes(1, [ls[0]!], " deste evento").replace(/\u00a0/g, " ")).toBe("1 transporte deste evento · planejado R$ 1.000,00 · real R$ 900,00");
   });
 });

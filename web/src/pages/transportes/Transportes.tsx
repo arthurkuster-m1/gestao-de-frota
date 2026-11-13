@@ -4,7 +4,7 @@ import { MapPin, Truck } from "@phosphor-icons/react";
 import { Button, EmptyState, useToast } from "../../ds";
 import { TelaDoMotor } from "../../components/motor/TelaDoMotor";
 import { rotaDoTransporte, distanciaEntre } from "../../lib/transportes/rota";
-import { reservasDoTransporte } from "../../lib/transportes/regras";
+import { reservasDoTransporte, rodapeDeTransportes } from "../../lib/transportes/regras";
 import type { Transporte } from "../../lib/transportes/tipos";
 import { SubpaginasDeEventos } from "../eventos/SubpaginasDeEventos";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
@@ -35,7 +35,7 @@ export function Transportes() {
     <TelaDoMotor<Transporte> tela="transportes" titulo="Transportes" subtitulo="O código vem do campo Transporte na aba Veículos do evento. Aqui você acompanha a execução, a rota e o pagamento." cabecalhoDireita={<SubpaginasDeEventos ativa="transportes" />} avisos={aviso}
       acoes={<Button variant="secondary" icon={<MapPin size={20} />} onClick={() => void rotas.calcularPendentes()} loading={rotas.calculando} data-testid="calcular-rotas">Calcular rotas pendentes</Button>}
       linhas={pronto ? comCodigo : null} erro={d.erro} campos={campos} idDe={(t) => t.id} onEditar={tr.editarTransporte} onAbrir={(t) => navigate(`/transportes/${t.id}`)}
-      rotuloDoTotal={(n) => `${n} transporte${n === 1 ? "" : "s"}`} placeholderDaBusca="Buscar referência, evento, cidade, transportadora…"
+      rotuloDoTotal={(n, ls) => rodapeDeTransportes(n, ls)} placeholderDaBusca="Buscar referência, evento, cidade, transportadora…"
       vazio={<EmptyState icon={<Truck size={30} />} title="Nenhum transporte ainda">No evento, aba Veículos, abra “Transporte IDA” ou “Transporte RETORNO” e digite o código do transporte (PTA ou NF da TSO) na linha do carro. Cada código vira um transporte aqui.</EmptyState>}
       filhos={<JanelaDoTransporte transporte={aberto} campos={campos} reservas={d.reservas} veiculos={d.veiculos} vinculos={tr.vinculos} onEditar={tr.editarTransporte} onLigar={tr.ligarCarros} onAtualizarRota={rotas.atualizar}
         onExcluir={async (t) => { await tr.excluirT(t); navigate("/transportes"); }} onFechar={() => navigate("/transportes")} />} />

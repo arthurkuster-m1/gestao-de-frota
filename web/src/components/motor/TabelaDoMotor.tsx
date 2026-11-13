@@ -25,7 +25,7 @@ import "./motor.css";
 
 type Props<T> = {
   linhas: readonly T[]; campos: readonly CampoDaTela<T>[]; prefs: PreferenciasDaTabela; onPrefs: (p: PreferenciasDaTabela) => void;
-  idDe: (l: T) => string; onAbrir?: (l: T) => void; vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
+  idDe: (l: T) => string; onAbrir?: (l: T) => void; vazio: ReactNode; rotuloDoTotal?: (n: number, linhas: readonly T[]) => string;
   /** Grava um campo editado na célula. Rejeita com `Error(mensagem)` se o banco recusar. Sem isto, a tabela é só de leitura. */
   onEditar?: OnEditar<T>;
   /** Seleção de várias linhas (caixinha na primeira coluna). Sem isto, a tabela não tem caixinhas. */
@@ -411,7 +411,7 @@ export function TabelaDoMotor<T>({ linhas, campos, prefs, onPrefs, idDe, onAbrir
           </table>
         </div>
       )}
-      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(resultado.linhas.length) : `${resultado.linhas.length} registros`}{resultado.linhas.length !== linhas.length ? ` de ${linhas.length}` : ""}</p>
+      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(resultado.linhas.length, resultado.linhas) : `${resultado.linhas.length} registros`}{resultado.linhas.length !== linhas.length ? ` de ${linhas.length}` : ""}</p>
     </div>
   );
 }

@@ -31,7 +31,7 @@ type Props<T> = {
   /** Seleção de várias linhas (caixinha na primeira coluna da parte fixa). */
   selecao?: Selecao;
   onAbrir?: (l: T) => void; onAbrirBarra?: (l: T, b: Barra) => void; onEditar?: OnEditar<T>;
-  vazio: ReactNode; rotuloDoTotal?: (n: number) => string;
+  vazio: ReactNode; rotuloDoTotal?: (n: number, linhas: readonly T[]) => string;
   /** Linha escolhida (Planejamento: o evento selecionado). */ selecionadoId?: string | null; aoSelecionar?: (l: T) => void;
   /** Mostra os botões Hoje e Dia/Semana acima da linha do tempo. */ comControles?: boolean; alturaMax?: string;
   /** Largura (px) do bloco da esquerda. Duas linhas do tempo que dividem o eixo (Planejamento) usam a mesma, para os dias alinharem. */ larguraEsquerda?: number;
@@ -236,7 +236,7 @@ export function LinhaDoTempoDoMotor<T>({ linhas, campos, prefs, onPrefs, onCriar
           </div>
         </div>
       )}
-      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(total) : `${total} registros`}{total !== linhas.length ? ` de ${linhas.length}` : ""}</p>
+      <p className="t-body-sm t-muted mt-total" data-testid="total-motor">{rotuloDoTotal ? rotuloDoTotal(total, resultado.linhas) : `${total} registros`}{total !== linhas.length ? ` de ${linhas.length}` : ""}</p>
     </div>
   );
 }

@@ -3,7 +3,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { useToast } from "../../ds";
 import type { OnEditar } from "../../components/motor/useEdicao";
 import { atualizarTransporte, criarTransporte, definirTransporteDasReservas, excluirTransporte, listarTransportes, listarVinculos } from "../../lib/transportes/dados";
-import { valorPorEvento } from "../../lib/transportes/regras";
+import { valorPorEvento, valoresPorEventoESentido } from "../../lib/transportes/regras";
 import { planejarCampo, type CampoDeTransporte, type Operacao } from "../../lib/transportes/porCarro";
 import type { Sentido, Transporte, TransporteNovo, VinculoDaReserva } from "../../lib/transportes/tipos";
 
@@ -53,6 +53,7 @@ export function useTransportes() {
   };
 
   const valorDoEvento = useMemo(() => valorPorEvento(transportes), [transportes]);
+  const valoresDoEvento = useMemo(() => valoresPorEventoESentido(transportes), [transportes]);
   const trocar = <T extends { id: string }>(l: T[], novo: T) => l.map((x) => (x.id === novo.id ? novo : x));
 
   const editarTransporte: OnEditar<Transporte> = async (linha, campo, valor) => { setTransportes((l) => trocar(l, { ...linha })); const n = await atualizarTransporte(linha.id, { [campo.edicao!.coluna]: valor } as never); setTransportes((l) => trocar(l, n)); };
@@ -72,5 +73,5 @@ export function useTransportes() {
     setVinculos((l) => l.map((x) => v.find((y) => y.id === x.id) ?? x));
   };
 
-  return { transportes, vinculos, carregado, erro, valorDoEvento, gravarCampo, editarTransporte, criarT, excluirT, ligarCarros, gravarRota };
+  return { transportes, vinculos, carregado, erro, valorDoEvento, valoresDoEvento, gravarCampo, editarTransporte, criarT, excluirT, ligarCarros, gravarRota };
 }
