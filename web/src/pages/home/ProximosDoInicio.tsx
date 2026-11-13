@@ -5,11 +5,14 @@ import { LinkNoLugar } from "../../app/noLugar";
 import { DIAS_DE_ANTECEDENCIA, diasAte, fatosDosEventos } from "../../lib/eventos/automacaoDeStatus";
 import { STATUS_EVENTO, type Evento } from "../../lib/eventos/tipos";
 import { corDaOpcao, useCores } from "../../lib/motor/cores";
-import { hojeLocal } from "../../lib/motor/datas";
+import { diaDaSemanaDaChave, hojeLocal } from "../../lib/motor/datas";
 import { useDadosDeEventos } from "../eventos/useDadosDeEventos";
 
 const etapa = (s: string) => STATUS_EVENTO.findIndex((x) => x.value === s);
 const dm = (d: string) => `${d.slice(8, 10)}/${d.slice(5, 7)}`;
+/** Dia da semana curtinho, sem "-feira": segunda, terça, quarta, quinta, sexta, sábado, domingo. */
+export const DIAS_CURTOS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"] as const;
+export const diaCurto = (d: string) => DIAS_CURTOS[diaDaSemanaDaChave(d)]!;
 const quando = (n: number) => (n < 0 ? `atrasado ${-n} dia${n === -1 ? "" : "s"}` : n === 0 ? "hoje" : n === 1 ? "amanhã" : `em ${n} dias`);
 type Item = { e: Evento; data: string; dias: number; feitos: number; carros: number; alerta: boolean };
 
@@ -47,7 +50,7 @@ export function ProximosDoInicio() {
           {itens.map((i) => (
             <li key={i.e.id} className={`mt-proximos__status ds-badge--cor-${corDoStatus(i.e.status)}`} data-status={i.e.status}>
               <LinkNoLugar to={`/eventos/${i.e.id}`} className="mt-reserva__evento">{i.e.nome}</LinkNoLugar>
-              <span className="t-body-sm">{rotuloData} <b>{dm(i.data)}</b> · {quando(i.dias)}</span>
+              <span className="t-body-sm">{rotuloData} <b>{dm(i.data)}</b> · {diaCurto(i.data)} · {quando(i.dias)}</span>
               <span className="t-body-sm t-muted">{rotuloTransporte}: {i.feitos}/{i.carros} carro{i.carros === 1 ? "" : "s"} · {STATUS_EVENTO.find((s) => s.value === i.e.status)?.label}</span>
             </li>
           ))}
